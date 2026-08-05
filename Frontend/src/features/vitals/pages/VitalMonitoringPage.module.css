@@ -1,0 +1,249 @@
+.vitalCard {
+  padding: 1.4rem;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+}
+
+.vitalCard > div {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.vitalCard > div > span {
+  display: grid;
+  width: 2.3rem;
+  height: 2.3rem;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--color-sage-soft);
+  color: var(--color-primary);
+}
+
+.vitalCard > div p {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 0.82rem;
+  font-weight: 750;
+}
+
+.vitalCard > div small {
+  color: var(--color-success-strong);
+  font-size: 0.68rem;
+  font-weight: 800;
+}
+
+.vitalCard > strong {
+  display: block;
+  margin-top: 1.8rem;
+  color: var(--color-text-strong);
+  font-family: var(--font-display);
+  font-size: 2.8rem;
+  letter-spacing: -0.05em;
+}
+
+.vitalCard > strong em {
+  margin-left: 0.35rem;
+  color: var(--color-text-soft);
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  font-style: normal;
+}
+
+.vitalCard > p {
+  margin: 0.25rem 0 0;
+  color: var(--color-text-soft);
+  font-size: 0.7rem;
+}
+
+.chartPanel,
+.historyPanel {
+  margin-top: 1rem;
+}
+
+.panelHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.panelHeader p,
+.panelHeader h2 {
+  margin: 0;
+}
+
+.panelHeader p {
+  margin-bottom: 0.35rem;
+  color: var(--color-secondary-strong);
+  font-size: 0.68rem;
+  font-weight: 850;
+  letter-spacing: 0.12em;
+}
+
+.panelHeader h2 {
+  color: var(--color-text-strong);
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  letter-spacing: -0.04em;
+}
+
+.periodButtons {
+  display: flex;
+  padding: 0.25rem;
+  border-radius: 999px;
+  background: var(--color-sand-soft);
+}
+
+.periodButtons button {
+  min-height: 2.2rem;
+  padding: 0 0.8rem;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  font-size: 0.7rem;
+  font-weight: 750;
+}
+
+.periodButtons .active {
+  background: var(--color-surface);
+  color: var(--color-text-strong);
+  box-shadow: 0 0.2rem 0.6rem rgba(64, 70, 45, 0.12);
+}
+
+.legend {
+  display: flex;
+  margin: 1.5rem 0 0.75rem;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.legend span {
+  display: flex;
+  color: var(--color-text-soft);
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.68rem;
+}
+
+.legend i {
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 50%;
+}
+
+.temperature { background: #7f8a66; }
+.heart { background: #c18468; }
+.breath { background: #7695a0; }
+
+.chart {
+  position: relative;
+  height: 17rem;
+  padding-bottom: 2rem;
+}
+
+.chart svg {
+  position: absolute;
+  z-index: 2;
+  inset: 0 0 2rem;
+  width: 100%;
+  height: calc(100% - 2rem);
+}
+
+.chart polyline {
+  fill: none;
+  stroke-width: 4;
+  vector-effect: non-scaling-stroke;
+}
+
+.temperatureLine { stroke: #7f8a66; }
+.heartLine { stroke: #c18468; }
+.breathLine { stroke: #7695a0; }
+
+.gridLines {
+  position: absolute;
+  inset: 0 0 2rem;
+  display: flex;
+  justify-content: space-between;
+  flex-direction: column;
+}
+
+.gridLines span {
+  border-top: 1px dashed var(--color-line);
+}
+
+.xAxis {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  display: flex;
+  justify-content: space-between;
+}
+
+.xAxis span {
+  color: var(--color-text-soft);
+  font-size: 0.65rem;
+}
+
+.panelHeader > button {
+  border: 0;
+  background: none;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  font-size: 0.72rem;
+  font-weight: 750;
+  text-decoration: underline;
+  text-underline-offset: 0.25rem;
+}
+
+.tableWrap {
+  overflow-x: auto;
+  margin-top: 1.25rem;
+}
+
+.tableWrap table {
+  width: 100%;
+  min-width: 42rem;
+  border-collapse: collapse;
+}
+
+.tableWrap th,
+.tableWrap td {
+  padding: 0.9rem 0.75rem;
+  border-top: 1px solid var(--color-line);
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
+  text-align: left;
+}
+
+.tableWrap th {
+  color: var(--color-text-soft);
+  font-weight: 750;
+}
+
+.normal,
+.watch {
+  padding: 0.32rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.67rem;
+  font-weight: 800;
+}
+
+.normal { background: var(--color-success-soft); color: var(--color-success-strong); }
+.watch { background: var(--color-watch-soft); color: var(--color-watch); }
+
+@media (max-width: 560px) {
+  .panelHeader {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .chart {
+    height: 14rem;
+  }
+}

@@ -1,0 +1,44 @@
+.avatar {
+  display: grid;
+  overflow: hidden;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 50%;
+  line-height: 1;
+}
+
+.avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.sage {
+  background: var(--color-sage-soft);
+}
+
+.sand {
+  background: var(--color-sand-soft);
+}
+
+.peach {
+  background: #f2ddd0;
+}
+
+.small {
+  width: 2.75rem;
+  height: 2.75rem;
+  font-size: 1.35rem;
+}
+
+.medium {
+  width: 4.25rem;
+  height: 4.25rem;
+  font-size: 2rem;
+}
+
+.large {
+  width: 7.5rem;
+  height: 7.5rem;
+  font-size: 3.5rem;
+}

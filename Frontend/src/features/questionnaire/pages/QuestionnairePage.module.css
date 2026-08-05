@@ -1,0 +1,370 @@
+.progress {
+  display: grid;
+  margin: 0 0 1rem;
+  padding: 1rem;
+  border: 1px solid var(--color-line);
+  border-radius: 1.1rem;
+  background: var(--color-surface);
+  grid-template-columns: repeat(5, 1fr);
+  list-style: none;
+}
+
+.progress li {
+  position: relative;
+  display: flex;
+  color: var(--color-text-soft);
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.progress li:not(:last-child)::after {
+  position: absolute;
+  right: -1rem;
+  width: 2rem;
+  border-top: 1px solid var(--color-line);
+  content: '';
+}
+
+.progress li > span {
+  display: grid;
+  width: 1.8rem;
+  height: 1.8rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--color-sand-soft);
+  font-size: 0.67rem;
+  font-weight: 800;
+}
+
+.progress p {
+  margin: 0;
+  font-size: 0.72rem;
+  font-weight: 750;
+}
+
+.progress .current,
+.progress .complete {
+  color: var(--color-text-strong);
+}
+
+.progress .current > span,
+.progress .complete > span {
+  background: var(--color-primary);
+  color: var(--color-cream);
+}
+
+.formCard {
+  padding: clamp(1.5rem, 4vw, 3rem);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+}
+
+.stepHeading {
+  display: flex;
+  margin-bottom: 2.5rem;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.stepHeading > span {
+  display: grid;
+  width: 3.2rem;
+  height: 3.2rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--color-sage-soft);
+  color: var(--color-primary);
+  font-size: 1.25rem;
+}
+
+.stepHeading p,
+.stepHeading h2,
+.stepHeading small {
+  display: block;
+  margin: 0;
+}
+
+.stepHeading p {
+  margin-bottom: 0.35rem;
+  color: var(--color-secondary-strong);
+  font-size: 0.68rem;
+  font-weight: 850;
+  letter-spacing: 0.12em;
+}
+
+.stepHeading h2 {
+  color: var(--color-text-strong);
+  font-family: var(--font-display);
+  font-size: clamp(1.55rem, 3vw, 2.15rem);
+  letter-spacing: -0.045em;
+}
+
+.stepHeading small {
+  margin-top: 0.5rem;
+  color: var(--color-text-soft);
+  line-height: 1.6;
+}
+
+.inputGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+}
+
+.inputGrid label > span,
+.daysField > span,
+.textareaField > span,
+.optionSection legend {
+  display: block;
+  margin-bottom: 0.55rem;
+  color: var(--color-text-strong);
+  font-size: 0.76rem;
+  font-weight: 800;
+}
+
+.inputGrid label > div,
+.daysField > div {
+  display: flex;
+  overflow: hidden;
+  border: 1px solid var(--color-line);
+  border-radius: 0.85rem;
+  background: #fbfaf5;
+  align-items: center;
+}
+
+.inputGrid input,
+.daysField input {
+  min-width: 0;
+  min-height: 3.25rem;
+  padding: 0 1rem;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--color-text-strong);
+  font-weight: 800;
+}
+
+.inputGrid em,
+.daysField em {
+  padding-right: 1rem;
+  color: var(--color-text-soft);
+  font-size: 0.72rem;
+  font-style: normal;
+  white-space: nowrap;
+}
+
+.optionSection {
+  padding: 0;
+  border: 0;
+  margin: 0 0 2rem;
+}
+
+.optionGrid,
+.checkGrid {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.optionGrid { grid-template-columns: repeat(4, 1fr); }
+.checkGrid { grid-template-columns: repeat(3, 1fr); }
+
+.optionGrid input,
+.checkGrid input {
+  position: absolute;
+  opacity: 0;
+}
+
+.optionGrid label,
+.checkGrid label {
+  cursor: pointer;
+}
+
+.optionGrid span,
+.checkGrid span {
+  display: grid;
+  min-height: 3.4rem;
+  padding: 0.5rem;
+  border: 1px solid var(--color-line);
+  border-radius: 0.85rem;
+  color: var(--color-text-muted);
+  place-items: center;
+  font-size: 0.76rem;
+  font-weight: 750;
+  text-align: center;
+}
+
+.optionGrid input:checked + span,
+.checkGrid input:checked + span {
+  border-color: var(--color-primary);
+  background: var(--color-primary);
+  color: var(--color-cream);
+}
+
+.daysField {
+  display: block;
+  max-width: 16rem;
+  margin-bottom: 1.5rem;
+}
+
+.textareaField {
+  display: block;
+}
+
+.textareaField textarea {
+  width: 100%;
+  padding: 1rem;
+  border: 1px solid var(--color-line);
+  border-radius: 0.85rem;
+  outline: 0;
+  background: #fbfaf5;
+  color: var(--color-text-strong);
+  line-height: 1.7;
+  resize: vertical;
+}
+
+.textareaField small {
+  display: block;
+  margin-top: 0.4rem;
+  color: var(--color-text-soft);
+  font-size: 0.68rem;
+  text-align: right;
+}
+
+.summaryGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.summaryGrid article {
+  position: relative;
+  padding: 1.15rem;
+  border-radius: 1rem;
+  background: #fbfaf5;
+}
+
+.summaryGrid p,
+.summaryGrid strong {
+  display: block;
+  margin: 0;
+}
+
+.summaryGrid p {
+  margin-bottom: 0.45rem;
+  color: var(--color-text-soft);
+  font-size: 0.68rem;
+}
+
+.summaryGrid strong {
+  padding-right: 2.5rem;
+  color: var(--color-text-strong);
+  font-size: 0.78rem;
+  line-height: 1.6;
+}
+
+.summaryGrid button {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--color-secondary-strong);
+  cursor: pointer;
+  font-size: 0.68rem;
+  text-decoration: underline;
+}
+
+.disclaimer {
+  display: flex;
+  margin-top: 1rem;
+  padding: 1rem;
+  border-radius: 0.9rem;
+  background: var(--color-watch-soft);
+  color: var(--color-watch);
+  align-items: center;
+  gap: 0.7rem;
+}
+
+.disclaimer span {
+  display: grid;
+  width: 1.6rem;
+  height: 1.6rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  font-size: 0.72rem;
+  font-weight: 850;
+}
+
+.disclaimer p {
+  margin: 0;
+  font-size: 0.72rem;
+  line-height: 1.55;
+}
+
+.actions {
+  display: flex;
+  margin-top: 2.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--color-line);
+  justify-content: space-between;
+}
+
+.actions button {
+  min-height: 3.1rem;
+  padding: 0 1.35rem;
+  border-radius: 999px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+.backButton {
+  border: 1px solid var(--color-line);
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+}
+
+.nextButton {
+  border: 0;
+  background: var(--color-primary);
+  color: var(--color-cream);
+}
+
+@media (max-width: 720px) {
+  .progress {
+    display: flex;
+    overflow-x: auto;
+    justify-content: flex-start;
+  }
+
+  .progress li {
+    min-width: 7rem;
+  }
+
+  .inputGrid,
+  .summaryGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .optionGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 460px) {
+  .checkGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .stepHeading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
