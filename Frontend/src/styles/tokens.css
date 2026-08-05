@@ -1,0 +1,33 @@
+:root {
+  --color-bg: #f6f4ee;
+  --color-surface: #fffdf8;
+  --color-cream: #fffdf8;
+  --color-text-strong: #40462d;
+  --color-text: #555b43;
+  --color-text-muted: #6f725e;
+  --color-text-soft: #8b8d7c;
+  --color-primary: #40462d;
+  --color-primary-hover: #303622;
+  --color-secondary: #7f8a66;
+  --color-secondary-strong: #66704f;
+  --color-sage-soft: #e2e5d4;
+  --color-sand: #d6cfa7;
+  --color-sand-soft: #ece7cf;
+  --color-line: rgba(64, 70, 45, 0.14);
+  --color-success: #4f7b58;
+  --color-success-strong: #35633f;
+  --color-success-soft: #e1efe2;
+  --color-watch: #a97920;
+  --color-watch-soft: #fff1c9;
+  --color-caution: #b95d32;
+  --color-caution-soft: #ffeadf;
+  --color-danger: #a84242;
+  --color-danger-soft: #f9e2e2;
+  --font-sans: 'Pretendard', 'Noto Sans KR', 'Apple SD Gothic Neo', 'Segoe UI', sans-serif;
+  --font-display: 'Arial Rounded MT Bold', 'Pretendard', 'Noto Sans KR', 'Segoe UI', sans-serif;
+  --content-width: 76rem;
+  --radius-card: 1.5rem;
+  --radius-hero: 2rem;
+  --shadow-card: 0 1.2rem 3rem rgba(64, 70, 45, 0.1);
+  --shadow-photo: 0 2rem 5rem rgba(64, 70, 45, 0.16);
+}

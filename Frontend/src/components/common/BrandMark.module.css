@@ -1,0 +1,38 @@
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.65rem;
+  color: var(--color-text-strong);
+}
+
+.symbol {
+  display: grid;
+  width: 2.25rem;
+  height: 2.25rem;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--color-primary);
+  color: var(--color-cream);
+}
+
+.symbol svg {
+  width: 1.6rem;
+  height: 1.6rem;
+  fill: currentColor;
+}
+
+.name {
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  font-weight: 800;
+  letter-spacing: -0.045em;
+}
+
+.inverse {
+  color: var(--color-cream);
+}
+
+.inverse .symbol {
+  background: var(--color-cream);
+  color: var(--color-primary);
+}

@@ -1,0 +1,455 @@
+.page {
+  width: min(calc(100% - 2rem), var(--content-width));
+  margin: 0 auto;
+  padding: clamp(3.5rem, 7vw, 6rem) 0 1rem;
+}
+
+.welcome {
+  display: flex;
+  margin-bottom: 2.5rem;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 2rem;
+}
+
+.eyebrow,
+.sectionTitle p,
+.cardHeading p,
+.insightLabel {
+  margin: 0 0 0.65rem;
+  color: var(--color-secondary-strong);
+  font-size: 0.72rem;
+  font-weight: 850;
+  letter-spacing: 0.12em;
+}
+
+.welcome h1 {
+  margin: 0;
+  color: var(--color-text-strong);
+  font-family: var(--font-display);
+  font-size: clamp(2.5rem, 5vw, 4.6rem);
+  letter-spacing: -0.065em;
+  line-height: 1;
+}
+
+.welcome > div > p:last-child {
+  margin: 1rem 0 0;
+  color: var(--color-text-muted);
+}
+
+.petSelector {
+  display: grid;
+  min-width: 15rem;
+  padding: 0.7rem 0.9rem;
+  border: 1px solid var(--color-line);
+  border-radius: 1.1rem;
+  background: var(--color-surface);
+  color: var(--color-text);
+  cursor: pointer;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 0.75rem;
+  text-align: left;
+}
+
+.petAvatar {
+  display: grid;
+  width: 2.75rem;
+  height: 2.75rem;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--color-sand-soft);
+  font-size: 1.4rem;
+}
+
+.petSelector strong,
+.petSelector small {
+  display: block;
+}
+
+.petSelector strong {
+  color: var(--color-text-strong);
+}
+
+.petSelector small {
+  margin-top: 0.2rem;
+  color: var(--color-text-soft);
+  font-size: 0.72rem;
+}
+
+.summaryGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(18rem, 0.5fr);
+  gap: 1rem;
+}
+
+.overallCard,
+.noticeCard,
+.vitalCard,
+.chartCard,
+.insightCard {
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-card);
+}
+
+.overallCard,
+.vitalCard,
+.chartCard {
+  background: var(--color-surface);
+}
+
+.overallCard {
+  padding: clamp(1.5rem, 3vw, 2.25rem);
+}
+
+.cardHeading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.cardHeading h2,
+.noticeCard h2,
+.sectionTitle h2,
+.insightCard h2 {
+  margin: 0;
+  color: var(--color-text-strong);
+  font-family: var(--font-display);
+  letter-spacing: -0.045em;
+}
+
+.cardHeading h2 {
+  font-size: clamp(1.45rem, 2.5vw, 2rem);
+}
+
+.normalBadge {
+  padding: 0.4rem 0.75rem;
+  border-radius: 999px;
+  background: var(--color-success-soft);
+  color: var(--color-success-strong);
+  font-size: 0.75rem;
+  font-weight: 850;
+}
+
+.scoreArea {
+  display: flex;
+  margin: 2rem 0;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.scoreRing {
+  display: grid;
+  width: 7.3rem;
+  height: 7.3rem;
+  flex: 0 0 auto;
+  place-content: center;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at center, var(--color-surface) 58%, transparent 60%),
+    conic-gradient(var(--color-secondary) 0 86%, var(--color-sage-soft) 86% 100%);
+  text-align: center;
+}
+
+.scoreRing strong,
+.scoreRing small {
+  display: block;
+}
+
+.scoreRing strong {
+  color: var(--color-text-strong);
+  font-family: var(--font-display);
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.scoreRing small {
+  margin-top: 0.25rem;
+  color: var(--color-text-soft);
+  font-size: 0.68rem;
+}
+
+.scoreArea > p {
+  max-width: 27rem;
+  margin: 0;
+  color: var(--color-text-muted);
+  line-height: 1.75;
+  word-break: keep-all;
+}
+
+.darkButton {
+  width: 100%;
+  min-height: 3.2rem;
+  border: 0;
+  border-radius: 999px;
+  background: var(--color-primary);
+  color: var(--color-cream);
+  cursor: pointer;
+  font-weight: 750;
+}
+
+.noticeCard {
+  display: flex;
+  padding: 1.7rem;
+  background: var(--color-sand-soft);
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.noticeIcon,
+.insightIcon {
+  display: grid;
+  width: 3rem;
+  height: 3rem;
+  place-items: center;
+  border-radius: 50%;
+}
+
+.noticeIcon {
+  background: var(--color-surface);
+  color: var(--color-primary);
+}
+
+.noticeCard p {
+  margin: 2.5rem 0 0.45rem;
+  color: var(--color-text-muted);
+  font-size: 0.82rem;
+}
+
+.noticeCard h2 {
+  font-size: 1.65rem;
+}
+
+.noticeCard small {
+  display: block;
+  margin-top: 0.55rem;
+  color: var(--color-text-soft);
+}
+
+.noticeCard button,
+.sectionTitle button,
+.cardHeading button,
+.insightCard button {
+  border: 0;
+  background: none;
+  color: var(--color-text-strong);
+  cursor: pointer;
+  font-weight: 750;
+  text-decoration: underline;
+  text-underline-offset: 0.3rem;
+}
+
+.noticeCard button {
+  align-self: flex-start;
+  padding: 0;
+}
+
+.vitalsSection {
+  margin-top: 4rem;
+}
+
+.sectionTitle {
+  display: flex;
+  margin-bottom: 1.25rem;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.sectionTitle h2 {
+  font-size: 2.2rem;
+}
+
+.vitalGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+}
+
+.vitalCard {
+  padding: 1.5rem;
+}
+
+.vitalTop {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.vitalTop > span {
+  display: grid;
+  width: 2.25rem;
+  height: 2.25rem;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--color-sage-soft);
+  color: var(--color-primary);
+}
+
+.vitalTop p {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-weight: 700;
+}
+
+.vitalTop small {
+  color: var(--color-success-strong);
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.vitalValue {
+  display: flex;
+  margin-top: 2rem;
+  align-items: baseline;
+  gap: 0.4rem;
+}
+
+.vitalValue strong {
+  color: var(--color-text-strong);
+  font-family: var(--font-display);
+  font-size: 2.5rem;
+  letter-spacing: -0.05em;
+}
+
+.vitalValue span {
+  color: var(--color-text-soft);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.vitalNote {
+  margin: 0.25rem 0 0;
+  color: var(--color-text-soft);
+  font-size: 0.76rem;
+}
+
+.detailGrid {
+  display: grid;
+  margin-top: 1rem;
+  grid-template-columns: minmax(0, 1.45fr) minmax(18rem, 0.55fr);
+  gap: 1rem;
+}
+
+.chartCard,
+.insightCard {
+  padding: 1.7rem;
+}
+
+.cardHeading button {
+  color: var(--color-text-muted);
+  text-decoration: none;
+}
+
+.chart {
+  display: grid;
+  height: 14rem;
+  margin-top: 2rem;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0.75rem;
+}
+
+.chartColumn {
+  display: grid;
+  min-width: 0;
+  grid-template-rows: 1fr auto;
+  gap: 0.7rem;
+  text-align: center;
+}
+
+.chartTrack {
+  display: flex;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--color-sage-soft);
+  align-items: flex-end;
+}
+
+.chartTrack span {
+  width: 100%;
+  border-radius: 999px;
+  background: var(--color-secondary);
+}
+
+.chartColumn small {
+  color: var(--color-text-soft);
+  font-size: 0.72rem;
+}
+
+.insightCard {
+  background: var(--color-primary);
+  color: var(--color-cream);
+}
+
+.insightLabel {
+  color: var(--color-sand);
+}
+
+.insightIcon {
+  margin: 2.5rem 0 1.5rem;
+  background: rgba(255, 253, 248, 0.12);
+  color: var(--color-cream);
+}
+
+.insightCard h2 {
+  color: var(--color-cream);
+  font-size: 1.65rem;
+  line-height: 1.25;
+}
+
+.insightCard > p:not(.insightLabel) {
+  margin: 1rem 0 2rem;
+  color: rgba(255, 253, 248, 0.72);
+  font-size: 0.85rem;
+  line-height: 1.75;
+  word-break: keep-all;
+}
+
+.insightCard button {
+  padding: 0;
+  color: var(--color-cream);
+}
+
+@media (max-width: 900px) {
+  .summaryGrid,
+  .detailGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .noticeCard {
+    gap: 1.5rem;
+  }
+
+  .noticeCard p {
+    margin-top: 0;
+  }
+}
+
+@media (max-width: 720px) {
+  .welcome {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .petSelector {
+    width: 100%;
+  }
+
+  .vitalGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .scoreArea {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .sectionTitle {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
