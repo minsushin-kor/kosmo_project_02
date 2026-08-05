@@ -1,0 +1,452 @@
+.hero {
+  display: grid;
+  width: min(calc(100% - 2rem), var(--content-width));
+  margin: 0 auto;
+  padding: clamp(3.5rem, 8vw, 7.5rem) 0 5rem;
+  grid-template-columns: minmax(0, 0.9fr) minmax(24rem, 1.1fr);
+  align-items: center;
+  gap: clamp(3rem, 7vw, 7rem);
+}
+
+.heroCopy {
+  max-width: 38rem;
+}
+
+.eyebrow {
+  margin: 0 0 1.25rem;
+  color: var(--color-secondary-strong);
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+}
+
+.hero h1 {
+  margin: 0;
+  color: var(--color-text-strong);
+  font-family: var(--font-display);
+  font-size: clamp(3.15rem, 5.8vw, 6.1rem);
+  font-weight: 850;
+  letter-spacing: -0.075em;
+  line-height: 0.98;
+  text-wrap: balance;
+}
+
+.hero h1 span {
+  color: var(--color-secondary);
+}
+
+.heroDescription {
+  max-width: 34rem;
+  margin: 2rem 0 0;
+  color: var(--color-text-muted);
+  font-size: clamp(1rem, 1.5vw, 1.12rem);
+  line-height: 1.85;
+  word-break: keep-all;
+}
+
+.heroActions {
+  display: flex;
+  margin-top: 2.25rem;
+  align-items: center;
+  gap: 1.4rem;
+  flex-wrap: wrap;
+}
+
+.primaryButton,
+.lightButton {
+  display: inline-flex;
+  min-height: 3.35rem;
+  align-items: center;
+  justify-content: center;
+  padding: 0 1.55rem;
+  border-radius: 999px;
+  font-size: 0.92rem;
+  font-weight: 750;
+  text-decoration: none;
+  transition: transform 160ms ease, background-color 160ms ease;
+}
+
+.primaryButton {
+  background: var(--color-primary);
+  color: var(--color-cream);
+}
+
+.primaryButton:hover,
+.lightButton:hover {
+  transform: translateY(-2px);
+}
+
+.primaryButton:hover {
+  background: var(--color-primary-hover);
+}
+
+.textLink {
+  color: var(--color-text-strong);
+  font-size: 0.92rem;
+  font-weight: 750;
+  text-underline-offset: 0.35rem;
+}
+
+.trustNote {
+  display: flex;
+  margin-top: 2rem;
+  align-items: center;
+  gap: 0.65rem;
+  color: var(--color-text-soft);
+}
+
+.trustNote span {
+  color: var(--color-success);
+  font-size: 0.65rem;
+}
+
+.trustNote p {
+  margin: 0;
+  font-size: 0.78rem;
+}
+
+.heroVisual {
+  position: relative;
+  min-height: 35rem;
+}
+
+.heroVisual img {
+  width: 100%;
+  height: 100%;
+  min-height: 35rem;
+  border-radius: var(--radius-hero);
+  object-fit: cover;
+  object-position: 56% center;
+  box-shadow: var(--shadow-photo);
+}
+
+.imageFrame {
+  position: absolute;
+  inset: 1rem;
+  border: 1px solid rgba(255, 253, 248, 0.7);
+  border-radius: calc(var(--radius-hero) - 0.65rem);
+  pointer-events: none;
+}
+
+.statusCard {
+  position: absolute;
+  right: 1rem;
+  bottom: 1rem;
+  display: grid;
+  min-width: min(23rem, 86%);
+  padding: 1rem 1.15rem;
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  border-radius: 1.25rem;
+  background: rgba(255, 253, 248, 0.92);
+  box-shadow: var(--shadow-card);
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 0.85rem;
+  backdrop-filter: blur(16px);
+}
+
+.statusIcon {
+  display: grid;
+  width: 2.65rem;
+  height: 2.65rem;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--color-sage-soft);
+  color: var(--color-primary);
+}
+
+.statusCard small,
+.statusCard strong {
+  display: block;
+}
+
+.statusCard small {
+  margin-bottom: 0.2rem;
+  color: var(--color-text-soft);
+  font-size: 0.72rem;
+}
+
+.statusCard strong {
+  color: var(--color-text-strong);
+  font-size: 0.93rem;
+}
+
+.statusBadge {
+  padding: 0.35rem 0.65rem;
+  border-radius: 999px;
+  background: var(--color-success-soft);
+  color: var(--color-success-strong);
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.promise {
+  display: flex;
+  min-height: 5.25rem;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(1rem, 4vw, 4rem);
+  background: var(--color-primary);
+  color: var(--color-cream);
+}
+
+.promise p {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(1rem, 1.7vw, 1.35rem);
+  font-weight: 750;
+}
+
+.promise span {
+  color: var(--color-sand);
+}
+
+.section {
+  width: min(calc(100% - 2rem), var(--content-width));
+  margin: 0 auto;
+  padding: clamp(6rem, 10vw, 9rem) 0;
+  scroll-margin-top: 6rem;
+}
+
+.sectionHeading {
+  display: grid;
+  margin-bottom: 3rem;
+  grid-template-columns: 1.2fr 0.8fr;
+  align-items: end;
+  column-gap: 4rem;
+}
+
+.sectionHeading .eyebrow {
+  grid-column: 1 / -1;
+}
+
+.sectionHeading h2,
+.processIntro h2,
+.finalCta h2 {
+  margin: 0;
+  color: var(--color-text-strong);
+  font-family: var(--font-display);
+  font-size: clamp(2.5rem, 4.5vw, 4.75rem);
+  font-weight: 820;
+  letter-spacing: -0.065em;
+  line-height: 1.08;
+}
+
+.sectionHeading > p:last-child {
+  margin: 0 0 0.4rem;
+  color: var(--color-text-muted);
+  line-height: 1.8;
+  word-break: keep-all;
+}
+
+.featureGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+}
+
+.featureCard {
+  min-height: 22rem;
+  padding: 1.6rem;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  transition: transform 180ms ease, box-shadow 180ms ease;
+}
+
+.featureCard:hover {
+  box-shadow: var(--shadow-card);
+  transform: translateY(-4px);
+}
+
+.featureCard > span {
+  color: var(--color-text-soft);
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+.featureIcon {
+  display: grid;
+  width: 4.5rem;
+  height: 4.5rem;
+  margin: 4rem 0 2.5rem;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--color-sand-soft);
+  color: var(--color-primary);
+  font-family: var(--font-display);
+  font-size: 2rem;
+}
+
+.featureCard h3 {
+  margin: 0 0 0.85rem;
+  color: var(--color-text-strong);
+  font-family: var(--font-display);
+  font-size: 1.45rem;
+  letter-spacing: -0.04em;
+}
+
+.featureCard p {
+  margin: 0;
+  color: var(--color-text-muted);
+  line-height: 1.75;
+  word-break: keep-all;
+}
+
+.processSection {
+  display: grid;
+  padding: clamp(5rem, 9vw, 8rem) max(1rem, calc((100% - var(--content-width)) / 2));
+  background: var(--color-sand-soft);
+  grid-template-columns: 0.85fr 1.15fr;
+  gap: clamp(3rem, 8vw, 8rem);
+  scroll-margin-top: 4.75rem;
+}
+
+.steps {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.steps li {
+  display: grid;
+  padding: 1.7rem 0;
+  border-top: 1px solid rgba(64, 70, 45, 0.2);
+  grid-template-columns: 4rem 1fr;
+  gap: 1rem;
+}
+
+.steps li:last-child {
+  border-bottom: 1px solid rgba(64, 70, 45, 0.2);
+}
+
+.steps > li > span {
+  color: var(--color-secondary-strong);
+  font-size: 0.78rem;
+  font-weight: 850;
+}
+
+.steps h3,
+.steps p {
+  margin: 0;
+}
+
+.steps h3 {
+  color: var(--color-text-strong);
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  letter-spacing: -0.04em;
+}
+
+.steps p {
+  margin-top: 0.55rem;
+  color: var(--color-text-muted);
+  line-height: 1.7;
+}
+
+.finalCta {
+  width: min(calc(100% - 2rem), var(--content-width));
+  margin: 7rem auto 0;
+  padding: clamp(4rem, 8vw, 7rem) 1.5rem;
+  border-radius: var(--radius-hero);
+  background: var(--color-primary);
+  color: var(--color-cream);
+  text-align: center;
+}
+
+.finalCta .eyebrow,
+.finalCta h2 {
+  color: var(--color-cream);
+}
+
+.lightButton {
+  margin-top: 2.25rem;
+  background: var(--color-cream);
+  color: var(--color-primary);
+}
+
+.lightButton:hover {
+  background: white;
+}
+
+@media (max-width: 960px) {
+  .hero {
+    grid-template-columns: 1fr;
+  }
+
+  .heroCopy {
+    max-width: 48rem;
+  }
+
+  .heroVisual,
+  .heroVisual img {
+    min-height: 30rem;
+  }
+
+  .sectionHeading,
+  .processSection {
+    grid-template-columns: 1fr;
+  }
+
+  .sectionHeading {
+    gap: 1.5rem;
+  }
+}
+
+@media (max-width: 720px) {
+  .hero {
+    padding-top: 2.75rem;
+  }
+
+  .heroVisual,
+  .heroVisual img {
+    min-height: 25rem;
+  }
+
+  .promise {
+    min-height: 4.5rem;
+    gap: 0.65rem;
+  }
+
+  .promise p {
+    font-size: 0.78rem;
+  }
+
+  .featureGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .featureCard {
+    min-height: auto;
+  }
+
+  .featureIcon {
+    margin: 2.5rem 0 1.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .hero h1 {
+    font-size: 2.85rem;
+  }
+
+  .heroVisual,
+  .heroVisual img {
+    min-height: 22rem;
+  }
+
+  .statusCard {
+    right: 0.75rem;
+    bottom: 0.75rem;
+    min-width: calc(100% - 1.5rem);
+  }
+
+  .promise span {
+    display: none;
+  }
+
+  .promise {
+    padding: 0.8rem;
+    flex-wrap: wrap;
+  }
+}

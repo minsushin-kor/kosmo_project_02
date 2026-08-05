@@ -1,0 +1,55 @@
+.page {
+  display: flex;
+  min-height: 70vh;
+  padding: 3rem 1rem;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  text-align: center;
+}
+
+.page > span {
+  display: grid;
+  width: 5rem;
+  height: 5rem;
+  margin-bottom: 1.5rem;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--color-sand-soft);
+  font-size: 2.2rem;
+}
+
+.page > p:first-of-type {
+  margin: 0 0 1rem;
+  color: var(--color-secondary-strong);
+  font-size: 0.75rem;
+  font-weight: 850;
+  letter-spacing: 0.14em;
+}
+
+.page h1 {
+  margin: 0;
+  color: var(--color-text-strong);
+  font-family: var(--font-display);
+  font-size: clamp(2.5rem, 6vw, 4.5rem);
+  letter-spacing: -0.06em;
+}
+
+.page > p:last-of-type {
+  max-width: 30rem;
+  margin: 1rem 0 2rem;
+  color: var(--color-text-muted);
+  line-height: 1.8;
+}
+
+.page a {
+  display: inline-flex;
+  min-height: 3.1rem;
+  padding: 0 1.4rem;
+  border-radius: 999px;
+  background: var(--color-primary);
+  color: var(--color-cream);
+  align-items: center;
+  font-weight: 750;
+  text-decoration: none;
+}
