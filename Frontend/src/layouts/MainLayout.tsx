@@ -8,6 +8,7 @@ export function MainLayout() {
 
   useEffect(() => {
     if (!hash) {
+      window.scrollTo({ top: 0, left: 0, behavior: 'auto' })
       return
     }
 
@@ -34,16 +35,33 @@ export function MainLayout() {
             <Link to="/#services">서비스 소개</Link>
             <Link to="/#how-it-works">이용 방법</Link>
             <NavLink
+              to="/pets"
+              className={({ isActive }) => (isActive ? styles.active : undefined)}
+            >
+              반려동물
+            </NavLink>
+            <NavLink
               to="/dashboard"
               className={({ isActive }) => (isActive ? styles.active : undefined)}
             >
               건강 대시보드
             </NavLink>
+            <NavLink
+              to="/mypage"
+              className={({ isActive }) => (isActive ? styles.active : undefined)}
+            >
+              마이페이지
+            </NavLink>
           </nav>
 
-          <Link className={styles.headerCta} to="/dashboard">
-            건강 기록 시작하기
-          </Link>
+          <div className={styles.headerActions}>
+            <Link className={styles.signupCta} to="/signup">
+              회원가입
+            </Link>
+            <Link className={styles.headerCta} to="/login">
+              로그인
+            </Link>
+          </div>
         </div>
       </header>
 

@@ -1,0 +1,79 @@
+.resultHero {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.75fr) minmax(0, 1.6fr);
+  gap: clamp(2rem, 5vw, 5rem);
+  align-items: center;
+  padding: clamp(2rem, 5vw, 4rem);
+  border-radius: 2rem;
+  background: var(--color-primary);
+  color: var(--color-cream);
+}
+
+.riskGauge {
+  width: min(100%, 230px);
+  aspect-ratio: 1;
+  padding: 0.8rem;
+  border-radius: 50%;
+  background: conic-gradient(var(--color-secondary) 0 23%, rgba(255, 255, 255, 0.14) 23% 100%);
+}
+
+.riskGaugeInner {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  align-items: center;
+  justify-content: center;
+  border-radius: inherit;
+  background: var(--color-primary);
+  flex-direction: column;
+}
+
+.riskGauge strong { font-family: var(--font-display); font-size: 3.5rem; }
+.riskGauge span { color: rgba(255, 255, 255, 0.7); font-size: 0.75rem; }
+
+.watchBadge {
+  display: inline-flex;
+  padding: 0.45rem 0.75rem;
+  border-radius: 999px;
+  background: var(--color-secondary);
+  color: var(--color-primary);
+  font-size: 0.72rem;
+  font-weight: 850;
+}
+
+.resultCopy h2 {
+  margin: 1.1rem 0 0.85rem;
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 4vw, 3.3rem);
+  letter-spacing: -0.05em;
+  line-height: 1.12;
+}
+
+.resultCopy > p { max-width: 42rem; margin: 0; color: rgba(255, 255, 255, 0.74); line-height: 1.75; }
+.metadata { display: flex; gap: 1.5rem; margin-top: 1.5rem; color: rgba(255, 255, 255, 0.55); font-size: 0.72rem; }
+.metadata strong { margin-left: 0.3rem; color: var(--color-cream); }
+
+.resultGrid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem; }
+.factorPanel > p { margin: 0.55rem 0 1.5rem; color: var(--color-text-muted); font-size: 0.84rem; }
+.factorList { display: grid; gap: 1rem; }
+.factor > div:first-child { display: flex; justify-content: space-between; margin-bottom: 0.45rem; font-size: 0.78rem; }
+.factorTrack { height: 0.55rem; overflow: hidden; border-radius: 999px; background: var(--color-sand-soft); }
+.factorTrack span { display: block; height: 100%; border-radius: inherit; background: var(--color-secondary-strong); }
+
+.guidePanel ol { display: grid; gap: 1rem; margin: 1.5rem 0 0; padding: 0; list-style: none; }
+.guidePanel li { display: flex; gap: 0.9rem; }
+.guidePanel li > span { display: grid; width: 2.1rem; height: 2.1rem; flex: 0 0 auto; place-items: center; border-radius: 50%; background: var(--color-sand-soft); color: var(--color-secondary-strong); font-size: 0.65rem; font-weight: 850; }
+.guidePanel strong { font-size: 0.85rem; }
+.guidePanel p { margin: 0.3rem 0 0; color: var(--color-text-muted); font-size: 0.78rem; line-height: 1.6; }
+
+.disclaimer { display: flex; gap: 1rem; margin-top: 1rem; padding: 1.15rem 1.4rem; border: 1px solid #e9d8bd; border-radius: 1.25rem; background: #fff8ec; }
+.disclaimer strong { flex: 0 0 auto; font-size: 0.8rem; }
+.disclaimer p { margin: 0; color: var(--color-text-muted); font-size: 0.76rem; line-height: 1.65; }
+.actions { display: flex; justify-content: flex-end; gap: 0.7rem; margin-top: 1.2rem; }
+
+@media (max-width: 780px) {
+  .resultHero, .resultGrid { grid-template-columns: 1fr; }
+  .riskGauge { width: 180px; }
+  .metadata, .disclaimer { flex-direction: column; gap: 0.5rem; }
+  .actions > * { flex: 1; }
+}

@@ -37,46 +37,6 @@
   color: var(--color-text-muted);
 }
 
-.petSelector {
-  display: grid;
-  min-width: 15rem;
-  padding: 0.7rem 0.9rem;
-  border: 1px solid var(--color-line);
-  border-radius: 1.1rem;
-  background: var(--color-surface);
-  color: var(--color-text);
-  cursor: pointer;
-  grid-template-columns: auto 1fr auto;
-  align-items: center;
-  gap: 0.75rem;
-  text-align: left;
-}
-
-.petAvatar {
-  display: grid;
-  width: 2.75rem;
-  height: 2.75rem;
-  place-items: center;
-  border-radius: 50%;
-  background: var(--color-sand-soft);
-  font-size: 1.4rem;
-}
-
-.petSelector strong,
-.petSelector small {
-  display: block;
-}
-
-.petSelector strong {
-  color: var(--color-text-strong);
-}
-
-.petSelector small {
-  margin-top: 0.2rem;
-  color: var(--color-text-soft);
-  font-size: 0.72rem;
-}
-
 .summaryGrid {
   display: grid;
   grid-template-columns: minmax(0, 1.5fr) minmax(18rem, 0.5fr);
@@ -179,14 +139,18 @@
 }
 
 .darkButton {
+  display: inline-flex;
   width: 100%;
   min-height: 3.2rem;
+  align-items: center;
+  justify-content: center;
   border: 0;
   border-radius: 999px;
   background: var(--color-primary);
   color: var(--color-cream);
   cursor: pointer;
   font-weight: 750;
+  text-decoration: none;
 }
 
 .noticeCard {
@@ -227,10 +191,10 @@
   color: var(--color-text-soft);
 }
 
-.noticeCard button,
-.sectionTitle button,
+.noticeCard a,
+.sectionTitle a,
 .cardHeading button,
-.insightCard button {
+.insightCard a {
   border: 0;
   background: none;
   color: var(--color-text-strong);
@@ -240,7 +204,7 @@
   text-underline-offset: 0.3rem;
 }
 
-.noticeCard button {
+.noticeCard a {
   align-self: flex-start;
   padding: 0;
 }
@@ -407,7 +371,7 @@
   word-break: keep-all;
 }
 
-.insightCard button {
+.insightCard a {
   padding: 0;
   color: var(--color-cream);
 }
@@ -431,10 +395,6 @@
   .welcome {
     align-items: stretch;
     flex-direction: column;
-  }
-
-  .petSelector {
-    width: 100%;
   }
 
   .vitalGrid {

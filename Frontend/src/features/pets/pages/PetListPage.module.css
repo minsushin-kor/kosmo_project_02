@@ -1,0 +1,381 @@
+.page {
+  width: min(calc(100% - 2rem), var(--content-width));
+  margin: 0 auto;
+  padding: clamp(3.5rem, 7vw, 6rem) 0 1rem;
+}
+
+.pageHeader,
+.sectionHeading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 2rem;
+}
+
+.eyebrow {
+  margin: 0 0 0.8rem;
+  color: var(--color-secondary-strong);
+  font-size: 0.72rem;
+  font-weight: 850;
+  letter-spacing: 0.13em;
+}
+
+.pageHeader h1,
+.sectionHeading h2,
+.selectedInfo h2 {
+  margin: 0;
+  color: var(--color-text-strong);
+  font-family: var(--font-display);
+  letter-spacing: -0.055em;
+}
+
+.pageHeader h1 {
+  font-size: clamp(2.6rem, 5vw, 4.75rem);
+  line-height: 1.05;
+}
+
+.pageHeader > div > p:last-child {
+  margin: 1rem 0 0;
+  color: var(--color-text-muted);
+  line-height: 1.75;
+}
+
+.addButton {
+  display: inline-flex;
+  min-height: 3.2rem;
+  align-items: center;
+  justify-content: center;
+  padding: 0 1.35rem;
+  border-radius: 999px;
+  background: var(--color-primary);
+  color: var(--color-cream);
+  font-size: 0.88rem;
+  font-weight: 800;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.addButton span {
+  margin-right: 0.35rem;
+  font-size: 1.1rem;
+}
+
+.successNotice {
+  display: flex;
+  margin-top: 2rem;
+  padding: 1rem 1.2rem;
+  border: 1px solid rgba(53, 99, 63, 0.2);
+  border-radius: 1rem;
+  background: var(--color-success-soft);
+  color: var(--color-success-strong);
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.successNotice > span {
+  display: grid;
+  width: 1.8rem;
+  height: 1.8rem;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--color-success-strong);
+  color: white;
+  font-size: 0.75rem;
+}
+
+.successNotice p {
+  margin: 0;
+  font-size: 0.88rem;
+}
+
+.selectedPanel {
+  overflow: hidden;
+  margin-top: 3rem;
+  border-radius: var(--radius-card);
+  background: var(--color-primary);
+  color: var(--color-cream);
+}
+
+.selectedLabel {
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid rgba(255, 253, 248, 0.12);
+  color: rgba(255, 253, 248, 0.75);
+  font-size: 0.75rem;
+  font-weight: 750;
+}
+
+.selectedLabel span {
+  margin-right: 0.4rem;
+  color: #a7d1aa;
+  font-size: 0.55rem;
+}
+
+.selectedContent {
+  display: grid;
+  padding: clamp(1.5rem, 4vw, 2.5rem);
+  grid-template-columns: auto 1fr minmax(15rem, 0.7fr);
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.selectedInfo > p {
+  margin: 0 0 0.25rem;
+  color: rgba(255, 253, 248, 0.65);
+  font-size: 0.75rem;
+}
+
+.selectedInfo h2 {
+  color: var(--color-cream);
+  font-size: 2.5rem;
+}
+
+.metaList {
+  display: flex;
+  margin-top: 0.75rem;
+  gap: 0.55rem;
+  flex-wrap: wrap;
+}
+
+.metaList span {
+  padding-right: 0.65rem;
+  border-right: 1px solid rgba(255, 253, 248, 0.2);
+  color: rgba(255, 253, 248, 0.75);
+  font-size: 0.8rem;
+}
+
+.metaList span:last-child {
+  padding-right: 0;
+  border: 0;
+}
+
+.selectedActions {
+  padding-left: 1.5rem;
+  border-left: 1px solid rgba(255, 253, 248, 0.15);
+}
+
+.selectedActions p {
+  margin: 0 0 1rem;
+  color: rgba(255, 253, 248, 0.65);
+  font-size: 0.8rem;
+  line-height: 1.65;
+  word-break: keep-all;
+}
+
+.selectedActions a {
+  color: var(--color-cream);
+  font-size: 0.85rem;
+  font-weight: 800;
+  text-underline-offset: 0.3rem;
+}
+
+.actionLinks {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.petSection {
+  margin-top: 5rem;
+}
+
+.sectionHeading h2 {
+  font-size: 2.2rem;
+}
+
+.sectionHeading > span {
+  color: var(--color-text-soft);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.petGrid {
+  display: grid;
+  margin-top: 1.5rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.petCard,
+.addCard {
+  min-height: 26rem;
+  padding: 1.5rem;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+}
+
+.selectedCard {
+  border-color: rgba(64, 70, 45, 0.42);
+  box-shadow: inset 0 0 0 1px rgba(64, 70, 45, 0.2);
+}
+
+.cardTop {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.selectedBadge {
+  padding: 0.4rem 0.65rem;
+  border-radius: 999px;
+  background: var(--color-success-soft);
+  color: var(--color-success-strong);
+  font-size: 0.68rem;
+  font-weight: 850;
+}
+
+.cardTitle {
+  margin-top: 2rem;
+}
+
+.cardTitle p,
+.cardTitle h3 {
+  margin: 0;
+}
+
+.cardTitle p {
+  margin-bottom: 0.25rem;
+  color: var(--color-text-soft);
+  font-size: 0.75rem;
+}
+
+.cardTitle h3 {
+  color: var(--color-text-strong);
+  font-family: var(--font-display);
+  font-size: 2rem;
+  letter-spacing: -0.05em;
+}
+
+.petDetails {
+  margin: 1.5rem 0;
+}
+
+.petDetails > div {
+  display: flex;
+  padding: 0.65rem 0;
+  border-top: 1px solid var(--color-line);
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.petDetails > div:last-child {
+  border-bottom: 1px solid var(--color-line);
+}
+
+.petDetails dt,
+.petDetails dd {
+  margin: 0;
+  font-size: 0.78rem;
+}
+
+.petDetails dt {
+  color: var(--color-text-soft);
+}
+
+.petDetails dd {
+  color: var(--color-text-strong);
+  font-weight: 750;
+  text-align: right;
+}
+
+.petCard button {
+  width: 100%;
+  min-height: 3rem;
+  border: 0;
+  border-radius: 999px;
+  background: var(--color-primary);
+  color: var(--color-cream);
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.petCard button:disabled {
+  background: var(--color-sage-soft);
+  color: var(--color-secondary-strong);
+  cursor: default;
+}
+
+.addCard {
+  display: flex;
+  border-style: dashed;
+  background: transparent;
+  color: var(--color-text-muted);
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  text-align: center;
+  text-decoration: none;
+}
+
+.addCard > span {
+  display: grid;
+  width: 3.75rem;
+  height: 3.75rem;
+  margin-bottom: 1.2rem;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--color-sand-soft);
+  color: var(--color-primary);
+  font-size: 1.6rem;
+}
+
+.addCard strong {
+  color: var(--color-text-strong);
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+}
+
+.addCard p {
+  max-width: 14rem;
+  margin: 0.65rem 0 0;
+  color: var(--color-text-soft);
+  font-size: 0.8rem;
+  line-height: 1.6;
+}
+
+@media (max-width: 940px) {
+  .selectedContent {
+    grid-template-columns: auto 1fr;
+  }
+
+  .selectedActions {
+    padding: 1.25rem 0 0;
+    border-top: 1px solid rgba(255, 253, 248, 0.15);
+    border-left: 0;
+    grid-column: 1 / -1;
+  }
+
+  .petGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 680px) {
+  .pageHeader {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .selectedContent {
+    grid-template-columns: 1fr;
+  }
+
+  .selectedActions {
+    grid-column: auto;
+  }
+
+  .petGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .petCard,
+  .addCard {
+    min-height: auto;
+  }
+
+  .addCard {
+    padding: 3rem 1.5rem;
+  }
+}

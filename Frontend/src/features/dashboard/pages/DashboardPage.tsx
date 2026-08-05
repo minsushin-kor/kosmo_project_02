@@ -1,3 +1,6 @@
+import { Link } from 'react-router-dom'
+import { PetSelector } from '../../pets/components/PetSelector'
+import { usePets } from '../../pets/hooks/usePets'
 import styles from './DashboardPage.module.css'
 
 const vitals = [
@@ -9,19 +12,18 @@ const vitals = [
 const weeklyData = [48, 56, 53, 68, 72, 64, 78]
 
 export function DashboardPage() {
+  const { selectedPet } = usePets()
+  const petBase = `/pets/${selectedPet.id}`
+
   return (
     <div className={styles.page}>
       <section className={styles.welcome}>
         <div>
           <p className={styles.eyebrow}>TODAY'S PET WELLNESS</p>
           <h1>안녕하세요, 보호자님.</h1>
-          <p>코코의 오늘 건강 신호를 차분하게 살펴볼까요?</p>
+          <p>{selectedPet.name}의 오늘 건강 신호를 차분하게 살펴볼까요?</p>
         </div>
-        <button className={styles.petSelector} type="button" aria-label="반려동물 선택">
-          <span className={styles.petAvatar} aria-hidden="true">🐶</span>
-          <span><strong>코코</strong><small>웰시코기 · 4살</small></span>
-          <span aria-hidden="true">⌄</span>
-        </button>
+        <PetSelector />
       </section>
 
       <section className={styles.summaryGrid} aria-label="건강 상태 요약">
@@ -43,7 +45,7 @@ export function DashboardPage() {
               간단히 기록해 주세요.
             </p>
           </div>
-          <button className={styles.darkButton} type="button">오늘 건강 문진 시작하기</button>
+          <Link className={styles.darkButton} to={`${petBase}/questionnaire`}>오늘 건강 문진 시작하기</Link>
         </article>
 
         <article className={styles.noticeCard}>
@@ -53,7 +55,7 @@ export function DashboardPage() {
             <h2>오늘 오후 8:00</h2>
             <small>최근 문진 이후 23시간이 지났어요.</small>
           </div>
-          <button type="button">알림 설정</button>
+          <Link to={`${petBase}/history`}>알림 확인</Link>
         </article>
       </section>
 
@@ -63,7 +65,7 @@ export function DashboardPage() {
             <p>LIVE HEALTH SIGNALS</p>
             <h2>최근 생체정보</h2>
           </div>
-          <button type="button">전체 기록 보기 <span aria-hidden="true">→</span></button>
+          <Link to={`${petBase}/vitals`}>전체 기록 보기 <span aria-hidden="true">→</span></Link>
         </div>
 
         <div className={styles.vitalGrid}>
@@ -113,7 +115,7 @@ export function DashboardPage() {
             평소보다 수분 섭취량이 조금 적었어요. 산책 후 물을 충분히
             마시는지 살펴봐 주세요.
           </p>
-          <button type="button">주간 리포트 확인하기 <span aria-hidden="true">→</span></button>
+          <Link to={`${petBase}/reports`}>주간 리포트 확인하기 <span aria-hidden="true">→</span></Link>
         </article>
       </section>
     </div>

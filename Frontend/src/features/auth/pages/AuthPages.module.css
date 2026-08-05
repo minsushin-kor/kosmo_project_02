@@ -1,0 +1,272 @@
+.page {
+  display: grid;
+  width: min(calc(100% - 2rem), 74rem);
+  min-height: 46rem;
+  overflow: hidden;
+  margin: 3rem auto;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-hero);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+  grid-template-columns: minmax(20rem, 0.9fr) minmax(24rem, 1.1fr);
+}
+
+.visualPanel {
+  display: flex;
+  padding: clamp(2rem, 5vw, 4rem);
+  background:
+    radial-gradient(circle at 90% 10%, rgba(214, 207, 167, 0.35), transparent 34%),
+    var(--color-primary);
+  color: var(--color-cream);
+  justify-content: space-between;
+  flex-direction: column;
+}
+
+.signupVisual {
+  background:
+    radial-gradient(circle at 15% 85%, rgba(214, 207, 167, 0.35), transparent 35%),
+    #566247;
+}
+
+.visualPanel > div > p {
+  margin: 0 0 1.25rem;
+  color: var(--color-sand);
+  font-size: 0.72rem;
+  font-weight: 850;
+  letter-spacing: 0.14em;
+}
+
+.visualPanel h1 {
+  margin: 0;
+  color: var(--color-cream);
+  font-family: var(--font-display);
+  font-size: clamp(2.5rem, 4vw, 4.2rem);
+  letter-spacing: -0.065em;
+  line-height: 1.05;
+}
+
+.visualPanel > div > span {
+  display: block;
+  max-width: 27rem;
+  margin-top: 1.5rem;
+  color: rgba(255, 253, 248, 0.7);
+  line-height: 1.8;
+}
+
+.visualPanel > small {
+  color: rgba(255, 253, 248, 0.5);
+  font-size: 0.68rem;
+}
+
+.formPanel {
+  display: grid;
+  padding: clamp(2rem, 5vw, 5rem);
+  place-items: center;
+}
+
+.formWrap {
+  width: min(100%, 28rem);
+}
+
+.eyebrow {
+  margin: 0 0 0.7rem;
+  color: var(--color-secondary-strong);
+  font-size: 0.7rem;
+  font-weight: 850;
+  letter-spacing: 0.13em;
+}
+
+.formWrap h2 {
+  margin: 0;
+  color: var(--color-text-strong);
+  font-family: var(--font-display);
+  font-size: 2.35rem;
+  letter-spacing: -0.055em;
+}
+
+.description {
+  margin: 0.65rem 0 2rem;
+  color: var(--color-text-muted);
+  line-height: 1.7;
+}
+
+.field {
+  display: block;
+  margin-top: 1rem;
+}
+
+.field > span {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: var(--color-text-strong);
+  font-size: 0.76rem;
+  font-weight: 800;
+}
+
+.field input,
+.passwordField {
+  width: 100%;
+  min-height: 3.2rem;
+  border: 1px solid var(--color-line);
+  border-radius: 0.85rem;
+  background: #fbfaf5;
+}
+
+.field input {
+  padding: 0 1rem;
+  outline: 0;
+  color: var(--color-text-strong);
+}
+
+.field > input:focus,
+.passwordField:focus-within {
+  border-color: var(--color-secondary-strong);
+  box-shadow: 0 0 0 3px rgba(127, 138, 102, 0.15);
+}
+
+.passwordField {
+  display: flex;
+  overflow: hidden;
+  align-items: center;
+}
+
+.passwordField input {
+  width: auto;
+  min-width: 0;
+  flex: 1;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.passwordField button {
+  flex: 0 0 auto;
+  padding: 0 0.9rem;
+  border: 0;
+  background: transparent;
+  color: var(--color-secondary-strong);
+  cursor: pointer;
+  font-size: 0.72rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.formOptions {
+  display: flex;
+  margin: 1rem 0 1.5rem;
+  color: var(--color-text-muted);
+  align-items: center;
+  font-size: 0.72rem;
+}
+
+.formOptions label {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.submitButton {
+  width: 100%;
+  min-height: 3.25rem;
+  border: 0;
+  border-radius: 999px;
+  background: var(--color-primary);
+  color: var(--color-cream);
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.field + .submitButton {
+  margin-top: 1.5rem;
+}
+
+.switchText {
+  margin: 1.5rem 0 0;
+  color: var(--color-text-muted);
+  font-size: 0.78rem;
+  text-align: center;
+}
+
+.switchText a {
+  color: var(--color-text-strong);
+  font-weight: 850;
+  text-underline-offset: 0.25rem;
+}
+
+.mockNotice,
+.successMessage,
+.errorMessage {
+  margin-top: 1.25rem;
+  padding: 0.85rem 1rem;
+  border-radius: 0.85rem;
+  font-size: 0.72rem;
+  line-height: 1.55;
+}
+
+.mockNotice {
+  background: var(--color-sand-soft);
+  color: var(--color-text-muted);
+  text-align: center;
+}
+
+.successMessage {
+  background: var(--color-success-soft);
+  color: var(--color-success-strong);
+}
+
+.successMessage strong,
+.successMessage span {
+  display: block;
+}
+
+.successMessage span {
+  margin-top: 0.2rem;
+}
+
+.petRegisterLink {
+  display: flex;
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid rgba(67, 102, 61, 0.18);
+  color: var(--color-success-strong);
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.petRegisterLink b {
+  white-space: nowrap;
+}
+
+.errorMessage {
+  background: var(--color-danger-soft);
+  color: var(--color-danger);
+}
+
+@media (max-width: 820px) {
+  .page {
+    grid-template-columns: 1fr;
+  }
+
+  .visualPanel {
+    min-height: 24rem;
+  }
+}
+
+@media (max-width: 520px) {
+  .page {
+    width: calc(100% - 1rem);
+    margin: 0.5rem auto;
+    border-radius: 1.5rem;
+  }
+
+  .visualPanel {
+    min-height: 21rem;
+    padding: 1.5rem;
+  }
+
+  .formPanel {
+    padding: 2.5rem 1.25rem;
+  }
+}

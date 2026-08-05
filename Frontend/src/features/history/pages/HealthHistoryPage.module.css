@@ -1,0 +1,35 @@
+.tabs { display: flex; gap: 0.4rem; margin-bottom: 1rem; padding: 0.35rem; border-radius: 999px; background: var(--color-sand-soft); width: fit-content; }
+.tabs button { min-height: 2.7rem; padding: 0 1.1rem; border: 0; border-radius: inherit; background: transparent; color: var(--color-text-muted); cursor: pointer; font-size: 0.8rem; font-weight: 800; }
+.tabs button.active { background: var(--color-surface); color: var(--color-text-strong); box-shadow: 0 5px 18px rgba(43, 54, 31, 0.08); }
+.tabs span { display: inline-grid; min-width: 1.25rem; min-height: 1.25rem; margin-left: 0.35rem; place-items: center; border-radius: 50%; background: var(--color-secondary); color: var(--color-primary); font-size: 0.62rem; }
+
+.timeline, .historyList { display: grid; gap: 0.75rem; }
+.alertCard { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 1rem; padding: 1.4rem; border: 1px solid var(--color-line); border-radius: 1.4rem; background: var(--color-surface); }
+.alertCard > button { align-self: start; border: 0; background: transparent; color: var(--color-text-muted); cursor: pointer; }
+.alertMarker { position: relative; padding-top: 0.1rem; }
+.alertMarker span { display: grid; width: 2.35rem; height: 2.35rem; place-items: center; border-radius: 50%; font-weight: 900; }
+.warning .alertMarker span { background: #f7e7cf; color: #a66325; }
+.notice .alertMarker span { background: #e7eddd; color: var(--color-primary); }
+.normal .alertMarker span { background: var(--color-sand-soft); color: var(--color-secondary-strong); }
+.alertMeta { display: flex; gap: 0.7rem; color: var(--color-text-muted); font-size: 0.68rem; }
+.alertMeta span { color: var(--color-secondary-strong); font-weight: 850; }
+.alertBody h2 { margin: 0.45rem 0 0.25rem; font-family: var(--font-display); font-size: 1.2rem; letter-spacing: -0.035em; }
+.alertBody p { margin: 0; color: var(--color-text-muted); font-size: 0.8rem; line-height: 1.6; }
+
+.historyCard { display: grid; grid-template-columns: 8rem minmax(0, 1fr) auto; gap: 1.2rem; align-items: center; padding: 1.6rem; border: 1px solid var(--color-line); border-radius: 1.4rem; background: var(--color-surface); }
+.historyCard > time { color: var(--color-text-muted); font-size: 0.75rem; }
+.historyCard h2 { margin: 0.5rem 0 0.25rem; font-family: var(--font-display); font-size: 1.2rem; }
+.historyCard p { margin: 0; color: var(--color-text-muted); font-size: 0.78rem; }
+.watchGrade, .normalGrade { display: inline-flex; padding: 0.25rem 0.55rem; border-radius: 999px; font-size: 0.62rem; font-weight: 850; }
+.watchGrade { background: #f7e7cf; color: #946023; }
+.normalGrade { background: #e5efe1; color: #43663d; }
+.historyScore { display: grid; justify-items: end; gap: 0.55rem; }
+.historyScore strong { color: var(--color-primary); font-family: var(--font-display); font-size: 1.4rem; }
+.historyScore a { color: var(--color-text-strong); font-size: 0.74rem; font-weight: 800; }
+
+@media (max-width: 680px) {
+  .historyCard { grid-template-columns: 1fr auto; }
+  .historyCard > time { grid-column: 1 / -1; }
+  .historyCard p { line-height: 1.55; }
+  .alertCard { gap: 0.7rem; padding: 1.1rem; }
+}
