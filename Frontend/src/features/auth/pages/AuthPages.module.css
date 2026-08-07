@@ -124,6 +124,36 @@
   box-shadow: 0 0 0 3px rgba(127, 138, 102, 0.15);
 }
 
+.postcodeField {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.5rem;
+}
+
+.postcodeField:focus-within {
+  border-radius: 0.85rem;
+  box-shadow: 0 0 0 3px rgba(127, 138, 102, 0.15);
+}
+
+.postcodeField button {
+  min-width: 7.6rem;
+  padding: 0 1rem;
+  border: 1px solid var(--color-primary);
+  border-radius: 0.85rem;
+  background: var(--color-primary);
+  color: var(--color-cream);
+  cursor: pointer;
+  font-size: 0.72rem;
+  font-weight: 850;
+  white-space: nowrap;
+}
+
+.field input.readOnlyField {
+  background: var(--color-sand-soft);
+  color: var(--color-text-muted);
+  cursor: default;
+}
+
 .passwordField {
   display: flex;
   overflow: hidden;
@@ -268,5 +298,13 @@
 
   .formPanel {
     padding: 2.5rem 1.25rem;
+  }
+
+  .postcodeField {
+    grid-template-columns: 1fr;
+  }
+
+  .postcodeField button {
+    min-height: 3rem;
   }
 }
