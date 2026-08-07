@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useRef, useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { BrandMark } from '../../../components/common/BrandMark'
 import styles from './AuthPages.module.css'
@@ -8,6 +8,8 @@ export function SignupPage() {
   const [error, setError] = useState('')
   const [postalCode, setPostalCode] = useState('')
   const [address, setAddress] = useState('')
+  const [detailAddress, setDetailAddress] = useState('')
+  const detailAddressRef = useRef<HTMLInputElement>(null)
 
   const handleOpenPostcode = () => {
     setError('')
@@ -25,6 +27,7 @@ export function SignupPage() {
 
         setPostalCode(data.zonecode)
         setAddress(selectedAddress || data.address)
+        window.requestAnimationFrame(() => detailAddressRef.current?.focus())
       },
     }).open()
   }
@@ -103,6 +106,19 @@ export function SignupPage() {
                 autoComplete="address-line1"
                 value={address}
                 placeholder="주소 검색 후 자동으로 입력됩니다"
+              />
+            </label>
+            <label className={styles.field}>
+              <span>상세 주소</span>
+              <input
+                ref={detailAddressRef}
+                name="detailAddress"
+                type="text"
+                required
+                autoComplete="address-line2"
+                value={detailAddress}
+                onChange={(event) => setDetailAddress(event.target.value)}
+                placeholder="동·호수 등 상세 주소를 입력해 주세요"
               />
             </label>
             <label className={styles.field}>
