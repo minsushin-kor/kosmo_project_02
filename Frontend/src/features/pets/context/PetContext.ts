@@ -7,6 +7,7 @@ export type PetContextValue = {
   selectPet: (petId: string) => void
   addPet: (pet: CreatePetInput) => Pet
   updatePet: (pet: Pet) => void
+  removePet: (petId: string) => boolean
 }
 
 export const PetContext = createContext<PetContextValue | null>(null)

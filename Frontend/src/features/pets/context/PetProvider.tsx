@@ -35,6 +35,25 @@ export function PetProvider({ children }: PetProviderProps) {
         pet.id === updatedPet.id ? updatedPet : pet
       )))
     },
+    removePet: (petId) => {
+      if (pets.length <= 1) {
+        return false
+      }
+
+      const nextPets = pets.filter((pet) => pet.id !== petId)
+
+      if (nextPets.length === pets.length) {
+        return false
+      }
+
+      setPets(nextPets)
+
+      if (selectedPet.id === petId) {
+        setSelectedPetId(nextPets[0].id)
+      }
+
+      return true
+    },
   }), [pets, selectedPet])
 
   return <PetContext.Provider value={value}>{children}</PetContext.Provider>
