@@ -43,4 +43,21 @@ public class VitalRecord {
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)
     private VitalStatus status;
+
+    public VitalRecord(
+            Pet pet,
+            BigDecimal temperature,
+            Integer heartRate,
+            Integer respiratoryRate,
+            LocalDateTime measuredAt,
+            VitalSourceType sourceType,
+            VitalStatus status) {
+        this.pet = pet;
+        this.temperature = temperature;
+        this.heartRate = heartRate;
+        this.respiratoryRate = respiratoryRate;
+        this.measuredAt = measuredAt;
+        this.sourceType = sourceType;
+        this.status = status;
+    }
 }

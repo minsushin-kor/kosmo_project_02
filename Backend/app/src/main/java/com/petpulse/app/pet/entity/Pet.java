@@ -58,4 +58,48 @@ public class Pet {
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
+
+    public Pet(
+            User user,
+            String petName,
+            PetSpecies species,
+            String breed,
+            LocalDate birthDate,
+            PetGender gender,
+            BigDecimal weight,
+            Boolean neutered,
+            String medicalHistory,
+            String profileImageUrl) {
+        this.user = user;
+        this.petName = petName;
+        this.species = species;
+        this.breed = breed;
+        this.birthDate = birthDate;
+        this.gender = gender;
+        this.weight = weight;
+        this.neutered = neutered;
+        this.medicalHistory = medicalHistory;
+        this.profileImageUrl = profileImageUrl;
+    }
+
+    public void update(
+            String petName,
+            PetSpecies species,
+            String breed,
+            LocalDate birthDate,
+            PetGender gender,
+            BigDecimal weight,
+            Boolean neutered,
+            String medicalHistory,
+            String profileImageUrl) {
+        this.petName = petName;
+        this.species = species;
+        this.breed = breed;
+        this.birthDate = birthDate;
+        this.gender = gender;
+        this.weight = weight;
+        this.neutered = neutered;
+        this.medicalHistory = medicalHistory;
+        this.profileImageUrl = profileImageUrl;
+    }
 }
