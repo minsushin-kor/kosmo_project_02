@@ -1,0 +1,14 @@
+package com.petpulse.app.pet.repository;
+
+import com.petpulse.app.pet.entity.Pet;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import java.util.List;
+import java.util.Optional;
+
+public interface PetRepository extends JpaRepository<Pet, Long> {
+
+    List<Pet> findByUserUserId(Long userId);
+
+    Optional<Pet> findByPetIdAndUserUserId(Long petId, Long userId);
+}
