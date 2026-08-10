@@ -1,38 +1,34 @@
 package com.petpulse.app.global.exception;
 
-import com.petpulse.app.global.response.ApiResponse;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+import java.util.Map;
+
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    @ExceptionHandler(BusinessException.class)
-    public ResponseEntity<ApiResponse<Void>> handleBusinessException(
-            BusinessException exception) {
-        ErrorCode errorCode = exception.getErrorCode();
+        @ExceptionHandler(IllegalArgumentException.class)
+        public ResponseEntity<Map<String, Object>> handleIllegalArgument(
+                        IllegalArgumentException e) {
 
-        ApiResponse<Void> response = ApiResponse.failure(
-                exception.getMessage(),
-                errorCode.getCode());
+                return ResponseEntity
+                                .status(HttpStatus.NOT_FOUND)
+                                .body(Map.of(
+                                                "success", false,
+                                                "message", e.getMessage()));
+        }
 
-        return ResponseEntity
-                .status(errorCode.getStatus())
-                .body(response);
-    }
+        @ExceptionHandler(IllegalStateException.class)
+        public ResponseEntity<Map<String, Object>> handleIllegalState(
+                        IllegalStateException e) {
 
-    @ExceptionHandler(Exception.class)
-    public ResponseEntity<ApiResponse<Void>> handleException(
-            Exception exception) {
-        ErrorCode errorCode = ErrorCode.INTERNAL_SERVER_ERROR;
-
-        ApiResponse<Void> response = ApiResponse.failure(
-                errorCode.getMessage(),
-                errorCode.getCode());
-
-        return ResponseEntity
-                .status(errorCode.getStatus())
-                .body(response);
-    }
+                return ResponseEntity
+                                .status(HttpStatus.CONFLICT)
+                                .body(Map.of(
+                                                "success", false,
+                                                "message", e.getMessage()));
+        }
 }
