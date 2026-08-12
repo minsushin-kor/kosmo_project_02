@@ -119,6 +119,10 @@
   min-height: 70vh;
 }
 
+.dashboardFrame {
+  width: 100%;
+}
+
 .footer {
   margin-top: 6rem;
   padding: 3rem 0;

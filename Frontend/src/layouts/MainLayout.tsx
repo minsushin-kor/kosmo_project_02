@@ -1,10 +1,19 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
 import { BrandMark } from '../components/common/BrandMark'
+import { ChatAssistant } from '../features/chatbot/components/ChatAssistant'
+import { ChatProvider } from '../features/chatbot/context/ChatProvider'
 import styles from './MainLayout.module.css'
 
-export function MainLayout() {
+const DASHBOARD_CHAT_HIDDEN_KEY = 'petpulse-dashboard-chat-hidden'
+
+function MainLayoutContent() {
   const { hash, pathname } = useLocation()
+  const isDashboard = pathname === '/dashboard'
+  const [isChatOpen, setIsChatOpen] = useState(() => (
+    window.location.pathname === '/dashboard' &&
+    window.localStorage.getItem(DASHBOARD_CHAT_HIDDEN_KEY) !== 'true'
+  ))
 
   useEffect(() => {
     if (!hash) {
@@ -22,6 +31,29 @@ export function MainLayout() {
 
     return () => window.cancelAnimationFrame(frameId)
   }, [hash, pathname])
+
+  useEffect(() => {
+    if (isDashboard) {
+      setIsChatOpen(window.localStorage.getItem(DASHBOARD_CHAT_HIDDEN_KEY) !== 'true')
+      return
+    }
+
+    setIsChatOpen(false)
+  }, [isDashboard, pathname])
+
+  const openChat = () => {
+    if (isDashboard) {
+      window.localStorage.removeItem(DASHBOARD_CHAT_HIDDEN_KEY)
+    }
+    setIsChatOpen(true)
+  }
+
+  const closeChat = () => {
+    if (isDashboard) {
+      window.localStorage.setItem(DASHBOARD_CHAT_HIDDEN_KEY, 'true')
+    }
+    setIsChatOpen(false)
+  }
 
   return (
     <div className={styles.shell}>
@@ -66,8 +98,29 @@ export function MainLayout() {
       </header>
 
       <main className={styles.main}>
-        <Outlet />
+        {isDashboard ? (
+          <div className={styles.dashboardFrame}>
+            <Outlet />
+            <ChatAssistant
+              variant="dashboard"
+              isOpen={isChatOpen}
+              onOpen={openChat}
+              onClose={closeChat}
+            />
+          </div>
+        ) : (
+          <Outlet />
+        )}
       </main>
+
+      {!isDashboard && (
+        <ChatAssistant
+          variant="floating"
+          isOpen={isChatOpen}
+          onOpen={openChat}
+          onClose={closeChat}
+        />
+      )}
 
       <footer className={styles.footer}>
         <div className={styles.footerInner}>
@@ -80,5 +133,13 @@ export function MainLayout() {
         </div>
       </footer>
     </div>
+  )
+}
+
+export function MainLayout() {
+  return (
+    <ChatProvider>
+      <MainLayoutContent />
+    </ChatProvider>
   )
 }
