@@ -170,8 +170,8 @@ class HealthRiskPredictRequest(BaseModel):
     age: int = Field(..., ge=0, le=30, example=3, description="나이 (세)")
     weight: float = Field(..., ge=0.1, le=100.0, example=5.2, description="체중 (kg)")
     temperature: float = Field(..., ge=30.0, le=45.0, example=39.8, description="체온 (°C)")
-    heart_rate: int = Field(..., ge=30, le=300, example=145, description="심박수 (bpm)")
-    respiratory_rate: int = Field(..., ge=5, le=100, example=32, description="호흡수 (회/분)")
+    heartRate: int = Field(..., ge=30, le=300, example=145, description="심박수 (bpm)")
+    respiratoryRate: int = Field(..., ge=5, le=100, example=32, description="호흡수 (회/분)")
     skinRedness: bool = Field(False, example=True, description="피부 붉어짐 여부")
     itching: bool = Field(False, example=True, description="가려움증 긁기 여부")
     hairLoss: bool = Field(False, example=False, description="탈모 징후 여부")
@@ -302,9 +302,10 @@ def get_rule_based_risk_factors(req: HealthRiskPredictRequest, risk_grade: str) 
     elif req.temperature >= 39.3:
         factors.append("체온 상승")
 
-    if req.heart_rate >= 150:
+    if req.heartRate >= 150:
         factors.append("심박수 이상")
-    if req.respiratory_rate >= 40:
+
+    if req.respiratoryRate >= 40:
         factors.append("호흡 급증")
 
     if req.vomiting and req.diarrhea:
@@ -437,10 +438,10 @@ def get_model_info():
         "feature_count": len(FEATURE_NAMES_OUT),
         "supported_risk_grades": ["NORMAL", "WATCH", "CAUTION", "DANGER"],
         "input_features": [
-            "species", "age", "weight", "temperature", "heart_rate",
-            "respiratory_rate", "skinRedness", "itching", "hairLoss",
-            "vomiting", "diarrhea", "appetiteLevel", "waterIntakeLevel",
-            "activityLevel", "symptomDurationDays"
+        "species", "age", "weight", "temperature", "heartRate",
+        "respiratoryRate", "skinRedness", "itching", "hairLoss",
+        "vomiting", "diarrhea", "appetiteLevel", "waterIntakeLevel",
+        "activityLevel", "symptomDurationDays"
         ]
     }
 
@@ -473,8 +474,8 @@ def predict_health_risk(req: HealthRiskPredictRequest):
             "age": [req.age],
             "weight": [req.weight],
             "temperature": [req.temperature],
-            "heart_rate": [req.heart_rate],
-            "respiratory_rate": [req.respiratory_rate],
+            "heart_rate": [req.heartRate],
+            "respiratory_rate": [req.respiratoryRate],
             "skinRedness": [int(req.skinRedness)],
             "itching": [int(req.itching)],
             "hairLoss": [int(req.hairLoss)],
