@@ -1,13 +1,15 @@
 import os
 import json
 import joblib
+import asyncio
 import numpy as np
 import pandas as pd
-from typing import List, Optional
+from typing import List, Optional, AsyncGenerator
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
 # OpenAI API 라이브러리 (선택적 사용 및 에러 예외 처리)
@@ -740,8 +742,147 @@ def generate_weekly_report(req: WeeklyReportRequest):
     )
 
 
+
 # =====================================================================
-# 6. 로컬 직접 실행 가이드 (uvicorn 가동)
+# [Endpoint 6] POST /ai/chat/stream : RAG 기반 SSE 스트리밍 챗봇
+# =====================================================================
+
+class ChatStreamRequest(BaseModel):
+    message: str = Field(..., example="강아지가 헐담이는 이유가 뛭니요?", description="보호자가 입력한 자유 질문")
+    species: Optional[str] = Field(None, example="DOG", description="반려동물 종 (선택, DOG/CAT)")
+
+
+async def _stream_chat_response(
+    message: str,
+    species: Optional[str]
+) -> AsyncGenerator[str, None]:
+    """
+    SSE 이벤트 제네레이터.
+    - RAG 벡터 검색으로 수의학 문서 3개 추출
+    - OpenAI stream=True 로 성 단위 SSE 전송
+    - 완료 시 [SOURCES] 이벤트로 출처 목록 전송
+    - OpenAI 미연동 시 RAG 문서 요약 템플릿 Fallback
+    """
+    # 1. RAG 빡터 검색
+    rag_query = message
+    if species:
+        rag_query = f"[{species}] {message}"
+
+    rag_results = search_rag(rag_query, n_results=3)
+
+    sources = []
+    rag_context = ""
+
+    if rag_results and rag_results["documents"]:
+        for doc, meta in zip(rag_results["documents"], rag_results["metadatas"]):
+            sources.append({
+                "title": meta.get("title", ""),
+                "category": meta.get("category", ""),
+            })
+        rag_context = "\n\n".join(
+            f"[수의학 참고 {i+1}] {doc}"
+            for i, doc in enumerate(rag_results["documents"])
+        )
+
+    # 2. OpenAI 스트리밍 시도
+    api_key = os.getenv("OPENAI_API_KEY")
+    if HAS_OPENAI and api_key and rag_context:
+        try:
+            client = openai.OpenAI(api_key=api_key)
+            species_ctx = f" ({species}를 키우고 있습니다." if species else ""
+            prompt = f"""너는 다정하고 전문적인 반려동물 웰니스 코치야.{species_ctx}
+아래 수의학 참고 자료를 바탕으로 보호자의 질문에 친절하고 정확하게 답해줘.
+
+[수의학 참고 자료]
+{rag_context}
+
+[보호자 질문]
+{message}
+
+답변 규칙:
+1. 특정 질병명이나 약품 처방을 절대 언급하지 말 것.
+2. 수의학 참고 자료 번호([수의학 참고 N])를 직접 언급하지 말 것.
+3. 3문단 이내로 친근하게 작성할 것.
+4. 증상이 24시간 이상 지속되는 경우 수의사 베지트 권유 문구를 자연스럽게 포함할 것."""
+
+            stream = client.chat.completions.create(
+                model=LLM_MODEL,
+                messages=[{"role": "user", "content": prompt}],
+                max_tokens=400,
+                temperature=0.7,
+                stream=True,
+            )
+
+            # 성 단위로 SSE data 전송
+            for chunk in stream:
+                delta = chunk.choices[0].delta
+                if delta and delta.content:
+                    token = delta.content
+                    yield f"data: {json.dumps({'type': 'token', 'content': token}, ensure_ascii=False)}\n\n"
+                    await asyncio.sleep(0)   # 이벤트 루프 양보
+
+        except Exception as e:
+            print(f"⚠️ SSE 스트리밍 오류 (Fallback 사용): {e}")
+            # 스트리밍 실패 시 Fallback 템플릿
+            fallback = _build_rag_fallback(message, rag_results)
+            yield f"data: {json.dumps({'type': 'token', 'content': fallback}, ensure_ascii=False)}\n\n"
+
+    else:
+        # OpenAI 미연동 Fallback
+        fallback = _build_rag_fallback(message, rag_results)
+        yield f"data: {json.dumps({'type': 'token', 'content': fallback}, ensure_ascii=False)}\n\n"
+
+    # 3. 완료 신호 + 출처 리스트 전송
+    yield f"data: {json.dumps({'type': 'done', 'sources': sources}, ensure_ascii=False)}\n\n"
+
+
+def _build_rag_fallback(message: str, rag_results: Optional[dict]) -> str:
+    """
+    OpenAI 미연동 또는 스트리밍 실패 시 RAG 문서 요약으로 답변을 대체합니다.
+    """
+    if rag_results and rag_results["documents"]:
+        top_doc = rag_results["documents"][0][:300].rstrip()
+        return (
+            f"질문하신 내용과 관련하여 \n\n"
+            f"{top_doc}...\n\n"
+            f"증상이 지속되거나 심해지면 가까운 동물병원에 방문하시는 것을 담당 수의사와 상담해주세요."
+        )
+    return (
+        f"'{message}'에 대한 수의학 정보를 찾지 못했습니다. "
+        f"자세한 증상은 수의사 상담을 권장드립니다."
+    )
+
+
+@app.post(
+    "/ai/chat/stream",
+    summary="RAG 기반 SSE 스트리밍 콘질문답 챗봇",
+    tags=["Chatbot"],
+    response_class=StreamingResponse,
+)
+async def chat_stream(req: ChatStreamRequest):
+    """
+    React가 보호자의 자유 질문을 보내면, RAG 기반 답변을 SSE로 실시간 스트리밍 합니다.
+
+    SSE 이벤트 형식:
+      data: {"type": "token",  "content": "성 단위 텍스트"}\n\n   # 답변 트리거 실시간 전송
+      data: {"type": "done",   "sources": [{...}]}\n\n   # 완료 + 출처 목록
+
+    React 사용 예시:
+      const es = new EventSource('/ai/chat/stream');
+      또는 fetch + ReadableStream으로 SSE 파싱
+    """
+    return StreamingResponse(
+        _stream_chat_response(req.message, req.species),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",   # nginx 버퍼링 비활성화
+        },
+    )
+
+
+# =====================================================================
+# 6. 로컈 직접 실행 가이드 (uvicorn 가동)
 # =====================================================================
 if __name__ == "__main__":
     import uvicorn
