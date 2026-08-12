@@ -10,5 +10,6 @@ public record AiWeeklyReportRequest(
         int cautionAlertCount,
         int dangerAlertCount,
         int questionnaireCount,
+        double averageRiskProbability,
         String mainSymptomsSummary) {
 }
