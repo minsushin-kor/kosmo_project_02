@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { ConfirmModal } from '../../../components/common/ConfirmModal'
+import { useAuth } from '../../auth/hooks/useAuth'
 import { PetAvatar } from '../../pets/components/PetAvatar'
 import { usePets } from '../../pets/hooks/usePets'
 import { speciesLabel } from '../../pets/types'
@@ -8,11 +9,21 @@ import shared from '../../../styles/featurePage.module.css'
 import styles from './MyPage.module.css'
 
 export function MyPage() {
+  const { currentUser } = useAuth()
   const { pets, removePet } = usePets()
   const [saved, setSaved] = useState(false)
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null)
   const [petMessage, setPetMessage] = useState('')
   const pendingDeletePet = pets.find((pet) => pet.id === pendingDeleteId)
+  const profile = currentUser ?? {
+    name: '김보호',
+    username: 'guardian',
+    email: 'guardian@example.com',
+    phone: '010-1234-5678',
+    postalCode: '00000',
+    address: '회원가입 후 주소가 표시됩니다.',
+    detailAddress: '',
+  }
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -37,11 +48,13 @@ export function MyPage() {
 
       <div className={styles.layout}>
         <form className={`${shared.panel} ${styles.profileForm}`} onSubmit={handleSubmit}>
-          <div className={styles.profileHeading}><span aria-hidden="true">👤</span><div><h2>보호자 정보</h2><p>회원정보 API 연결 전 임시 프로필입니다.</p></div></div>
+          <div className={styles.profileHeading}><span aria-hidden="true">👤</span><div><h2>보호자 정보</h2><p>{currentUser ? '회원가입 시 입력한 임시 저장 정보입니다.' : '로그인 후 가입 정보가 표시됩니다.'}</p></div></div>
           <div className={styles.fieldGrid}>
-            <label><span>이름</span><input required defaultValue="김보호" /></label>
-            <label><span>이메일</span><input type="email" required defaultValue="guardian@example.com" /></label>
-            <label><span>연락처</span><input type="tel" defaultValue="010-1234-5678" /></label>
+            <label><span>이름</span><input required defaultValue={profile.name} /></label>
+            <label><span>아이디</span><input readOnly defaultValue={profile.username} /></label>
+            <label><span>이메일</span><input type="email" required defaultValue={profile.email} /></label>
+            <label><span>연락처</span><input type="tel" defaultValue={profile.phone} /></label>
+            <label className={styles.wideField}><span>주소</span><input readOnly defaultValue={`(${profile.postalCode}) ${profile.address} ${profile.detailAddress}`.trim()} /></label>
             <label><span>알림 시간</span><input type="time" defaultValue="20:00" /></label>
           </div>
           <label className={styles.toggle}><input type="checkbox" defaultChecked /><span>건강 체크와 위험도 알림을 받습니다.</span></label>

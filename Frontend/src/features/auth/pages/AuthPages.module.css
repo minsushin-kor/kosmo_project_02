@@ -112,6 +112,31 @@
   background: #fbfaf5;
 }
 
+.phoneField {
+  display: grid;
+  grid-template-columns: 6.5rem repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.phoneField select,
+.phoneField input {
+  width: 100%;
+  min-width: 0;
+  min-height: 3.2rem;
+  padding: 0 0.85rem;
+  border: 1px solid var(--color-line);
+  border-radius: 0.85rem;
+  outline: 0;
+  background: #fbfaf5;
+  color: var(--color-text-strong);
+}
+
+.phoneField select:focus,
+.phoneField input:focus {
+  border-color: var(--color-secondary-strong);
+  box-shadow: 0 0 0 3px rgba(127, 138, 102, 0.15);
+}
+
 .field input {
   padding: 0 1rem;
   outline: 0;
@@ -210,6 +235,10 @@
   margin-top: 1.5rem;
 }
 
+.errorMessage + .submitButton {
+  margin-top: 1rem;
+}
+
 .switchText {
   margin: 1.5rem 0 0;
   color: var(--color-text-muted);
@@ -302,6 +331,16 @@
 
   .postcodeField {
     grid-template-columns: 1fr;
+  }
+
+  .phoneField {
+    grid-template-columns: 5.5rem repeat(2, minmax(0, 1fr));
+    gap: 0.35rem;
+  }
+
+  .phoneField select,
+  .phoneField input {
+    padding: 0 0.6rem;
   }
 
   .postcodeField button {
