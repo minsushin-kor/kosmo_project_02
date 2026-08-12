@@ -288,15 +288,15 @@ def get_shap_risk_factors(df_input: pd.DataFrame, predicted_class_idx: int) -> O
         return None
 
 
-def get_rule_based_risk_factors(req: HealthRiskPredictRequest, risk_grade: str) -> str:
-    """
-    SHAP를 사용할 수 없을 때의 규칙 기반 primaryRiskFactor 생성 Fallback.
-    SHAP와 별도 함수로 분리하여 역할을 명확히 합니다.
-    """
+def get_rule_based_risk_factors(
+        req: HealthRiskPredictRequest,
+        risk_grade: str) -> str:
+
     if risk_grade == "NORMAL":
         return "이상 없음(정상)"
 
     factors = []
+
     if req.temperature >= 40.0:
         factors.append("고열")
     elif req.temperature >= 39.3:
@@ -317,8 +317,10 @@ def get_rule_based_risk_factors(req: HealthRiskPredictRequest, risk_grade: str) 
 
     if req.skinRedness or req.itching or req.hairLoss:
         factors.append("피부 징후")
+
     if req.appetiteLevel in ["NONE", "DECREASED"]:
         factors.append("식욕 저하")
+
     if req.activityLevel == "LOW":
         factors.append("활동량 감소")
 
@@ -412,10 +414,10 @@ def health_check():
     return {
         "status": "UP",
         "message": "PetPulse FastAPI AI Server is running normally.",
-        "model_loaded": MODEL_PIPELINE is not None,
-        "knowledge_base_loaded": len(WELLNESS_KNOWLEDGE_BASE) > 0,
-        "shap_enabled": SHAP_EXPLAINER is not None,
-        "llm_model": LLM_MODEL,
+        "modelLoaded": MODEL_PIPELINE is not None,
+        "knowledgeBaseLoaded": len(WELLNESS_KNOWLEDGE_BASE) > 0,
+        "shapEnabled": SHAP_EXPLAINER is not None,
+        "llmModel": LLM_MODEL,
     }
 
 
@@ -431,20 +433,36 @@ def get_model_info():
         )
 
     classifier_name = MODEL_PIPELINE.named_steps["classifier"].__class__.__name__
+
     return {
-        "model_name": classifier_name,
+        "modelName": classifier_name,
         "version": "1.0.0",
-        "shap_explainer_loaded": SHAP_EXPLAINER is not None,
-        "feature_count": len(FEATURE_NAMES_OUT),
-        "supported_risk_grades": ["NORMAL", "WATCH", "CAUTION", "DANGER"],
-        "input_features": [
-        "species", "age", "weight", "temperature", "heartRate",
-        "respiratoryRate", "skinRedness", "itching", "hairLoss",
-        "vomiting", "diarrhea", "appetiteLevel", "waterIntakeLevel",
-        "activityLevel", "symptomDurationDays"
+        "shapExplainerLoaded": SHAP_EXPLAINER is not None,
+        "featureCount": len(FEATURE_NAMES_OUT),
+        "supportedRiskGrades": [
+            "NORMAL",
+            "WATCH",
+            "CAUTION",
+            "DANGER"
+        ],
+        "inputFeatures": [
+            "species",
+            "age",
+            "weight",
+            "temperature",
+            "heartRate",
+            "respiratoryRate",
+            "skinRedness",
+            "itching",
+            "hairLoss",
+            "vomiting",
+            "diarrhea",
+            "appetiteLevel",
+            "waterIntakeLevel",
+            "activityLevel",
+            "symptomDurationDays"
         ]
     }
-
 
 # ---------------------------------------------------------------------
 # [Endpoint 3] POST /ai/predict-health-risk : ML 위험도 예측 (SHAP 기반)

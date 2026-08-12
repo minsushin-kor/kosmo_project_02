@@ -1,10 +1,22 @@
-import { useEffect } from 'react'
-import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { BrandMark } from '../components/common/BrandMark'
+import { useAuth } from '../features/auth/hooks/useAuth'
+import { ChatAssistant } from '../features/chatbot/components/ChatAssistant'
+import { ChatProvider } from '../features/chatbot/context/ChatProvider'
 import styles from './MainLayout.module.css'
 
-export function MainLayout() {
+const DASHBOARD_CHAT_HIDDEN_KEY = 'petpulse-dashboard-chat-hidden'
+
+function MainLayoutContent() {
   const { hash, pathname } = useLocation()
+  const navigate = useNavigate()
+  const { currentUser, logout } = useAuth()
+  const isDashboard = pathname === '/dashboard'
+  const [isChatOpen, setIsChatOpen] = useState(() => (
+    window.location.pathname === '/dashboard' &&
+    window.localStorage.getItem(DASHBOARD_CHAT_HIDDEN_KEY) !== 'true'
+  ))
 
   useEffect(() => {
     if (!hash) {
@@ -22,6 +34,34 @@ export function MainLayout() {
 
     return () => window.cancelAnimationFrame(frameId)
   }, [hash, pathname])
+
+  useEffect(() => {
+    if (isDashboard) {
+      setIsChatOpen(window.localStorage.getItem(DASHBOARD_CHAT_HIDDEN_KEY) !== 'true')
+      return
+    }
+
+    setIsChatOpen(false)
+  }, [isDashboard, pathname])
+
+  const openChat = () => {
+    if (isDashboard) {
+      window.localStorage.removeItem(DASHBOARD_CHAT_HIDDEN_KEY)
+    }
+    setIsChatOpen(true)
+  }
+
+  const closeChat = () => {
+    if (isDashboard) {
+      window.localStorage.setItem(DASHBOARD_CHAT_HIDDEN_KEY, 'true')
+    }
+    setIsChatOpen(false)
+  }
+
+  const handleLogout = () => {
+    logout()
+    navigate('/')
+  }
 
   return (
     <div className={styles.shell}>
@@ -55,19 +95,52 @@ export function MainLayout() {
           </nav>
 
           <div className={styles.headerActions}>
-            <Link className={styles.signupCta} to="/signup">
-              회원가입
-            </Link>
-            <Link className={styles.headerCta} to="/login">
-              로그인
-            </Link>
+            {currentUser ? (
+              <>
+                <Link className={styles.userSummary} to="/mypage" aria-label={`${currentUser.name}님의 마이페이지`}>
+                  <span aria-hidden="true">{currentUser.name.slice(0, 1)}</span>
+                  <span><strong>{currentUser.name}</strong><small>@{currentUser.username}</small></span>
+                </Link>
+                <button className={styles.logoutButton} type="button" onClick={handleLogout}>로그아웃</button>
+              </>
+            ) : (
+              <>
+                <Link className={styles.signupCta} to="/signup">
+                  회원가입
+                </Link>
+                <Link className={styles.headerCta} to="/login">
+                  로그인
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </header>
 
       <main className={styles.main}>
-        <Outlet />
+        {isDashboard ? (
+          <div className={styles.dashboardFrame}>
+            <Outlet />
+            <ChatAssistant
+              variant="dashboard"
+              isOpen={isChatOpen}
+              onOpen={openChat}
+              onClose={closeChat}
+            />
+          </div>
+        ) : (
+          <Outlet />
+        )}
       </main>
+
+      {!isDashboard && (
+        <ChatAssistant
+          variant="floating"
+          isOpen={isChatOpen}
+          onOpen={openChat}
+          onClose={closeChat}
+        />
+      )}
 
       <footer className={styles.footer}>
         <div className={styles.footerInner}>
@@ -80,5 +153,13 @@ export function MainLayout() {
         </div>
       </footer>
     </div>
+  )
+}
+
+export function MainLayout() {
+  return (
+    <ChatProvider>
+      <MainLayoutContent />
+    </ChatProvider>
   )
 }
