@@ -1,5 +1,7 @@
 package com.petpulse.app.prediction.client;
 
+import com.petpulse.app.prediction.dto.ai.AiExplainPredictionRequest;
+import com.petpulse.app.prediction.dto.ai.AiExplainPredictionResponse;
 import com.petpulse.app.prediction.dto.ai.AiHealthRiskRequest;
 import com.petpulse.app.prediction.dto.ai.AiHealthRiskResponse;
 import org.springframework.http.MediaType;
@@ -20,7 +22,8 @@ public class FastApiHealthPredictionClient {
                 .version(HttpClient.Version.HTTP_1_1)
                 .build();
 
-        JdkClientHttpRequestFactory requestFactory = new JdkClientHttpRequestFactory(httpClient);
+        JdkClientHttpRequestFactory requestFactory =
+                new JdkClientHttpRequestFactory(httpClient);
 
         this.restClient = RestClient.builder()
                 .baseUrl("http://127.0.0.1:8000")
@@ -43,6 +46,26 @@ public class FastApiHealthPredictionClient {
         if (response == null) {
             throw new IllegalStateException(
                     "FastAPI 예측 응답이 비어 있습니다.");
+        }
+
+        return response;
+    }
+
+    public AiExplainPredictionResponse explainPrediction(
+            AiExplainPredictionRequest request) {
+
+        AiExplainPredictionResponse response = restClient
+                .post()
+                .uri("/ai/explain-prediction")
+                .contentType(MediaType.APPLICATION_JSON)
+                .accept(MediaType.APPLICATION_JSON)
+                .body(request)
+                .retrieve()
+                .body(AiExplainPredictionResponse.class);
+
+        if (response == null) {
+            throw new IllegalStateException(
+                    "FastAPI 예측 설명 응답이 비어 있습니다.");
         }
 
         return response;

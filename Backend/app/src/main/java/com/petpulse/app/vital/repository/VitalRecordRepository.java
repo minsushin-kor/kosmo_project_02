@@ -6,9 +6,17 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.List;
 import java.util.Optional;
 
+import java.time.LocalDateTime;
+import java.util.List;
+
 public interface VitalRecordRepository extends JpaRepository<VitalRecord, Long> {
 
     List<VitalRecord> findByPetPetIdOrderByMeasuredAtDesc(Long petId);
 
     Optional<VitalRecord> findFirstByPetPetIdOrderByMeasuredAtDesc(Long petId);
+
+    List<VitalRecord> findByPetPetIdAndMeasuredAtBetweenOrderByMeasuredAtAsc(
+            Long petId,
+            LocalDateTime start,
+            LocalDateTime end);
 }
