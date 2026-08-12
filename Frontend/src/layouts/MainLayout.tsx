@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
-import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
+import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { BrandMark } from '../components/common/BrandMark'
+import { useAuth } from '../features/auth/hooks/useAuth'
 import { ChatAssistant } from '../features/chatbot/components/ChatAssistant'
 import { ChatProvider } from '../features/chatbot/context/ChatProvider'
 import styles from './MainLayout.module.css'
@@ -9,6 +10,8 @@ const DASHBOARD_CHAT_HIDDEN_KEY = 'petpulse-dashboard-chat-hidden'
 
 function MainLayoutContent() {
   const { hash, pathname } = useLocation()
+  const navigate = useNavigate()
+  const { currentUser, logout } = useAuth()
   const isDashboard = pathname === '/dashboard'
   const [isChatOpen, setIsChatOpen] = useState(() => (
     window.location.pathname === '/dashboard' &&
@@ -55,6 +58,11 @@ function MainLayoutContent() {
     setIsChatOpen(false)
   }
 
+  const handleLogout = () => {
+    logout()
+    navigate('/')
+  }
+
   return (
     <div className={styles.shell}>
       <header className={styles.header}>
@@ -87,12 +95,24 @@ function MainLayoutContent() {
           </nav>
 
           <div className={styles.headerActions}>
-            <Link className={styles.signupCta} to="/signup">
-              회원가입
-            </Link>
-            <Link className={styles.headerCta} to="/login">
-              로그인
-            </Link>
+            {currentUser ? (
+              <>
+                <Link className={styles.userSummary} to="/mypage" aria-label={`${currentUser.name}님의 마이페이지`}>
+                  <span aria-hidden="true">{currentUser.name.slice(0, 1)}</span>
+                  <span><strong>{currentUser.name}</strong><small>@{currentUser.username}</small></span>
+                </Link>
+                <button className={styles.logoutButton} type="button" onClick={handleLogout}>로그아웃</button>
+              </>
+            ) : (
+              <>
+                <Link className={styles.signupCta} to="/signup">
+                  회원가입
+                </Link>
+                <Link className={styles.headerCta} to="/login">
+                  로그인
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </header>

@@ -1,10 +1,12 @@
 import { useRef, useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { BrandMark } from '../../../components/common/BrandMark'
+import { useAuth } from '../hooks/useAuth'
 import styles from './AuthPages.module.css'
 
 export function SignupPage() {
   const navigate = useNavigate()
+  const { register } = useAuth()
   const [error, setError] = useState('')
   const [postalCode, setPostalCode] = useState('')
   const [address, setAddress] = useState('')
@@ -41,7 +43,29 @@ export function SignupPage() {
       return
     }
 
-    navigate('/login', { replace: true, state: { signedUp: true } })
+    const phone = [data.get('phonePrefix'), data.get('phoneMiddle'), data.get('phoneLast')]
+      .map(String)
+      .join('-')
+    const result = register({
+      name: String(data.get('name')),
+      username: String(data.get('username')),
+      email: String(data.get('email')),
+      phone,
+      postalCode: String(data.get('postalCode')),
+      address: String(data.get('address')),
+      detailAddress: String(data.get('detailAddress')),
+      password: String(data.get('password')),
+    })
+
+    if (!result.success) {
+      setError(result.message ?? '회원가입 정보를 저장하지 못했습니다.')
+      return
+    }
+
+    navigate('/login', {
+      replace: true,
+      state: { signedUp: true, username: String(data.get('username')) },
+    })
   }
 
   return (
@@ -77,7 +101,38 @@ export function SignupPage() {
             </label>
             <label className={styles.field}>
               <span>전화번호</span>
-              <input name="phone" type="tel" required autoComplete="tel" inputMode="tel" placeholder="010-0000-0000" />
+              <div className={styles.phoneField}>
+                <select name="phonePrefix" required aria-label="전화번호 앞자리" defaultValue="010">
+                  <option value="010">010</option>
+                  <option value="011">011</option>
+                  <option value="016">016</option>
+                  <option value="017">017</option>
+                  <option value="018">018</option>
+                  <option value="019">019</option>
+                </select>
+                <input
+                  name="phoneMiddle"
+                  type="tel"
+                  required
+                  inputMode="numeric"
+                  pattern="[0-9]{3,4}"
+                  minLength={3}
+                  maxLength={4}
+                  aria-label="전화번호 가운데 자리"
+                  placeholder="1234"
+                />
+                <input
+                  name="phoneLast"
+                  type="tel"
+                  required
+                  inputMode="numeric"
+                  pattern="[0-9]{4}"
+                  minLength={4}
+                  maxLength={4}
+                  aria-label="전화번호 마지막 자리"
+                  placeholder="5678"
+                />
+              </div>
             </label>
             <label className={styles.field}>
               <span>우편번호</span>

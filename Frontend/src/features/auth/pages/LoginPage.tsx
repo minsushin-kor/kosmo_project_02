@@ -1,20 +1,37 @@
 import { useState, type FormEvent } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { BrandMark } from '../../../components/common/BrandMark'
+import { useAuth } from '../hooks/useAuth'
 import styles from './AuthPages.module.css'
 
 type LoginLocationState = {
   signedUp?: boolean
+  username?: string
 }
 
 export function LoginPage() {
   const navigate = useNavigate()
   const location = useLocation()
+  const { login } = useAuth()
   const state = location.state as LoginLocationState | null
   const [showPassword, setShowPassword] = useState(false)
+  const [error, setError] = useState('')
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
+    setError('')
+    const data = new FormData(event.currentTarget)
+    const result = login(
+      String(data.get('username')),
+      String(data.get('password')),
+      data.get('remember') === 'on',
+    )
+
+    if (!result.success) {
+      setError(result.message ?? '로그인하지 못했습니다.')
+      return
+    }
+
     navigate('/dashboard')
   }
 
@@ -49,12 +66,20 @@ export function LoginPage() {
           <form onSubmit={handleSubmit}>
             <label className={styles.field}>
               <span>아이디</span>
-              <input type="text" required autoComplete="username" placeholder="아이디를 입력해 주세요" />
+              <input
+                name="username"
+                type="text"
+                required
+                autoComplete="username"
+                defaultValue={state?.username ?? ''}
+                placeholder="아이디를 입력해 주세요"
+              />
             </label>
             <label className={styles.field}>
               <span>비밀번호</span>
               <div className={styles.passwordField}>
                 <input
+                  name="password"
                   type={showPassword ? 'text' : 'password'}
                   required
                   autoComplete="current-password"
@@ -66,13 +91,14 @@ export function LoginPage() {
               </div>
             </label>
             <div className={styles.formOptions}>
-              <label><input type="checkbox" /> 로그인 유지</label>
+              <label><input name="remember" type="checkbox" /> 로그인 유지</label>
             </div>
+            {error && <div className={styles.errorMessage} role="alert">{error}</div>}
             <button className={styles.submitButton} type="submit">로그인</button>
           </form>
 
           <p className={styles.switchText}>아직 계정이 없나요? <Link to="/signup">회원가입</Link></p>
-          <div className={styles.mockNotice}>현재는 화면 시연 단계로 아이디와 비밀번호 입력 여부만 확인합니다.</div>
+          <div className={styles.mockNotice}>현재는 화면 시연 단계로 회원정보와 로그인 상태를 이 브라우저에만 저장합니다.</div>
         </div>
       </section>
     </div>

@@ -67,6 +67,15 @@
   color: var(--color-text-strong);
 }
 
+.fieldGrid input:read-only {
+  background: var(--color-sand-soft);
+  color: var(--color-text-muted);
+}
+
+.wideField {
+  grid-column: 1 / -1;
+}
+
 .toggle {
   display: flex;
   margin: 1.5rem 0;
@@ -196,6 +205,10 @@
 @media (max-width: 560px) {
   .fieldGrid {
     grid-template-columns: 1fr;
+  }
+
+  .wideField {
+    grid-column: auto;
   }
 
   .petRow {
