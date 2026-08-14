@@ -1,19 +1,160 @@
-import { Link } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import {
+  Link,
+  useLocation,
+  useParams,
+} from 'react-router-dom'
 import { PetSectionNav } from '../../pets/components/PetSectionNav'
 import { usePets } from '../../pets/hooks/usePets'
+import {
+  getPrediction,
+  type PredictionResponse,
+  type RiskGrade,
+} from '../api/predictionApi'
 import common from '../../../styles/featurePage.module.css'
 import styles from './PredictionResultPage.module.css'
 
-const factors = [
-  { label: '수분 섭취 변화', value: 42 },
-  { label: '활동량 감소', value: 31 },
-  { label: '피부 증상', value: 17 },
-  { label: '기타 응답', value: 10 },
-]
+type LocationState = {
+  prediction?: PredictionResponse
+  petName?: string
+}
+
+const gradeLabel: Record<RiskGrade, string> = {
+  NORMAL: '정상',
+  WATCH: '관찰',
+  CAUTION: '주의',
+  DANGER: '위험',
+}
+
+const gradeMessage: Record<RiskGrade, string> = {
+  NORMAL: '현재 뚜렷한 이상 신호는 낮아요.',
+  WATCH: '일부 변화가 있어 상태 관찰이 필요해요.',
+  CAUTION: '여러 이상 징후가 있어 주의가 필요해요.',
+  DANGER: '건강 이상 가능성이 높아 빠른 확인이 필요해요.',
+}
+
+function formatDateTime(value: string) {
+  const date = new Date(value)
+
+  if (Number.isNaN(date.getTime())) {
+    return value
+  }
+
+  return new Intl.DateTimeFormat('ko-KR', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(date)
+}
 
 export function PredictionResultPage() {
+  const { predictionId } = useParams()
+  const location = useLocation()
   const { selectedPet } = usePets()
+
+  const locationState =
+    location.state as LocationState | null
+
+  const [prediction, setPrediction] =
+    useState<PredictionResponse | null>(
+      locationState?.prediction ?? null,
+    )
+
+  const [isLoading, setIsLoading] =
+    useState(!locationState?.prediction)
+
+  const [error, setError] =
+    useState<string | null>(null)
+
+  useEffect(() => {
+    if (prediction) {
+      return
+    }
+
+    const id = Number(predictionId)
+
+    if (!predictionId || Number.isNaN(id)) {
+      setError('예측 결과 번호가 올바르지 않습니다.')
+      setIsLoading(false)
+      return
+    }
+
+    const loadPrediction = async () => {
+      try {
+        setIsLoading(true)
+
+        const result = await getPrediction(id)
+
+        setPrediction(result)
+      } catch (loadError) {
+        console.error(
+          '예측 결과 조회 실패:',
+          loadError,
+        )
+
+        setError(
+          '예측 결과를 불러오지 못했습니다.',
+        )
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    void loadPrediction()
+  }, [prediction, predictionId])
+
+  if (isLoading) {
+    return (
+      <div className={common.page}>
+        <PetSectionNav />
+        <p>AI 분석 결과를 불러오는 중입니다.</p>
+      </div>
+    )
+  }
+
+  if (error || !prediction) {
+    return (
+      <div className={common.page}>
+        <PetSectionNav />
+
+        <header className={common.header}>
+          <div>
+            <p className={common.eyebrow}>
+              AI HEALTH CHECK RESULT
+            </p>
+
+            <h1 className={common.title}>
+              분석 결과를 확인할 수 없습니다.
+            </h1>
+
+            <p className={common.description}>
+              {error ??
+                '예측 결과가 존재하지 않습니다.'}
+            </p>
+          </div>
+        </header>
+      </div>
+    )
+  }
+
+  const petName =
+    locationState?.petName ??
+    selectedPet.name
+
   const petBase = `/pets/${selectedPet.id}`
+
+  const probability = Math.round(
+    prediction.abnormalProbability * 100,
+  )
+
+  const grade =
+    gradeLabel[prediction.riskGrade]
+
+  const summary =
+    prediction.aiSummary?.trim() ||
+    gradeMessage[prediction.riskGrade]
 
   return (
     <div className={common.page}>
@@ -21,68 +162,163 @@ export function PredictionResultPage() {
 
       <header className={common.header}>
         <div>
-          <p className={common.eyebrow}>AI HEALTH CHECK RESULT</p>
-          <h1 className={common.title}>{selectedPet.name}의 분석 결과</h1>
+          <p className={common.eyebrow}>
+            AI HEALTH CHECK RESULT
+          </p>
+
+          <h1 className={common.title}>
+            {petName}의 분석 결과
+          </h1>
+
           <p className={common.description}>
-            오늘 입력한 건강 문진과 최근 생체정보를 함께 살펴봤어요.
+            오늘 입력한 건강 문진과 최근 생체정보를
+            바탕으로 건강 이상 가능성을 분석했습니다.
           </p>
         </div>
-        <span className={common.mockBadge}>화면용 예시 결과</span>
+
+        <span className={common.mockBadge}>
+          실제 AI 분석 결과
+        </span>
       </header>
 
-      <section className={styles.resultHero} aria-label="AI 예측 요약">
-        <div className={styles.riskGauge} aria-label="주의 신호 가능성 23퍼센트">
-          <div className={styles.riskGaugeInner}>
-            <strong>23%</strong>
-            <span>주의 신호 가능성</span>
+      <section
+        className={styles.resultHero}
+        aria-label="AI 예측 요약"
+      >
+        <div
+          className={styles.riskGauge}
+          aria-label={`건강 이상 가능성 ${probability}퍼센트`}
+          style={{
+            background: `conic-gradient(
+              var(--color-secondary) 0 ${probability}%,
+              rgba(255, 255, 255, 0.14) ${probability}% 100%
+            )`,
+          }}
+        >
+          <div
+            className={styles.riskGaugeInner}
+          >
+            <strong>{probability}%</strong>
+
+            <span>
+              건강 이상 가능성
+            </span>
           </div>
         </div>
+
         <div className={styles.resultCopy}>
-          <span className={styles.watchBadge}>관찰이 필요해요</span>
-          <h2>급한 이상 신호는 낮지만,<br />수분 섭취를 지켜봐 주세요.</h2>
+          <span
+            className={styles.watchBadge}
+          >
+            {grade}
+          </span>
+
+          <h2>
+            {
+              gradeMessage[
+              prediction.riskGrade
+              ]
+            }
+          </h2>
+
           <p>
-            평소보다 물을 적게 마시고 활동량도 조금 줄었다고 답했어요.
-            오늘과 내일 같은 변화가 이어지는지 기록해 주세요.
+            {summary}
           </p>
+
           <div className={styles.metadata}>
-            <span>분석 시각 <strong>2026.08.05 14:32</strong></span>
-            <span>모델 버전 <strong>demo-1.0</strong></span>
+            <span>
+              분석 시각
+              <strong>
+                {formatDateTime(
+                  prediction.predictedAt,
+                )}
+              </strong>
+            </span>
+
+            <span>
+              모델 버전
+              <strong>
+                {prediction.modelVersion}
+              </strong>
+            </span>
           </div>
         </div>
       </section>
 
       <div className={styles.resultGrid}>
-        <section className={`${common.panel} ${styles.factorPanel}`}>
-          <h2 className={common.sectionTitle}>결과에 영향을 준 항목</h2>
-          <p>문진 응답에서 상대적으로 영향이 컸던 항목이에요.</p>
+        <section
+          className={`${common.panel} ${styles.factorPanel}`}
+        >
+          <h2
+            className={common.sectionTitle}
+          >
+            주요 위험 요인
+          </h2>
+
+          <p>
+            AI 분석에서 가장 주요하게 확인된
+            요인입니다.
+          </p>
+
           <div className={styles.factorList}>
-            {factors.map((factor) => (
-              <div className={styles.factor} key={factor.label}>
-                <div><span>{factor.label}</span><strong>{factor.value}%</strong></div>
-                <div className={styles.factorTrack}><span style={{ width: `${factor.value}%` }} /></div>
+            <div className={styles.factor}>
+              <div>
+                <span>
+                  {prediction.primaryRiskFactor ||
+                    '특별한 주요 위험 요인 없음'}
+                </span>
               </div>
-            ))}
+            </div>
           </div>
         </section>
 
-        <section className={`${common.panel} ${styles.guidePanel}`}>
-          <h2 className={common.sectionTitle}>오늘의 관리 가이드</h2>
-          <ol>
-            <li><span>01</span><div><strong>신선한 물 준비하기</strong><p>평소 마시던 위치에 깨끗한 물을 넉넉히 놓아 주세요.</p></div></li>
-            <li><span>02</span><div><strong>가벼운 활동 확인하기</strong><p>무리하지 않는 범위에서 반응과 걸음걸이를 살펴봐 주세요.</p></div></li>
-            <li><span>03</span><div><strong>48시간 이내 다시 기록하기</strong><p>같은 증상이 이어지거나 악화되면 동물병원에 문의하세요.</p></div></li>
-          </ol>
+        <section
+          className={`${common.panel} ${styles.guidePanel}`}
+        >
+          <h2
+            className={common.sectionTitle}
+          >
+            AI 분석 설명
+          </h2>
+
+          <p
+            style={{
+              whiteSpace: 'pre-line',
+              lineHeight: 1.7,
+            }}
+          >
+            {summary}
+          </p>
         </section>
       </div>
 
       <aside className={styles.disclaimer}>
-        <strong>꼭 확인해 주세요</strong>
-        <p>이 결과는 질병을 진단하지 않습니다. 호흡 곤란, 의식 저하, 반복되는 구토 등 응급 증상이 있으면 결과와 관계없이 즉시 동물병원을 방문하세요.</p>
+        <strong>
+          꼭 확인해 주세요
+        </strong>
+
+        <p>
+          이 결과는 질병을 진단하지 않습니다.
+          호흡 곤란, 의식 저하, 반복되는 구토 등
+          응급 증상이 있으면 결과와 관계없이
+          즉시 동물병원을 방문하세요.
+        </p>
       </aside>
 
       <div className={styles.actions}>
-        <Link className={common.secondaryButton} to={`${petBase}/history`}>지난 결과 보기</Link>
-        <Link className={common.primaryButton} to={`${petBase}/questionnaire`}>문진 다시 하기</Link>
+        <Link
+          className={common.secondaryButton}
+          to={`${petBase}/history`}
+        >
+          지난 결과 보기
+        </Link>
+
+        <Link
+          className={common.primaryButton}
+          to={`${petBase}/questionnaire`}
+        >
+          문진 다시 하기
+        </Link>
       </div>
     </div>
   )

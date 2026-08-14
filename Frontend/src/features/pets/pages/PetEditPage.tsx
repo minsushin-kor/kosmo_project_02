@@ -10,7 +10,9 @@ export function PetEditPage() {
   const { petId } = useParams()
   const navigate = useNavigate()
   const { pets, updatePet } = usePets()
-  const pet = pets.find((candidate) => candidate.id === petId)
+  const pet = pets.find(
+    (candidate) => candidate.id === Number(petId),
+  )
 
   if (!pet) {
     return (

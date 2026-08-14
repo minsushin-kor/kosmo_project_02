@@ -2,7 +2,7 @@ import type { Pet } from '../types'
 
 export const mockPets: Pet[] = [
   {
-    id: 'coco',
+    id: 1,
     name: '코코',
     species: 'DOG',
     breed: '웰시코기',
@@ -14,7 +14,7 @@ export const mockPets: Pet[] = [
     accent: 'sage',
   },
   {
-    id: 'momo',
+    id: 2,
     name: '모모',
     species: 'CAT',
     breed: '코리안 숏헤어',

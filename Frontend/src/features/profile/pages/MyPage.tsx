@@ -12,7 +12,8 @@ export function MyPage() {
   const { currentUser } = useAuth()
   const { pets, removePet } = usePets()
   const [saved, setSaved] = useState(false)
-  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null)
+  const [pendingDeleteId, setPendingDeleteId] =
+    useState<number | null>(null)
   const [petMessage, setPetMessage] = useState('')
   const pendingDeletePet = pets.find((pet) => pet.id === pendingDeleteId)
   const profile = currentUser ?? {
@@ -30,7 +31,7 @@ export function MyPage() {
     setSaved(true)
   }
 
-  const handleDelete = (petId: string) => {
+  const handleDelete = (petId: number) => {
     const petName = pets.find((pet) => pet.id === petId)?.name
     const removed = removePet(petId)
 

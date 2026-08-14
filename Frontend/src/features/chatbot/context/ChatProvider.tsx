@@ -71,7 +71,7 @@ export function ChatProvider({ children }: ChatProviderProps) {
         message,
         history,
         pet_context: {
-          id: selectedPet.id,
+          id: String(selectedPet.id),
           name: selectedPet.name,
           species: selectedPet.species,
           breed: selectedPet.breed,
@@ -93,10 +93,10 @@ export function ChatProvider({ children }: ChatProviderProps) {
           setMessages((current) => current.map((item) => (
             item.id === assistantId
               ? {
-                  ...item,
-                  content: item.content || '답변을 생성하지 못했습니다. 잠시 후 다시 질문해 주세요.',
-                  state: 'complete',
-                }
+                ...item,
+                content: item.content || '답변을 생성하지 못했습니다. 잠시 후 다시 질문해 주세요.',
+                state: 'complete',
+              }
               : item
           )))
         },
@@ -132,10 +132,10 @@ export function ChatProvider({ children }: ChatProviderProps) {
     setMessages((current) => current.map((item) => (
       item.state === 'streaming'
         ? {
-            ...item,
-            content: item.content || '답변 생성을 중단했어요.',
-            state: 'stopped',
-          }
+          ...item,
+          content: item.content || '답변 생성을 중단했어요.',
+          state: 'stopped',
+        }
         : item
     )))
   }, [])
