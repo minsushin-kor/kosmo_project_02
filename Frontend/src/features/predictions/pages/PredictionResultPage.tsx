@@ -27,7 +27,7 @@ const gradeLabel: Record<RiskGrade, string> = {
 }
 
 const gradeMessage: Record<RiskGrade, string> = {
-  NORMAL: '현재 뚜렷한 이상 신호는 낮아요.',
+  NORMAL: '현재 뚜렷한 이상 신호가 적어요.',
   WATCH: '일부 변화가 있어 상태 관찰이 필요해요.',
   CAUTION: '여러 이상 징후가 있어 주의가 필요해요.',
   DANGER: '건강 이상 가능성이 높아 빠른 확인이 필요해요.',
