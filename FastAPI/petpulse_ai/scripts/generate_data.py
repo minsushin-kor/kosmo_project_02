@@ -4,29 +4,54 @@ import pandas as pd
 
 
 # =====================================================================
+# 종별(Species) 생체 임계값 상수 정의
+# =====================================================================
+# 수의학 일반 기준에 따라 강아지(DOG)와 고양이(CAT)의 정상 생체 범위가 다름
+# - 강아지 정상 체온: 37.5~39.2°C  / 고양이 정상 체온: 38.0~39.5°C
+# - 강아지 정상 심박수: 60~140bpm  / 고양이 정상 심박수: 120~220bpm
+
+SPECIES_THRESHOLDS = {
+    "DOG": {
+        "temp_mild_fever":  39.3,   # 미열 기준
+        "temp_high_fever":  40.0,   # 고열 기준
+        "hr_tachycardia":   160,    # 빈맥 기준 (bpm)
+        "rr_tachypnea":     40,     # 빠른 호흡 기준 (회/분)
+    },
+    "CAT": {
+        "temp_mild_fever":  39.6,   # 고양이는 정상 체온 상한이 더 높음 (38.0~39.5°C)
+        "temp_high_fever":  40.5,   # 고양이 고열 기준
+        "hr_tachycardia":   240,    # 고양이 정상 심박수 상한이 220bpm → 빈맥 기준 높게
+        "rr_tachypnea":     40,     # 호흡수 기준은 동일
+    },
+}
+
+
+# =====================================================================
 # 내부 헬퍼: 점수 계산 및 등급 결정
 # =====================================================================
-def _compute_score_and_label(temp, heart_rate, resp_rate,
+def _compute_score_and_label(species, temp, heart_rate, resp_rate,
                               skin_redness, itching, hair_loss,
                               vomiting, diarrhea, appetite, activity,
                               noise_std=0.08):
     """
     증상 값으로부터 이상 점수를 계산하고 riskGrade를 반환합니다.
+    species(종)별로 다른 생체 임계값을 적용합니다.
     σ=0.08 가우시안 노이즈로 데이터 결정론(data leakage)을 방지합니다.
     """
+    thr = SPECIES_THRESHOLDS.get(species, SPECIES_THRESHOLDS["DOG"])
     score = 0.0
     risk_factors = []
 
-    # (1) 체온
-    if temp >= 40.0:
+    # (1) 체온 — 종별 임계값 적용
+    if temp >= thr["temp_high_fever"]:
         score += 0.40; risk_factors.append("고열")
-    elif temp >= 39.3:
+    elif temp >= thr["temp_mild_fever"]:
         score += 0.20; risk_factors.append("미열")
 
-    # (2) 심박수 / 호흡수
-    if heart_rate >= 160:
+    # (2) 심박수 / 호흡수 — 심박수는 종별, 호흡수는 공통
+    if heart_rate >= thr["hr_tachycardia"]:
         score += 0.20; risk_factors.append("빈맥")
-    if resp_rate >= 40:
+    if resp_rate >= thr["rr_tachypnea"]:
         score += 0.25; risk_factors.append("호흡 급증")
 
     # (3) 소화기
@@ -82,73 +107,126 @@ def _generate_base_info():
     return species, age, weight
 
 
-def _generate_symptoms_by_profile(target_class):
+def _generate_symptoms_by_profile(target_class, species):
     """
-    목표 위험 등급에 편향된 증상 프로파일을 생성합니다.
+    목표 위험 등급과 종(species)에 편향된 증상 프로파일을 생성합니다.
     클래스 간 경계를 의도적으로 겹치게 설계하여 현실적인 분류 난이도를 구현합니다.
 
-    변경 포인트 (vs 이전 너무 쉬운 버전):
-    - NORMAL 체온 상한: 39.2 → 39.7  (WATCH 영역과 겹침)
-    - DANGER 체온 하한: 40.0 → 39.5  (CAUTION 영역과 겹침)
-    - 전 클래스 표준편차 확대 (std 0.27~0.35 → 0.42~0.50)
-    - 증상 발생 확률 중첩 증가 (NORMAL 구토 4%→10%, 피부 5%→10%)
+    종별 분포 차이:
+    - 체온: DOG는 낮은 임계값 기준, CAT은 높은 임계값 기준으로 분포 설정
+    - 심박수: CAT은 DOG보다 정상 범위가 훨씬 높으므로 등급별 평균값도 높게 설정
+
     결과: 경계 근처 샘플의 자연스러운 혼재 → 목표 Macro F1 0.75~0.85
     """
-    if target_class == "NORMAL":
-        # 정상: 전반적으로 안정적이나 간헐적 경미한 증상 허용 (현실적 건강 동물)
-        temp       = max(36.5, min(39.7, round(np.random.normal(38.5, 0.50), 1)))  # 상한 39.2→39.7
-        heart_rate = max(50,   min(160,  int(np.random.normal(105, 22))))           # std·상한 확장
-        resp_rate  = max(10,   min(42,   int(np.random.normal(24, 7))))             # 상한 38→42
-        skin_redness = random.random() < 0.10   # 5%→10%
-        itching      = random.random() < 0.10
-        hair_loss    = random.random() < 0.06
-        vomiting     = random.random() < 0.10   # 4%→10%
-        diarrhea     = random.random() < 0.10
-        appetite = random.choices(["NONE","DECREASED","NORMAL","INCREASED"], weights=[ 1,  8, 82,  9])[0]
-        water    = random.choices(["DECREASED","NORMAL","INCREASED"],         weights=[ 8, 82, 10])[0]
-        activity = random.choices(["LOW","NORMAL","HIGH"],                    weights=[10, 75, 15])[0]
+    if species == "CAT":
+        # ── 고양이 프로파일 ──────────────────────────────────────────
+        # 정상 체온 상한: 39.5°C / 심박수 정상 상한: 220bpm
+        if target_class == "NORMAL":
+            temp       = max(37.0, min(40.0, round(np.random.normal(38.9, 0.50), 1)))
+            heart_rate = max(100,  min(230,  int(np.random.normal(170, 28))))
+            resp_rate  = max(10,   min(42,   int(np.random.normal(24, 7))))
+            skin_redness = random.random() < 0.10
+            itching      = random.random() < 0.10
+            hair_loss    = random.random() < 0.06
+            vomiting     = random.random() < 0.10
+            diarrhea     = random.random() < 0.10
+            appetite = random.choices(["NONE","DECREASED","NORMAL","INCREASED"], weights=[ 1,  8, 82,  9])[0]
+            water    = random.choices(["DECREASED","NORMAL","INCREASED"],         weights=[ 8, 82, 10])[0]
+            activity = random.choices(["LOW","NORMAL","HIGH"],                    weights=[10, 75, 15])[0]
 
-    elif target_class == "WATCH":
-        # 관찰: NORMAL·CAUTION과 자연스럽게 겹치도록 범위·std 확장
-        temp       = max(37.5, min(40.2, round(np.random.normal(39.0, 0.48), 1)))
-        heart_rate = max(60,   min(178,  int(np.random.normal(125, 28))))
-        resp_rate  = max(12,   min(46,   int(np.random.normal(28, 9))))
-        skin_redness = random.random() < 0.25
-        itching      = random.random() < 0.25
-        hair_loss    = random.random() < 0.15
-        vomiting     = random.random() < 0.28
-        diarrhea     = random.random() < 0.28
-        appetite = random.choices(["NONE","DECREASED","NORMAL","INCREASED"], weights=[ 5, 38, 52,  5])[0]
-        water    = random.choices(["DECREASED","NORMAL","INCREASED"],         weights=[22, 63, 15])[0]
-        activity = random.choices(["LOW","NORMAL","HIGH"],                    weights=[33, 57, 10])[0]
+        elif target_class == "WATCH":
+            temp       = max(38.0, min(40.5, round(np.random.normal(39.3, 0.48), 1)))
+            heart_rate = max(120,  min(255,  int(np.random.normal(210, 28))))
+            resp_rate  = max(12,   min(46,   int(np.random.normal(28, 9))))
+            skin_redness = random.random() < 0.25
+            itching      = random.random() < 0.25
+            hair_loss    = random.random() < 0.15
+            vomiting     = random.random() < 0.28
+            diarrhea     = random.random() < 0.28
+            appetite = random.choices(["NONE","DECREASED","NORMAL","INCREASED"], weights=[ 5, 38, 52,  5])[0]
+            water    = random.choices(["DECREASED","NORMAL","INCREASED"],         weights=[22, 63, 15])[0]
+            activity = random.choices(["LOW","NORMAL","HIGH"],                    weights=[33, 57, 10])[0]
 
-    elif target_class == "CAUTION":
-        # 주의: WATCH·DANGER와 경계 겹침 (하한 39.0→38.5, std 확대)
-        temp       = max(38.5, min(40.8, round(np.random.normal(39.6, 0.45), 1)))  # 하한 39.0→38.5
-        heart_rate = max(90,   min(200,  int(np.random.normal(150, 28))))
-        resp_rate  = max(22,   min(58,   int(np.random.normal(39, 9))))             # 하한 28→22
-        skin_redness = random.random() < 0.42
-        itching      = random.random() < 0.42
-        hair_loss    = random.random() < 0.25
-        vomiting     = random.random() < 0.48
-        diarrhea     = random.random() < 0.48
-        appetite = random.choices(["NONE","DECREASED","NORMAL","INCREASED"], weights=[20, 55, 23,  2])[0]
-        water    = random.choices(["DECREASED","NORMAL","INCREASED"],         weights=[47, 46,  7])[0]
-        activity = random.choices(["LOW","NORMAL","HIGH"],                    weights=[65, 30,  5])[0]
+        elif target_class == "CAUTION":
+            temp       = max(38.8, min(41.2, round(np.random.normal(39.9, 0.45), 1)))
+            heart_rate = max(150,  min(275,  int(np.random.normal(245, 28))))
+            resp_rate  = max(22,   min(58,   int(np.random.normal(39, 9))))
+            skin_redness = random.random() < 0.42
+            itching      = random.random() < 0.42
+            hair_loss    = random.random() < 0.25
+            vomiting     = random.random() < 0.48
+            diarrhea     = random.random() < 0.48
+            appetite = random.choices(["NONE","DECREASED","NORMAL","INCREASED"], weights=[20, 55, 23,  2])[0]
+            water    = random.choices(["DECREASED","NORMAL","INCREASED"],         weights=[47, 46,  7])[0]
+            activity = random.choices(["LOW","NORMAL","HIGH"],                    weights=[65, 30,  5])[0]
 
-    else:  # DANGER
-        # 위험: 심각하지만 CAUTION과 경계 겹침 허용 (실제로 판단 어려운 케이스 포함)
-        temp       = max(39.5, min(41.5, round(np.random.normal(40.2, 0.45), 1)))  # 하한 40.0→39.5, 평균 40.5→40.2
-        heart_rate = max(130,  min(230,  int(np.random.normal(168, 28))))           # 하한 150→130
-        resp_rate  = max(34,   min(72,   int(np.random.normal(49, 10))))            # 하한 40→34
-        skin_redness = random.random() < 0.55
-        itching      = random.random() < 0.55
-        hair_loss    = random.random() < 0.35
-        vomiting     = random.random() < 0.68   # 72%→68%
-        diarrhea     = random.random() < 0.68
-        appetite = random.choices(["NONE","DECREASED","NORMAL","INCREASED"], weights=[50, 40,  9,  1])[0]
-        water    = random.choices(["DECREASED","NORMAL","INCREASED"],         weights=[65, 30,  5])[0]
-        activity = random.choices(["LOW","NORMAL","HIGH"],                    weights=[84, 13,  3])[0]
+        else:  # DANGER
+            temp       = max(39.8, min(42.0, round(np.random.normal(40.7, 0.45), 1)))
+            heart_rate = max(200,  min(300,  int(np.random.normal(262, 28))))
+            resp_rate  = max(34,   min(72,   int(np.random.normal(49, 10))))
+            skin_redness = random.random() < 0.55
+            itching      = random.random() < 0.55
+            hair_loss    = random.random() < 0.35
+            vomiting     = random.random() < 0.68
+            diarrhea     = random.random() < 0.68
+            appetite = random.choices(["NONE","DECREASED","NORMAL","INCREASED"], weights=[50, 40,  9,  1])[0]
+            water    = random.choices(["DECREASED","NORMAL","INCREASED"],         weights=[65, 30,  5])[0]
+            activity = random.choices(["LOW","NORMAL","HIGH"],                    weights=[84, 13,  3])[0]
+
+    else:
+        # ── 강아지 프로파일 (DOG) ────────────────────────────────────
+        # 정상 체온 상한: 39.2°C / 심박수 정상 상한: 140bpm
+        if target_class == "NORMAL":
+            temp       = max(36.5, min(39.7, round(np.random.normal(38.5, 0.50), 1)))
+            heart_rate = max(50,   min(160,  int(np.random.normal(105, 22))))
+            resp_rate  = max(10,   min(42,   int(np.random.normal(24, 7))))
+            skin_redness = random.random() < 0.10
+            itching      = random.random() < 0.10
+            hair_loss    = random.random() < 0.06
+            vomiting     = random.random() < 0.10
+            diarrhea     = random.random() < 0.10
+            appetite = random.choices(["NONE","DECREASED","NORMAL","INCREASED"], weights=[ 1,  8, 82,  9])[0]
+            water    = random.choices(["DECREASED","NORMAL","INCREASED"],         weights=[ 8, 82, 10])[0]
+            activity = random.choices(["LOW","NORMAL","HIGH"],                    weights=[10, 75, 15])[0]
+
+        elif target_class == "WATCH":
+            temp       = max(37.5, min(40.2, round(np.random.normal(39.0, 0.48), 1)))
+            heart_rate = max(60,   min(178,  int(np.random.normal(125, 28))))
+            resp_rate  = max(12,   min(46,   int(np.random.normal(28, 9))))
+            skin_redness = random.random() < 0.25
+            itching      = random.random() < 0.25
+            hair_loss    = random.random() < 0.15
+            vomiting     = random.random() < 0.28
+            diarrhea     = random.random() < 0.28
+            appetite = random.choices(["NONE","DECREASED","NORMAL","INCREASED"], weights=[ 5, 38, 52,  5])[0]
+            water    = random.choices(["DECREASED","NORMAL","INCREASED"],         weights=[22, 63, 15])[0]
+            activity = random.choices(["LOW","NORMAL","HIGH"],                    weights=[33, 57, 10])[0]
+
+        elif target_class == "CAUTION":
+            temp       = max(38.5, min(40.8, round(np.random.normal(39.6, 0.45), 1)))
+            heart_rate = max(90,   min(200,  int(np.random.normal(150, 28))))
+            resp_rate  = max(22,   min(58,   int(np.random.normal(39, 9))))
+            skin_redness = random.random() < 0.42
+            itching      = random.random() < 0.42
+            hair_loss    = random.random() < 0.25
+            vomiting     = random.random() < 0.48
+            diarrhea     = random.random() < 0.48
+            appetite = random.choices(["NONE","DECREASED","NORMAL","INCREASED"], weights=[20, 55, 23,  2])[0]
+            water    = random.choices(["DECREASED","NORMAL","INCREASED"],         weights=[47, 46,  7])[0]
+            activity = random.choices(["LOW","NORMAL","HIGH"],                    weights=[65, 30,  5])[0]
+
+        else:  # DANGER
+            temp       = max(39.5, min(41.5, round(np.random.normal(40.2, 0.45), 1)))
+            heart_rate = max(130,  min(230,  int(np.random.normal(168, 28))))
+            resp_rate  = max(34,   min(72,   int(np.random.normal(49, 10))))
+            skin_redness = random.random() < 0.55
+            itching      = random.random() < 0.55
+            hair_loss    = random.random() < 0.35
+            vomiting     = random.random() < 0.68
+            diarrhea     = random.random() < 0.68
+            appetite = random.choices(["NONE","DECREASED","NORMAL","INCREASED"], weights=[50, 40,  9,  1])[0]
+            water    = random.choices(["DECREASED","NORMAL","INCREASED"],         weights=[65, 30,  5])[0]
+            activity = random.choices(["LOW","NORMAL","HIGH"],                    weights=[84, 13,  3])[0]
 
     has_symptom = (skin_redness or vomiting or diarrhea
                    or appetite != "NORMAL" or activity != "NORMAL")
@@ -165,11 +243,11 @@ def generate_pet_synthetic_data(num_samples=10000, seed=42):
     """
     3:2:2:2 비율(NORMAL:WATCH:CAUTION:DANGER)로 균형 잡힌 합성 데이터를 생성합니다.
 
-    개선 사항:
-    - 10,000건으로 데이터 규모 확대 (기존 3,000건)
+    개선 사항 (v2):
+    - 강아지/고양이 종별로 다른 생체 임계값 적용 (체온, 심박수)
+    - 10,000건으로 데이터 규모 유지
     - 클래스별 편향 증상 프로파일(profile-based) + rejection sampling으로 3:2:2:2 달성
-    - 가우시안 노이즈 σ=0.08 (기존 0.12에서 축소 → 신호 강도 개선)
-    - DANGER 클래스: 56건(2%) → 약 2,222건(22%)으로 대폭 증가
+    - 가우시안 노이즈 σ=0.08 (결정론적 패턴 완화)
     """
     np.random.seed(seed)
     random.seed(seed)
@@ -200,14 +278,14 @@ def generate_pet_synthetic_data(num_samples=10000, seed=42):
             weights=list(remaining.values())
         )[0]
 
-        # 프로파일 기반 증상 생성
+        # 종(species)을 먼저 결정한 뒤 프로파일 및 점수 계산에 전달
         species, age, weight = _generate_base_info()
         (temp, heart_rate, resp_rate, skin_redness, itching, hair_loss,
-         vomiting, diarrhea, appetite, water, activity, symptom_days) = _generate_symptoms_by_profile(target)
+         vomiting, diarrhea, appetite, water, activity, symptom_days) = _generate_symptoms_by_profile(target, species)
 
-        # 실제 점수 계산 (노이즈 포함)
+        # 실제 점수 계산 (종별 임계값 + 노이즈 포함)
         abnormal_prob, risk_grade, primary_factor = _compute_score_and_label(
-            temp, heart_rate, resp_rate, skin_redness, itching, hair_loss,
+            species, temp, heart_rate, resp_rate, skin_redness, itching, hair_loss,
             vomiting, diarrhea, appetite, activity
         )
 
@@ -215,8 +293,8 @@ def generate_pet_synthetic_data(num_samples=10000, seed=42):
         if risk_grade == target and class_counts[target] < class_targets[target]:
             data.append({
                 "species": species, "age": age, "weight": weight,
-                "temperature": temp, "heart_rate": heart_rate,
-                "respiratory_rate": resp_rate,
+                "temperature": temp, "heartRate": heart_rate,
+                "respiratoryRate": resp_rate,
                 "skinRedness": skin_redness, "itching": itching, "hairLoss": hair_loss,
                 "vomiting": vomiting, "diarrhea": diarrhea,
                 "appetiteLevel": appetite, "waterIntakeLevel": water,
@@ -249,3 +327,5 @@ if __name__ == "__main__":
     print(df['riskGrade'].value_counts())
     print("\n[비율]")
     print(df['riskGrade'].value_counts(normalize=True).round(3))
+    print("\n[종별 분포]")
+    print(df.groupby(['species', 'riskGrade']).size().unstack(fill_value=0))

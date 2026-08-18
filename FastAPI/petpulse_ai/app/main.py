@@ -56,12 +56,29 @@ EMBEDDING_MODEL = None
 # 환경변수에서 LLM 모델명 로드 (기본값: gpt-4o-mini)
 LLM_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
 
+# 종별(Species) 생체 임계값 상수
+# 수의학 일반 기준: 강아지와 고양이의 정상 생체 범위가 다름
+# - 강아지 정상 체온: 37.5~39.2°C  / 고양이 정상 체온: 38.0~39.5°C
+# - 강아지 정상 심박수: 60~140bpm  / 고양이 정상 심박수: 120~220bpm
+SPECIES_THRESHOLDS = {
+    "DOG": {
+        "temp_mild_fever":  39.3,   # 미열 기준
+        "temp_high_fever":  40.0,   # 고열 기준
+        "hr_tachycardia":   160,    # 빈맥 기준 (bpm)
+    },
+    "CAT": {
+        "temp_mild_fever":  39.6,   # 고양이 정상 체온 상한이 더 높음
+        "temp_high_fever":  40.5,   # 고양이 고열 기준
+        "hr_tachycardia":   240,    # 고양이 정상 심박수 상한: 220bpm → 빈맥 기준 높게
+    },
+}
+
 # SHAP 피처명 → 한국어 위험 요인 매핑 테이블
 # ColumnTransformer 출력 피처명(prefix__원본명) 형식으로 매핑
 FEATURE_FACTOR_MAP = {
     "num__temperature":         "체온 이상",
-    "num__heart_rate":          "심박수 이상",
-    "num__respiratory_rate":    "호흡 급증",
+    "num__heartRate":           "심박수 이상",
+    "num__respiratoryRate":     "호흡 급증",
     "num__symptomDurationDays": "증상 장기화",
     "num__age":                 "고령",
     "num__weight":              "체중 이상",
@@ -293,18 +310,24 @@ def get_shap_risk_factors(df_input: pd.DataFrame, predicted_class_idx: int) -> O
 def get_rule_based_risk_factors(
         req: HealthRiskPredictRequest,
         risk_grade: str) -> str:
-
+    """
+    SHAP를 사용할 수 없을 때의 규칙 기반 primaryRiskFactor 생성 Fallback.
+    종(species)별로 다른 체온·심박수 임계값을 적용합니다.
+    """
     if risk_grade == "NORMAL":
         return "이상 없음(정상)"
 
+    # 종별 임계값 로드 (미등록 종은 DOG 기준 적용)
+    thr = SPECIES_THRESHOLDS.get(req.species, SPECIES_THRESHOLDS["DOG"])
+
     factors = []
 
-    if req.temperature >= 40.0:
+    if req.temperature >= thr["temp_high_fever"]:
         factors.append("고열")
-    elif req.temperature >= 39.3:
+    elif req.temperature >= thr["temp_mild_fever"]:
         factors.append("체온 상승")
 
-    if req.heartRate >= 150:
+    if req.heartRate >= thr["hr_tachycardia"]:
         factors.append("심박수 이상")
 
     if req.respiratoryRate >= 40:
@@ -477,10 +500,11 @@ def get_model_info():
 )
 def predict_health_risk(req: HealthRiskPredictRequest):
     if MODEL_PIPELINE is None:
-        # 모델이 로드되지 않은 예외 상황 시 안전한 스코어링 규칙 계산 Fallback
+        # 모델이 로드되지 않은 예외 상황 시 종별 임계값 기반 안전한 스코어링 Fallback
+        thr = SPECIES_THRESHOLDS.get(req.species, SPECIES_THRESHOLDS["DOG"])
         score = 0.0
-        if req.temperature >= 40.0: score += 0.4
-        elif req.temperature >= 39.3: score += 0.2
+        if req.temperature >= thr["temp_high_fever"]:   score += 0.4
+        elif req.temperature >= thr["temp_mild_fever"]: score += 0.2
         if req.vomiting or req.diarrhea: score += 0.2
         prob = round(min(score, 1.0), 2)
         grade = "NORMAL" if prob < 0.3 else "WATCH" if prob < 0.5 else "CAUTION" if prob < 0.75 else "DANGER"
