@@ -18,20 +18,21 @@ export type ChatMessage = {
   isIntro?: boolean
 }
 
-export type ChatHistoryMessage = {
-  role: ChatRole
-  content: string
-}
-
-export type ChatPetContext = {
-  id: string
-  name: string
-  species: 'DOG' | 'CAT'
-  breed: string
-}
-
 export type ChatStreamRequest = {
   message: string
-  history: ChatHistoryMessage[]
-  pet_context?: ChatPetContext
+  species?: 'DOG' | 'CAT'
 }
+
+export type ChatStreamEvent =
+  | {
+      type: 'token'
+      content: string
+    }
+  | {
+      type: 'done'
+      sources: ChatSource[]
+    }
+  | {
+      type: 'error'
+      message?: string
+    }

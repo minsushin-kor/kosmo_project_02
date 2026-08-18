@@ -6,9 +6,10 @@ import {
   useState,
   type ReactNode,
 } from 'react'
+import { useAuth } from '../../auth/hooks/useAuth'
 import { usePets } from '../../pets/hooks/usePets'
 import { streamChat } from '../api/chatbotApi'
-import type { ChatHistoryMessage, ChatMessage } from '../types'
+import type { ChatMessage } from '../types'
 import { ChatContext, type ChatContextValue } from './ChatContext'
 
 const INTRO_MESSAGE: ChatMessage = {
@@ -28,12 +29,20 @@ function createMessageId(prefix: string) {
 }
 
 export function ChatProvider({ children }: ChatProviderProps) {
+  const { currentUser } = useAuth()
   const { selectedPet } = usePets()
   const [messages, setMessages] = useState<ChatMessage[]>([INTRO_MESSAGE])
   const [isStreaming, setIsStreaming] = useState(false)
   const abortControllerRef = useRef<AbortController | null>(null)
 
   useEffect(() => () => abortControllerRef.current?.abort(), [])
+
+  useEffect(() => {
+    abortControllerRef.current?.abort()
+    abortControllerRef.current = null
+    setIsStreaming(false)
+    setMessages([INTRO_MESSAGE])
+  }, [currentUser?.username, selectedPet.id])
 
   const sendMessage = useCallback(async (rawMessage: string) => {
     const message = rawMessage.trim()
@@ -55,11 +64,6 @@ export function ChatProvider({ children }: ChatProviderProps) {
       content: '',
       state: 'streaming',
     }
-    const history: ChatHistoryMessage[] = messages
-      .filter((item) => !item.isIntro && item.state !== 'error' && item.content)
-      .slice(-10)
-      .map(({ role, content }) => ({ role, content }))
-
     setMessages((current) => [...current, userMessage, assistantMessage])
     setIsStreaming(true)
 
@@ -69,13 +73,7 @@ export function ChatProvider({ children }: ChatProviderProps) {
     try {
       await streamChat({
         message,
-        history,
-        pet_context: {
-          id: selectedPet.id,
-          name: selectedPet.name,
-          species: selectedPet.species,
-          breed: selectedPet.breed,
-        },
+        species: selectedPet.species,
       }, {
         onDelta: (text) => {
           setMessages((current) => current.map((item) => (
@@ -123,7 +121,7 @@ export function ChatProvider({ children }: ChatProviderProps) {
       }
       setIsStreaming(false)
     }
-  }, [isStreaming, messages, selectedPet])
+  }, [isStreaming, selectedPet.species])
 
   const stopGenerating = useCallback(() => {
     abortControllerRef.current?.abort()
