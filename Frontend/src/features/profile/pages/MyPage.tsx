@@ -30,14 +30,19 @@ export function MyPage() {
     setSaved(true)
   }
 
-  const handleDelete = (petId: string) => {
+  const handleDelete = async (petId: string) => {
     const petName = pets.find((pet) => pet.id === petId)?.name
-    const removed = removePet(petId)
 
-    setPendingDeleteId(null)
-    setPetMessage(removed
-      ? `${petName ?? '반려동물'}의 정보가 삭제되었습니다.`
-      : '반려동물은 최소 한 마리 이상 등록되어 있어야 합니다.')
+    try {
+      const removed = await removePet(petId)
+      setPetMessage(removed
+        ? `${petName ?? '반려동물'}의 정보가 삭제되었습니다.`
+        : '반려동물은 최소 한 마리 이상 등록되어 있어야 합니다.')
+    } catch (error) {
+      setPetMessage(error instanceof Error ? error.message : '반려동물 정보를 삭제하지 못했습니다.')
+    } finally {
+      setPendingDeleteId(null)
+    }
   }
 
   return (
@@ -89,7 +94,7 @@ export function MyPage() {
           description={`${pendingDeletePet.name}의 프로필과 현재 화면에 저장된 건강 기록이 함께 삭제됩니다. 삭제 후에는 되돌릴 수 없습니다.`}
           confirmText="삭제하기"
           onCancel={() => setPendingDeleteId(null)}
-          onConfirm={() => handleDelete(pendingDeletePet.id)}
+          onConfirm={() => void handleDelete(pendingDeletePet.id)}
         />
       )}
     </div>

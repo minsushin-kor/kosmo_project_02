@@ -1,31 +1,76 @@
+import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
+import { DataState } from '../../../components/common/DataState'
+import { getApiErrorMessage } from '../../../shared/api/apiClient'
 import { PetSectionNav } from '../../pets/components/PetSectionNav'
 import { usePets } from '../../pets/hooks/usePets'
+import { getWeeklyReport, type WeeklyReport } from '../api/reportApi'
 import common from '../../../styles/featurePage.module.css'
 import styles from './ReportPages.module.css'
 
-const stats = [
-  { label: '평균 활동', value: '64분', change: '+12%' },
-  { label: '평균 수면', value: '11.2시간', change: '+3%' },
-  { label: '식사 기록', value: '14회', change: '100%' },
-  { label: '주의 알림', value: '1회', change: '-2회' },
-]
+function formatDate(value: string) {
+  return new Intl.DateTimeFormat('ko-KR', { year: 'numeric', month: 'short', day: 'numeric' }).format(new Date(value))
+}
 
 export function ReportDetailPage() {
   const { reportId } = useParams()
-  const { selectedPet } = usePets()
+  const { pets, selectedPet, selectPet } = usePets()
+  const [report, setReport] = useState<WeeklyReport | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    if (!reportId) {
+      setError('리포트 ID가 없습니다.')
+      setIsLoading(false)
+      return
+    }
+
+    const controller = new AbortController()
+    getWeeklyReport(reportId, controller.signal)
+      .then((loadedReport) => {
+        setReport(loadedReport)
+        const reportPet = pets.find((pet) => pet.id === String(loadedReport.petId))
+        if (reportPet) selectPet(reportPet.id)
+      })
+      .catch((loadError) => {
+        if (!(loadError instanceof DOMException && loadError.name === 'AbortError')) {
+          setError(getApiErrorMessage(loadError, '주간 리포트를 불러오지 못했습니다.'))
+        }
+      })
+      .finally(() => setIsLoading(false))
+
+    return () => controller.abort()
+  }, [pets, reportId, selectPet])
+
+  if (isLoading) {
+    return <div className={common.page}><DataState title="주간 리포트를 불러오는 중입니다." /></div>
+  }
+
+  if (!report || error) {
+    return <div className={common.page}><DataState title="주간 리포트를 표시할 수 없습니다." tone="error" action={<Link to="/pets">반려동물 목록으로 이동</Link>}>{error}</DataState></div>
+  }
+
+  const wellnessScore = Math.max(0, Math.round((1 - Number(report.averageRiskProbability ?? 0)) * 100))
+  const petBase = selectedPet ? `/pets/${selectedPet.id}` : '/pets'
+  const stats = [
+    { label: '평균 체온', value: report.averageTemperature == null ? '-' : `${report.averageTemperature}°C`, change: '주간 평균' },
+    { label: '평균 심박수', value: report.averageHeartRate == null ? '-' : `${report.averageHeartRate} bpm`, change: '주간 평균' },
+    { label: '건강 문진', value: `${report.questionnaireCount}회`, change: '최근 7일' },
+    { label: '주의·위험 알림', value: `${report.warningCount + report.dangerCount}회`, change: `위험 ${report.dangerCount}회` },
+  ]
 
   return (
     <div className={common.page}>
       <PetSectionNav />
-      <Link className={styles.backLink} to={`/pets/${selectedPet.id}/reports`}>← 주간 리포트 목록</Link>
+      <Link className={styles.backLink} to={`${petBase}/reports`}>← 주간 리포트 목록</Link>
       <header className={common.header}>
         <div>
-          <p className={common.eyebrow}>07.29 — 08.04 · WEEK 31</p>
-          <h1 className={common.title}>{selectedPet.name}의<br />한 주 건강 기록</h1>
-          <p className={common.description}>매일의 작은 기록을 모아 지난주와 비교했어요.</p>
+          <p className={common.eyebrow}>{formatDate(report.startDate)} — {formatDate(report.endDate)}</p>
+          <h1 className={common.title}>{selectedPet ? `${selectedPet.name}의` : '반려동물의'}<br />한 주 건강 기록</h1>
+          <p className={common.description}>{report.oneLineSummary || '매일의 건강 기록을 모아 한 주의 흐름을 정리했습니다.'}</p>
         </div>
-        <div className={styles.detailScore}><small>건강 점수</small><strong>86</strong><span>+8</span></div>
+        <div className={styles.detailScore}><small>건강 점수</small><strong>{wellnessScore}</strong><span>위험 {Math.round(Number(report.averageRiskProbability ?? 0) * 100)}%</span></div>
       </header>
 
       <section className={styles.statGrid} aria-label="주간 건강 지표">
@@ -34,31 +79,17 @@ export function ReportDetailPage() {
 
       <div className={styles.detailGrid}>
         <section className={`${common.panel} ${styles.weeklyChart}`}>
-          <div className={styles.sectionHeading}><h2 className={common.sectionTitle}>일별 활동 흐름</h2><span>권장 활동 60분</span></div>
-          <div className={styles.bars} aria-label="요일별 활동 시간 막대그래프">
-            {[48, 58, 54, 72, 66, 82, 70].map((value, index) => (
-              <div key={index}><div><span style={{ height: `${value}%` }} /></div><small>{['월', '화', '수', '목', '금', '토', '일'][index]}</small></div>
-            ))}
-          </div>
+          <div className={styles.sectionHeading}><h2 className={common.sectionTitle}>AI 주간 분석</h2><span>저장된 데이터 기반</span></div>
+          <p>{report.reportContent || '이번 주에 기록된 건강 데이터를 확인하고 꾸준히 변화를 관찰해 주세요.'}</p>
         </section>
-
         <aside className={styles.aiSummary}>
-          <span>AI WEEKLY INSIGHT</span>
-          <h2>주말 산책이 이번 주 활동 회복을 이끌었어요.</h2>
-          <p>평일 활동도 10분씩만 늘리면 더 안정적인 리듬을 만들 수 있어요. 더운 시간대는 피하고 산책 후 수분 섭취를 확인해 주세요.</p>
+          <span>WEEKLY SUMMARY</span>
+          <h2>{report.oneLineSummary || '이번 주 건강 기록이 생성되었습니다.'}</h2>
+          <p>주의 알림 {report.warningCount}회, 위험 알림 {report.dangerCount}회, 건강 문진 {report.questionnaireCount}회가 반영되었습니다.</p>
         </aside>
       </div>
 
-      <section className={`${common.panel} ${styles.comparison}`}>
-        <h2 className={common.sectionTitle}>지난주와 비교</h2>
-        <div className={styles.comparisonRows}>
-          <div><span>활동 균형</span><div><i className={styles.previousBar} /><i className={styles.currentBarLong} /></div><strong>+12%</strong></div>
-          <div><span>수면 규칙성</span><div><i className={styles.previousBarLong} /><i className={styles.currentBar} /></div><strong>+3%</strong></div>
-          <div><span>수분 기록</span><div><i className={styles.previousBarShort} /><i className={styles.currentBarShort} /></div><strong>-4%</strong></div>
-        </div>
-      </section>
-
-      <aside className={styles.reportDisclaimer}>이 리포트는 기록된 데이터를 요약한 건강관리 참고 자료이며 수의학적 진단을 대신하지 않습니다. <small>리포트 ID: {reportId}</small></aside>
+      <aside className={styles.reportDisclaimer}>이 리포트는 기록된 데이터를 요약한 건강관리 참고 자료이며 수의학적 진단을 대신하지 않습니다. <small>리포트 ID: {report.reportId}</small></aside>
     </div>
   )
 }

@@ -9,6 +9,11 @@ const getClassName = ({ isActive }: { isActive: boolean }) => (
 
 export function PetSectionNav() {
   const { selectedPet } = usePets()
+
+  if (!selectedPet) {
+    return null
+  }
+
   const petBase = `/pets/${selectedPet.id}`
 
   return (

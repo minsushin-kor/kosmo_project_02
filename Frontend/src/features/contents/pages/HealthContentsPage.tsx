@@ -1,6 +1,8 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
+import { DataState } from '../../../components/common/DataState'
 import { PetSectionNav } from '../../pets/components/PetSectionNav'
-import { usePets } from '../../pets/hooks/usePets'
+import { useRoutePet } from '../../pets/hooks/useRoutePet'
 import common from '../../../styles/featurePage.module.css'
 import styles from './HealthContentsPage.module.css'
 
@@ -18,9 +20,13 @@ const contents = [
 const categories: Category[] = ['전체', '영양', '활동', '피부', '생활']
 
 export function HealthContentsPage() {
-  const { selectedPet } = usePets()
+  const { selectedPet, routePetMissing } = useRoutePet()
   const [category, setCategory] = useState<Category>('전체')
   const visibleContents = category === '전체' ? contents : contents.filter((content) => content.category === category)
+
+  if (!selectedPet || routePetMissing) {
+    return <div className={common.page}><DataState title="반려동물 정보를 찾을 수 없습니다." action={<Link to="/pets">반려동물 목록으로 이동</Link>} /></div>
+  }
 
   return (
     <div className={common.page}>

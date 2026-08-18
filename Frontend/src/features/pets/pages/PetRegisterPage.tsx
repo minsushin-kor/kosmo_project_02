@@ -8,11 +8,13 @@ const today = new Date().toISOString().slice(0, 10)
 
 export function PetRegisterPage() {
   const navigate = useNavigate()
-  const { addPet } = usePets()
+  const { addPet, isDemoMode } = usePets()
   const [previewName, setPreviewName] = useState('새로운 가족')
   const [previewSpecies, setPreviewSpecies] = useState<Species>('DOG')
   const [imageUrl, setImageUrl] = useState<string>()
   const [imageError, setImageError] = useState('')
+  const [submitError, setSubmitError] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   const handleImageChange = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
@@ -37,27 +39,35 @@ export function PetRegisterPage() {
     reader.readAsDataURL(file)
   }
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
+    setSubmitError('')
+    setIsSubmitting(true)
     const formData = new FormData(event.currentTarget)
     const name = String(formData.get('name')).trim()
 
-    const newPet = addPet({
-      name,
-      species: String(formData.get('species')) as Species,
-      breed: String(formData.get('breed')).trim(),
-      birthDate: String(formData.get('birthDate')),
-      sex: String(formData.get('sex')) as Sex,
-      weight: Number(formData.get('weight')),
-      neutered: formData.get('neutered') === 'true',
-      medicalHistory: String(formData.get('medicalHistory')).trim(),
-      imageUrl,
-    })
+    try {
+      const newPet = await addPet({
+        name,
+        species: String(formData.get('species')) as Species,
+        breed: String(formData.get('breed')).trim(),
+        birthDate: String(formData.get('birthDate')),
+        sex: String(formData.get('sex')) as Sex,
+        weight: Number(formData.get('weight')),
+        neutered: formData.get('neutered') === 'true',
+        medicalHistory: String(formData.get('medicalHistory')).trim(),
+        imageUrl,
+      })
 
-    navigate('/pets', {
-      replace: true,
-      state: { createdPetName: newPet.name },
-    })
+      navigate('/pets', {
+        replace: true,
+        state: { createdPetName: newPet.name },
+      })
+    } catch (error) {
+      setSubmitError(error instanceof Error ? error.message : '반려동물 정보를 등록하지 못했습니다.')
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
@@ -180,12 +190,14 @@ export function PetRegisterPage() {
 
           <div className={styles.mockNotice}>
             <span aria-hidden="true">i</span>
-            <p>현재는 프론트 화면 검증 단계로, 등록 정보는 새로고침 전까지 임시로 유지됩니다.</p>
+            <p>{isDemoMode ? 'Spring Boot 연결 전에는 등록 정보가 새로고침 전까지만 유지됩니다.' : '등록 정보는 Spring Boot API와 PostgreSQL에 저장됩니다. 프로필 사진 파일 저장은 별도 파일 API가 필요합니다.'}</p>
           </div>
+
+          {submitError && <div className={styles.imageError} role="alert">{submitError}</div>}
 
           <div className={styles.formActions}>
             <Link to="/pets">취소</Link>
-            <button type="submit">등록하고 건강관리 시작하기</button>
+            <button type="submit" disabled={isSubmitting}>{isSubmitting ? '등록 중...' : '등록하고 건강관리 시작하기'}</button>
           </div>
         </div>
       </form>

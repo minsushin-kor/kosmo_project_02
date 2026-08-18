@@ -1,4 +1,4 @@
-import type { FormEvent } from 'react'
+import { useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { usePets } from '../hooks/usePets'
 import { getPetEmoji, type Sex, type Species } from '../types'
@@ -9,7 +9,9 @@ const today = new Date().toISOString().slice(0, 10)
 export function PetEditPage() {
   const { petId } = useParams()
   const navigate = useNavigate()
-  const { pets, updatePet } = usePets()
+  const { pets, updatePet, isDemoMode } = usePets()
+  const [submitError, setSubmitError] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const pet = pets.find((candidate) => candidate.id === petId)
 
   if (!pet) {
@@ -25,23 +27,31 @@ export function PetEditPage() {
     )
   }
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
+    setSubmitError('')
+    setIsSubmitting(true)
     const formData = new FormData(event.currentTarget)
 
-    updatePet({
-      ...pet,
-      name: String(formData.get('name')).trim(),
-      species: String(formData.get('species')) as Species,
-      breed: String(formData.get('breed')).trim(),
-      birthDate: String(formData.get('birthDate')),
-      sex: String(formData.get('sex')) as Sex,
-      weight: Number(formData.get('weight')),
-      neutered: formData.get('neutered') === 'true',
-      medicalHistory: String(formData.get('medicalHistory')).trim(),
-    })
+    try {
+      const savedPet = await updatePet({
+        ...pet,
+        name: String(formData.get('name')).trim(),
+        species: String(formData.get('species')) as Species,
+        breed: String(formData.get('breed')).trim(),
+        birthDate: String(formData.get('birthDate')),
+        sex: String(formData.get('sex')) as Sex,
+        weight: Number(formData.get('weight')),
+        neutered: formData.get('neutered') === 'true',
+        medicalHistory: String(formData.get('medicalHistory')).trim(),
+      })
 
-    navigate('/pets', { replace: true, state: { updatedPetName: String(formData.get('name')).trim() } })
+      navigate('/pets', { replace: true, state: { updatedPetName: savedPet.name } })
+    } catch (error) {
+      setSubmitError(error instanceof Error ? error.message : '반려동물 정보를 수정하지 못했습니다.')
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
@@ -111,8 +121,9 @@ export function PetEditPage() {
             </div>
           </section>
 
-          <div className={styles.mockNotice}><span aria-hidden="true">i</span><p>현재 수정 내용은 새로고침 전까지 프론트 상태에만 유지됩니다.</p></div>
-          <div className={styles.formActions}><Link to="/pets">취소</Link><button type="submit">변경사항 저장</button></div>
+          <div className={styles.mockNotice}><span aria-hidden="true">i</span><p>{isDemoMode ? 'Spring Boot 연결 전에는 수정 내용이 새로고침 전까지만 유지됩니다.' : '수정 내용은 Spring Boot API와 PostgreSQL에 저장됩니다.'}</p></div>
+          {submitError && <div className={styles.imageError} role="alert">{submitError}</div>}
+          <div className={styles.formActions}><Link to="/pets">취소</Link><button type="submit" disabled={isSubmitting}>{isSubmitting ? '저장 중...' : '변경사항 저장'}</button></div>
         </div>
       </form>
     </div>

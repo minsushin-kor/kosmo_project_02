@@ -42,7 +42,7 @@ export function ChatProvider({ children }: ChatProviderProps) {
     abortControllerRef.current = null
     setIsStreaming(false)
     setMessages([INTRO_MESSAGE])
-  }, [currentUser?.username, selectedPet.id])
+  }, [currentUser?.username, selectedPet?.id])
 
   const sendMessage = useCallback(async (rawMessage: string) => {
     const message = rawMessage.trim()
@@ -73,7 +73,7 @@ export function ChatProvider({ children }: ChatProviderProps) {
     try {
       await streamChat({
         message,
-        species: selectedPet.species,
+        species: selectedPet?.species,
       }, {
         onDelta: (text) => {
           setMessages((current) => current.map((item) => (
@@ -121,7 +121,7 @@ export function ChatProvider({ children }: ChatProviderProps) {
       }
       setIsStreaming(false)
     }
-  }, [isStreaming, selectedPet.species])
+  }, [isStreaming, selectedPet?.species])
 
   const stopGenerating = useCallback(() => {
     abortControllerRef.current?.abort()
