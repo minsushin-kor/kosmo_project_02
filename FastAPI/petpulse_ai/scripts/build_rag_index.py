@@ -105,11 +105,21 @@ def build_rag_index():
     print(f"  - 총 문서 수: {count}개")
     print(f"\n이제 uvicorn으로 서버를 실행하면 RAG가 자동으로 활성화됩니다.")
 
-    # 6. 인덱스 구축 검증 (필요 시 주석 해제 후 테스트)
-    # test_embedding = model.encode(["강아지 체온이 높고 구토해요"]).tolist()
-    # results = collection.query(query_embeddings=test_embedding, n_results=3, include=["documents", "metadatas", "distances"])
-    # for i, (doc, meta, dist) in enumerate(zip(results["documents"][0], results["metadatas"][0], results["distances"][0])):
-    #     print(f"  Top{i+1} [{meta['category']}] {meta['title']} (거리: {dist:.4f})")
+    # 6. 간단한 검색 테스트
+    print("\n[테스트] 샘플 쿼리 검색: '강아지 체온이 높고 구토해요'")
+    test_embedding = model.encode(["강아지 체온이 높고 구토해요"]).tolist()
+    results = collection.query(
+        query_embeddings=test_embedding,
+        n_results=3,
+        include=["documents", "metadatas", "distances"]
+    )
+    for i, (doc, meta, dist) in enumerate(zip(
+        results["documents"][0],
+        results["metadatas"][0],
+        results["distances"][0]
+    )):
+        print(f"  Top{i+1} [{meta['category']}] {meta['title']} (거리: {dist:.4f})")
+        print(f"         {doc[:60]}...")
 
 
 if __name__ == "__main__":
