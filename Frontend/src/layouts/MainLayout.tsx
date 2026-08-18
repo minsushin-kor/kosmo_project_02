@@ -4,6 +4,7 @@ import { BrandMark } from '../components/common/BrandMark'
 import { useAuth } from '../features/auth/hooks/useAuth'
 import { ChatAssistant } from '../features/chatbot/components/ChatAssistant'
 import { ChatProvider } from '../features/chatbot/context/ChatProvider'
+import { usePets } from '../features/pets/hooks/usePets'
 import styles from './MainLayout.module.css'
 
 const DASHBOARD_CHAT_HIDDEN_KEY = 'petpulse-dashboard-chat-hidden'
@@ -18,7 +19,15 @@ function MainLayoutContent() {
   const { hash, pathname } = useLocation()
   const navigate = useNavigate()
   const { currentUser, logout } = useAuth()
+  const { selectedPet } = usePets()
+  const isHome = pathname === '/'
   const isDashboard = pathname === '/dashboard'
+  const hidesFloatingChat = isHome || pathname === '/login' || pathname === '/signup' || pathname.endsWith('/diary')
+  const healthRecordsPath = selectedPet ? `/pets/${selectedPet.id}/vitals` : '/pets'
+  const isHealthRecords = /^\/pets\/[^/]+\/(vitals|questionnaire|history|alerts|reports|diary)$/.test(pathname) ||
+    pathname.startsWith('/predictions/') || pathname.startsWith('/reports/')
+  const isMyPage = pathname === '/mypage' || pathname === '/pets' || pathname === '/pets/new' ||
+    /^\/pets\/[^/]+\/edit$/.test(pathname)
   const [isChatOpen, setIsChatOpen] = useState(() => (
     window.location.pathname === '/dashboard' &&
     shouldAutoOpenDashboardChat()
@@ -96,25 +105,25 @@ function MainLayoutContent() {
             id="primary-navigation"
             aria-label="주요 메뉴"
           >
-            <Link to="/#services" onClick={() => setIsMobileNavOpen(false)}>서비스 소개</Link>
-            <Link to="/#how-it-works" onClick={() => setIsMobileNavOpen(false)}>이용 방법</Link>
-            <NavLink
-              to="/pets"
-              className={({ isActive }) => (isActive ? styles.active : undefined)}
-              onClick={() => setIsMobileNavOpen(false)}
-            >
-              반려동물
-            </NavLink>
             <NavLink
               to="/dashboard"
               className={({ isActive }) => (isActive ? styles.active : undefined)}
               onClick={() => setIsMobileNavOpen(false)}
             >
-              건강 대시보드
+              우리 아이 상태
+            </NavLink>
+            <NavLink
+              to={healthRecordsPath}
+              className={() => (isHealthRecords ? styles.active : undefined)}
+              aria-current={isHealthRecords ? 'page' : undefined}
+              onClick={() => setIsMobileNavOpen(false)}
+            >
+              우리 아이 기록
             </NavLink>
             <NavLink
               to="/mypage"
-              className={({ isActive }) => (isActive ? styles.active : undefined)}
+              className={() => (isMyPage ? styles.active : undefined)}
+              aria-current={isMyPage ? 'page' : undefined}
               onClick={() => setIsMobileNavOpen(false)}
             >
               마이페이지
@@ -135,7 +144,7 @@ function MainLayoutContent() {
                 <Link className={styles.signupCta} to="/signup">
                   회원가입
                 </Link>
-                <Link className={styles.headerCta} to="/login">
+                <Link className={styles.headerCta} to="/#home-login">
                   로그인
                 </Link>
               </>
@@ -170,7 +179,7 @@ function MainLayoutContent() {
         )}
       </main>
 
-      {!isDashboard && (
+      {!isDashboard && !hidesFloatingChat && (
         <ChatAssistant
           variant="floating"
           isOpen={isChatOpen}
@@ -179,7 +188,7 @@ function MainLayoutContent() {
         />
       )}
 
-      <footer className={styles.footer}>
+      <footer className={`${styles.footer} ${isHome ? styles.homeFooter : ''}`}>
         <div className={styles.footerInner}>
           <BrandMark inverse />
           <p>

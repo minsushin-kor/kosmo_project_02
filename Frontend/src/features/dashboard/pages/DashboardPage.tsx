@@ -57,7 +57,7 @@ export function DashboardPage() {
   }, [isDemoMode, selectedPet])
 
   if (isLoading) {
-    return <div className={styles.page}><DataState title="대시보드를 준비하고 있습니다." isLoading /></div>
+    return <div className={styles.page}><DataState title="아이들의 상태를 불러오고 있습니다." isLoading /></div>
   }
 
   if (!selectedPet) {

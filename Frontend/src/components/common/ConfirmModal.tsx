@@ -2,6 +2,8 @@ import { useEffect, useId, useRef } from 'react'
 import styles from './ConfirmModal.module.css'
 
 type ConfirmModalProps = {
+  eyebrow?: string
+  closeLabel?: string
   title: string
   description: string
   confirmText?: string
@@ -11,6 +13,8 @@ type ConfirmModalProps = {
 }
 
 export function ConfirmModal({
+  eyebrow = 'DELETE PET PROFILE',
+  closeLabel = '삭제 확인창 닫기',
   title,
   description,
   confirmText = '확인',
@@ -78,9 +82,9 @@ export function ConfirmModal({
         aria-labelledby={titleId}
         aria-describedby={descriptionId}
       >
-        <button className={styles.closeButton} type="button" onClick={onCancel} aria-label="삭제 확인창 닫기">×</button>
+        <button className={styles.closeButton} type="button" onClick={onCancel} aria-label={closeLabel}>×</button>
         <span className={styles.warningIcon} aria-hidden="true">!</span>
-        <p className={styles.eyebrow}>DELETE PET PROFILE</p>
+        <p className={styles.eyebrow}>{eyebrow}</p>
         <h2 id={titleId}>{title}</h2>
         <p className={styles.description} id={descriptionId}>{description}</p>
         <div className={styles.actions}>

@@ -75,10 +75,10 @@ export function PetListPage() {
             </div>
           </div>
           <div className={styles.selectedActions}>
-            <p>대시보드와 문진은 현재 선택된 반려동물을 기준으로 표시됩니다.</p>
+            <p>우리 아이 상태와 문진은 현재 선택된 반려동물을 기준으로 표시됩니다.</p>
             <div className={styles.actionLinks}>
               <Link to={`/pets/${selectedPet.id}/edit`}>프로필 수정</Link>
-              <Link to="/dashboard">건강 대시보드 보기 <span aria-hidden="true">→</span></Link>
+              <Link to="/dashboard">우리 아이 상태 보기 <span aria-hidden="true">→</span></Link>
             </div>
           </div>
         </div>

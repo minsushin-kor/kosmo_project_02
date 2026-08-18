@@ -20,15 +20,15 @@ export function PetSectionNav() {
     <div className={styles.wrapper}>
       <div className={styles.petInfo}>
         <PetAvatar pet={selectedPet} size="small" />
-        <span><strong>{selectedPet.name}</strong><small>건강관리 메뉴</small></span>
+        <span><strong>{selectedPet.name}</strong><small>우리 아이 기록 메뉴</small></span>
       </div>
-      <nav className={styles.navigation} aria-label={`${selectedPet.name} 건강관리 메뉴`}>
+      <nav className={styles.navigation} aria-label={`${selectedPet.name} 우리 아이 기록 메뉴`}>
         <NavLink className={getClassName} to="/dashboard">요약</NavLink>
         <NavLink className={getClassName} to={`${petBase}/vitals`}>생체정보</NavLink>
         <NavLink className={getClassName} to={`${petBase}/questionnaire`}>건강 문진</NavLink>
         <NavLink className={getClassName} to={`${petBase}/history`}>알림·이력</NavLink>
         <NavLink className={getClassName} to={`${petBase}/reports`}>주간 리포트</NavLink>
-        <NavLink className={getClassName} to={`${petBase}/contents`}>건강 콘텐츠</NavLink>
+        <NavLink className={getClassName} to={`${petBase}/diary`}>건강 다이어리</NavLink>
       </nav>
     </div>
   )

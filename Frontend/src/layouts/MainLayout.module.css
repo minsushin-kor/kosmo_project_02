@@ -221,6 +221,10 @@
   color: rgba(255, 253, 248, 0.78);
 }
 
+.homeFooter {
+  margin-top: 0;
+}
+
 .footerInner {
   display: grid;
   grid-template-columns: 1fr minmax(18rem, 1.2fr) auto;

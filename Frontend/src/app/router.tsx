@@ -1,6 +1,6 @@
 import { createBrowserRouter } from 'react-router-dom'
 import { DashboardPage } from '../features/dashboard/pages/DashboardPage'
-import { HealthContentsPage } from '../features/contents/pages/HealthContentsPage'
+import { HealthDiaryPage } from '../features/diary/pages/HealthDiaryPage'
 import { NotFoundPage } from '../features/errors/pages/NotFoundPage'
 import { HealthHistoryPage } from '../features/history/pages/HealthHistoryPage'
 import { LandingPage } from '../features/landing/pages/LandingPage'
@@ -34,7 +34,7 @@ export const router = createBrowserRouter([
       { path: '/pets/:petId/history', element: <HealthHistoryPage /> },
       { path: '/pets/:petId/alerts', element: <HealthHistoryPage /> },
       { path: '/pets/:petId/reports', element: <ReportsListPage /> },
-      { path: '/pets/:petId/contents', element: <HealthContentsPage /> },
+      { path: '/pets/:petId/diary', element: <HealthDiaryPage /> },
       { path: '/predictions/:predictionId', element: <PredictionResultPage /> },
       { path: '/reports/:reportId', element: <ReportDetailPage /> },
       { path: '*', element: <NotFoundPage /> },

@@ -70,7 +70,7 @@ npm run build
 - `/pets/:petId/questionnaire`: 5단계 건강 문진
 - `/pets/:petId/history`: 알림과 과거 예측 이력
 - `/pets/:petId/reports`: 주간 리포트 목록
-- `/pets/:petId/contents`: 건강관리 콘텐츠
+- `/pets/:petId/diary`: 날짜별 상태와 건강 기록을 모은 건강 다이어리
 - `/predictions/:predictionId`: AI 예측 결과
 - `/reports/:reportId`: 주간 리포트 상세
 
@@ -82,6 +82,6 @@ npm run build
 - 예측 결과·알림·주간 리포트 조회
 - RAG 챗봇 답변과 출처 SSE 스트리밍
 
-실제 로그인/JWT, 프로필 이미지 업로드, 활동량 집계, 건강 콘텐츠 및 알림 설정 API는 백엔드 구현 후 추가 연동이 필요합니다. 학습된 건강 위험도 모델이 준비된 뒤에는 문진부터 예측 결과까지 실제 데이터로 전체 흐름을 다시 검증해야 합니다.
+실제 로그인/JWT, 프로필 이미지 업로드, 활동량 집계 및 알림 설정 API는 백엔드 구현 후 추가 연동이 필요합니다. 학습된 건강 위험도 모델이 준비된 뒤에는 문진부터 예측 결과까지 실제 데이터로 전체 흐름을 다시 검증해야 합니다.
 
 전체 진행 상태는 [`docs/frontend-progress.md`](docs/frontend-progress.md)에서 관리합니다.
