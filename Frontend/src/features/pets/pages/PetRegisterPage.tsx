@@ -1,5 +1,7 @@
 import { useState, type ChangeEvent, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { LoadingButton } from '../../../components/common/LoadingButton'
+import { TextField } from '../../../components/common/TextField'
 import { usePets } from '../hooks/usePets'
 import { getPetEmoji, type Sex, type Species } from '../types'
 import styles from './PetRegisterPage.module.css'
@@ -107,17 +109,16 @@ export function PetRegisterPage() {
             </div>
 
             <div className={styles.fieldGrid}>
-              <label className={styles.field}>
-                <span>이름 <em>*</em></span>
-                <input
-                  name="name"
-                  type="text"
-                  required
-                  maxLength={20}
-                  placeholder="예: 코코"
-                  onChange={(event) => setPreviewName(event.target.value)}
-                />
-              </label>
+              <TextField
+                containerClassName={styles.field}
+                label="이름"
+                name="name"
+                type="text"
+                required
+                maxLength={20}
+                placeholder="예: 코코"
+                onChange={(event) => setPreviewName(event.target.value)}
+              />
 
               <label className={styles.field}>
                 <span>동물 종류 <em>*</em></span>
@@ -132,15 +133,9 @@ export function PetRegisterPage() {
                 </select>
               </label>
 
-              <label className={styles.field}>
-                <span>품종 <em>*</em></span>
-                <input name="breed" type="text" required maxLength={30} placeholder="예: 웰시코기" />
-              </label>
+              <TextField containerClassName={styles.field} label="품종" name="breed" type="text" required maxLength={30} placeholder="예: 웰시코기" />
 
-              <label className={styles.field}>
-                <span>생년월일 <em>*</em></span>
-                <input name="birthDate" type="date" required max={today} />
-              </label>
+              <TextField containerClassName={styles.field} label="생년월일" name="birthDate" type="date" required max={today} />
             </div>
           </section>
 
@@ -197,7 +192,7 @@ export function PetRegisterPage() {
 
           <div className={styles.formActions}>
             <Link to="/pets">취소</Link>
-            <button type="submit" disabled={isSubmitting}>{isSubmitting ? '등록 중...' : '등록하고 건강관리 시작하기'}</button>
+            <LoadingButton type="submit" isLoading={isSubmitting} loadingText="등록 중...">등록하고 건강관리 시작하기</LoadingButton>
           </div>
         </div>
       </form>

@@ -61,7 +61,7 @@ export function PredictionResultPage() {
   }, [pets, predictionId, selectPet])
 
   if (isLoading) {
-    return <div className={common.page}><DataState title="AI 예측 결과를 불러오는 중입니다." /></div>
+    return <div className={common.page}><DataState title="AI 예측 결과를 불러오는 중입니다." isLoading /></div>
   }
 
   if (!prediction || error) {

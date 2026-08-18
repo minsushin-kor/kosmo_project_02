@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { DataState } from '../../../components/common/DataState'
+import { LoadingButton } from '../../../components/common/LoadingButton'
 import { getApiErrorMessage } from '../../../shared/api/apiClient'
 import { PetSectionNav } from '../../pets/components/PetSectionNav'
 import { useRoutePet } from '../../pets/hooks/useRoutePet'
@@ -79,11 +80,11 @@ export function ReportsListPage() {
           <h1 className={common.title}>주간 건강 리포트</h1>
           <p className={common.description}>{selectedPet.name}의 일주일 건강 기록을 한눈에 비교해 보세요.</p>
         </div>
-        <button className={common.secondaryButton} type="button" disabled={isDemoMode || isCreating} onClick={() => void handleCreate()}>{isCreating ? '생성 중...' : '이번 주 리포트 생성'}</button>
+        <LoadingButton className={common.secondaryButton} type="button" isLoading={isCreating} loadingText="생성 중..." disabled={isDemoMode} onClick={() => void handleCreate()}>이번 주 리포트 생성</LoadingButton>
       </header>
 
       {isDemoMode && <DataState title="리포트 API를 사용하려면 Spring Boot 연결이 필요합니다.">PostgreSQL과 Spring Boot를 실행하면 저장된 주간 리포트를 조회하고 새 리포트를 생성할 수 있습니다.</DataState>}
-      {isLoading && <DataState title="주간 리포트를 불러오는 중입니다." />}
+      {isLoading && <DataState title="주간 리포트를 불러오는 중입니다." isLoading />}
       {error && <DataState title="주간 리포트를 처리하지 못했습니다." tone="error">{error}</DataState>}
 
       {latest ? <>

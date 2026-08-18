@@ -7,6 +7,12 @@ import { ChatProvider } from '../features/chatbot/context/ChatProvider'
 import styles from './MainLayout.module.css'
 
 const DASHBOARD_CHAT_HIDDEN_KEY = 'petpulse-dashboard-chat-hidden'
+const DASHBOARD_CHAT_AUTO_OPEN_QUERY = '(min-width: 1101px)'
+
+function shouldAutoOpenDashboardChat() {
+  return window.matchMedia(DASHBOARD_CHAT_AUTO_OPEN_QUERY).matches &&
+    window.localStorage.getItem(DASHBOARD_CHAT_HIDDEN_KEY) !== 'true'
+}
 
 function MainLayoutContent() {
   const { hash, pathname } = useLocation()
@@ -15,8 +21,9 @@ function MainLayoutContent() {
   const isDashboard = pathname === '/dashboard'
   const [isChatOpen, setIsChatOpen] = useState(() => (
     window.location.pathname === '/dashboard' &&
-    window.localStorage.getItem(DASHBOARD_CHAT_HIDDEN_KEY) !== 'true'
+    shouldAutoOpenDashboardChat()
   ))
+  const [isMobileNavOpen, setIsMobileNavOpen] = useState(false)
 
   useEffect(() => {
     if (!hash) {
@@ -36,13 +43,25 @@ function MainLayoutContent() {
   }, [hash, pathname])
 
   useEffect(() => {
-    if (isDashboard) {
-      setIsChatOpen(window.localStorage.getItem(DASHBOARD_CHAT_HIDDEN_KEY) !== 'true')
-      return
+    if (!isDashboard) {
+      setIsChatOpen(false)
+      return undefined
     }
 
-    setIsChatOpen(false)
+    const desktopQuery = window.matchMedia(DASHBOARD_CHAT_AUTO_OPEN_QUERY)
+    const syncChatWithViewport = () => {
+      setIsChatOpen(desktopQuery.matches && window.localStorage.getItem(DASHBOARD_CHAT_HIDDEN_KEY) !== 'true')
+    }
+
+    syncChatWithViewport()
+    desktopQuery.addEventListener('change', syncChatWithViewport)
+
+    return () => desktopQuery.removeEventListener('change', syncChatWithViewport)
   }, [isDashboard, pathname])
+
+  useEffect(() => {
+    setIsMobileNavOpen(false)
+  }, [pathname])
 
   const openChat = () => {
     if (isDashboard) {
@@ -65,30 +84,38 @@ function MainLayoutContent() {
 
   return (
     <div className={styles.shell}>
+      <a className={styles.skipLink} href="#main-content">본문으로 바로가기</a>
       <header className={styles.header}>
         <div className={styles.headerInner}>
           <Link className={styles.brandLink} to="/" aria-label="PetPulse 홈">
             <BrandMark />
           </Link>
 
-          <nav className={styles.navigation} aria-label="주요 메뉴">
-            <Link to="/#services">서비스 소개</Link>
-            <Link to="/#how-it-works">이용 방법</Link>
+          <nav
+            className={`${styles.navigation} ${isMobileNavOpen ? styles.mobileNavOpen : ''}`}
+            id="primary-navigation"
+            aria-label="주요 메뉴"
+          >
+            <Link to="/#services" onClick={() => setIsMobileNavOpen(false)}>서비스 소개</Link>
+            <Link to="/#how-it-works" onClick={() => setIsMobileNavOpen(false)}>이용 방법</Link>
             <NavLink
               to="/pets"
               className={({ isActive }) => (isActive ? styles.active : undefined)}
+              onClick={() => setIsMobileNavOpen(false)}
             >
               반려동물
             </NavLink>
             <NavLink
               to="/dashboard"
               className={({ isActive }) => (isActive ? styles.active : undefined)}
+              onClick={() => setIsMobileNavOpen(false)}
             >
               건강 대시보드
             </NavLink>
             <NavLink
               to="/mypage"
               className={({ isActive }) => (isActive ? styles.active : undefined)}
+              onClick={() => setIsMobileNavOpen(false)}
             >
               마이페이지
             </NavLink>
@@ -113,11 +140,21 @@ function MainLayoutContent() {
                 </Link>
               </>
             )}
+            <button
+              className={styles.menuButton}
+              type="button"
+              aria-expanded={isMobileNavOpen}
+              aria-controls="primary-navigation"
+              aria-label={isMobileNavOpen ? '주요 메뉴 닫기' : '주요 메뉴 열기'}
+              onClick={() => setIsMobileNavOpen((current) => !current)}
+            >
+              <span aria-hidden="true">{isMobileNavOpen ? '×' : '☰'}</span>
+            </button>
           </div>
         </div>
       </header>
 
-      <main className={styles.main}>
+      <main className={styles.main} id="main-content" tabIndex={-1}>
         {isDashboard ? (
           <div className={styles.dashboardFrame}>
             <Outlet />

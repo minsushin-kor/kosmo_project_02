@@ -113,7 +113,7 @@ export function VitalMonitoringPage() {
           <span className={shared.mockBadge}>{isDemoMode ? '데모 측정 기록' : latest ? `최근 측정 ${formatMeasuredAt(latest.measuredAt)}` : '측정 기록 없음'}</span>
         </header>
 
-        {isLoading && <DataState title="생체정보를 불러오는 중입니다." />}
+        {isLoading && <DataState title="생체정보를 불러오는 중입니다." isLoading />}
         {error && <DataState title="생체정보를 불러오지 못했습니다." tone="error">{error}</DataState>}
         {!isLoading && !error && !latest && <DataState title="아직 저장된 생체정보가 없습니다.">생체정보가 등록되면 최신값과 변화 그래프가 표시됩니다.</DataState>}
 
@@ -128,7 +128,7 @@ export function VitalMonitoringPage() {
             <div className={styles.panelHeader}>
               <div><p>VITAL TREND</p><h2>최근 측정 흐름</h2></div>
               <div className={styles.periodButtons} aria-label="조회 기간">
-                {(['24시간', '7일', '30일'] as Period[]).map((item) => <button type="button" className={period === item ? styles.active : ''} onClick={() => setPeriod(item)} key={item}>{item}</button>)}
+                {(['24시간', '7일', '30일'] as Period[]).map((item) => <button type="button" className={period === item ? styles.active : ''} aria-pressed={period === item} onClick={() => setPeriod(item)} key={item}>{item}</button>)}
               </div>
             </div>
             <div className={styles.legend}><span><i className={styles.temperature} />체온</span><span><i className={styles.heart} />심박수</span><span><i className={styles.breath} />호흡수</span></div>

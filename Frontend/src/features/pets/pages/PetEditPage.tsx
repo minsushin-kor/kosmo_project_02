@@ -1,5 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
+import { LoadingButton } from '../../../components/common/LoadingButton'
+import { TextField } from '../../../components/common/TextField'
 import { usePets } from '../hooks/usePets'
 import { getPetEmoji, type Sex, type Species } from '../types'
 import styles from './PetRegisterPage.module.css'
@@ -81,13 +83,13 @@ export function PetEditPage() {
               <span>01</span><div><h2>기본정보</h2><p>현재 등록된 정보를 수정할 수 있어요.</p></div>
             </div>
             <div className={styles.fieldGrid}>
-              <label className={styles.field}><span>이름 <em>*</em></span><input name="name" required maxLength={20} defaultValue={pet.name} /></label>
+              <TextField containerClassName={styles.field} label="이름" name="name" required maxLength={20} defaultValue={pet.name} />
               <label className={styles.field}>
                 <span>동물 종류 <em>*</em></span>
                 <select name="species" required defaultValue={pet.species}><option value="DOG">강아지</option><option value="CAT">고양이</option></select>
               </label>
-              <label className={styles.field}><span>품종 <em>*</em></span><input name="breed" required maxLength={30} defaultValue={pet.breed} /></label>
-              <label className={styles.field}><span>생년월일 <em>*</em></span><input name="birthDate" type="date" required max={today} defaultValue={pet.birthDate} /></label>
+              <TextField containerClassName={styles.field} label="품종" name="breed" required maxLength={30} defaultValue={pet.breed} />
+              <TextField containerClassName={styles.field} label="생년월일" name="birthDate" type="date" required max={today} defaultValue={pet.birthDate} />
             </div>
           </section>
 
@@ -123,7 +125,7 @@ export function PetEditPage() {
 
           <div className={styles.mockNotice}><span aria-hidden="true">i</span><p>{isDemoMode ? 'Spring Boot 연결 전에는 수정 내용이 새로고침 전까지만 유지됩니다.' : '수정 내용은 Spring Boot API와 PostgreSQL에 저장됩니다.'}</p></div>
           {submitError && <div className={styles.imageError} role="alert">{submitError}</div>}
-          <div className={styles.formActions}><Link to="/pets">취소</Link><button type="submit" disabled={isSubmitting}>{isSubmitting ? '저장 중...' : '변경사항 저장'}</button></div>
+          <div className={styles.formActions}><Link to="/pets">취소</Link><LoadingButton type="submit" isLoading={isSubmitting} loadingText="저장 중...">변경사항 저장</LoadingButton></div>
         </div>
       </form>
     </div>

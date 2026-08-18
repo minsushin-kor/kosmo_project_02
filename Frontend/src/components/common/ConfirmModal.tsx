@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useId, useRef } from 'react'
 import styles from './ConfirmModal.module.css'
 
 type ConfirmModalProps = {
@@ -18,16 +18,37 @@ export function ConfirmModal({
   onConfirm,
   onCancel,
 }: ConfirmModalProps) {
+  const modalRef = useRef<HTMLElement>(null)
   const cancelButtonRef = useRef<HTMLButtonElement>(null)
+  const titleId = useId()
+  const descriptionId = useId()
 
   useEffect(() => {
     const previousOverflow = document.body.style.overflow
+    const previouslyFocused = document.activeElement instanceof HTMLElement ? document.activeElement : null
     document.body.style.overflow = 'hidden'
     cancelButtonRef.current?.focus()
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         onCancel()
+        return
+      }
+
+      if (event.key === 'Tab' && modalRef.current) {
+        const focusable = Array.from(
+          modalRef.current.querySelectorAll<HTMLElement>('button:not(:disabled), [href], input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex]:not([tabindex="-1"])'),
+        )
+        const first = focusable[0]
+        const last = focusable[focusable.length - 1]
+
+        if (event.shiftKey && document.activeElement === first) {
+          event.preventDefault()
+          last?.focus()
+        } else if (!event.shiftKey && document.activeElement === last) {
+          event.preventDefault()
+          first?.focus()
+        }
       }
     }
 
@@ -36,6 +57,7 @@ export function ConfirmModal({
     return () => {
       document.body.style.overflow = previousOverflow
       window.removeEventListener('keydown', handleKeyDown)
+      previouslyFocused?.focus()
     }
   }, [onCancel])
 
@@ -49,17 +71,18 @@ export function ConfirmModal({
       }}
     >
       <section
+        ref={modalRef}
         className={styles.modal}
         role="alertdialog"
         aria-modal="true"
-        aria-labelledby="confirm-modal-title"
-        aria-describedby="confirm-modal-description"
+        aria-labelledby={titleId}
+        aria-describedby={descriptionId}
       >
         <button className={styles.closeButton} type="button" onClick={onCancel} aria-label="삭제 확인창 닫기">×</button>
         <span className={styles.warningIcon} aria-hidden="true">!</span>
         <p className={styles.eyebrow}>DELETE PET PROFILE</p>
-        <h2 id="confirm-modal-title">{title}</h2>
-        <p className={styles.description} id="confirm-modal-description">{description}</p>
+        <h2 id={titleId}>{title}</h2>
+        <p className={styles.description} id={descriptionId}>{description}</p>
         <div className={styles.actions}>
           <button ref={cancelButtonRef} className={styles.cancelButton} type="button" onClick={onCancel}>{cancelText}</button>
           <button className={styles.confirmButton} type="button" onClick={onConfirm}>{confirmText}</button>

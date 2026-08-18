@@ -1,6 +1,8 @@
 import { useRef, useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { BrandMark } from '../../../components/common/BrandMark'
+import { LoadingButton } from '../../../components/common/LoadingButton'
+import { TextField } from '../../../components/common/TextField'
 import { useAuth } from '../hooks/useAuth'
 import styles from './AuthPages.module.css'
 
@@ -87,18 +89,9 @@ export function SignupPage() {
           <p className={styles.description}>보호자 정보를 입력하고 첫 반려동물을 등록해 보세요.</p>
 
           <form onSubmit={handleSubmit}>
-            <label className={styles.field}>
-              <span>이름</span>
-              <input name="name" type="text" required maxLength={30} autoComplete="name" placeholder="보호자 이름" />
-            </label>
-            <label className={styles.field}>
-              <span>아이디</span>
-              <input name="username" type="text" required autoComplete="username" placeholder="사용할 아이디를 입력해 주세요" />
-            </label>
-            <label className={styles.field}>
-              <span>이메일</span>
-              <input name="email" type="email" required autoComplete="email" placeholder="name@example.com" />
-            </label>
+            <TextField containerClassName={styles.field} label="이름" name="name" type="text" required maxLength={30} autoComplete="name" placeholder="보호자 이름" />
+            <TextField containerClassName={styles.field} label="아이디" name="username" type="text" required autoComplete="username" placeholder="사용할 아이디를 입력해 주세요" />
+            <TextField containerClassName={styles.field} label="이메일" name="email" type="email" required autoComplete="email" placeholder="name@example.com" />
             <label className={styles.field}>
               <span>전화번호</span>
               <div className={styles.phoneField}>
@@ -150,42 +143,34 @@ export function SignupPage() {
                 <button type="button" onClick={handleOpenPostcode}>우편번호 찾기</button>
               </div>
             </label>
-            <label className={styles.field}>
-              <span>기본 주소</span>
-              <input
-                className={styles.readOnlyField}
-                name="address"
-                type="text"
-                required
-                readOnly
-                autoComplete="address-line1"
-                value={address}
-                placeholder="주소 검색 후 자동으로 입력됩니다"
-              />
-            </label>
-            <label className={styles.field}>
-              <span>상세 주소</span>
-              <input
-                ref={detailAddressRef}
-                name="detailAddress"
-                type="text"
-                required
-                autoComplete="address-line2"
-                value={detailAddress}
-                onChange={(event) => setDetailAddress(event.target.value)}
-                placeholder="동·호수 등 상세 주소를 입력해 주세요"
-              />
-            </label>
-            <label className={styles.field}>
-              <span>비밀번호</span>
-              <input name="password" type="password" required autoComplete="new-password" placeholder="비밀번호를 입력해 주세요" />
-            </label>
-            <label className={styles.field}>
-              <span>비밀번호 확인</span>
-              <input name="passwordConfirm" type="password" required autoComplete="new-password" placeholder="비밀번호를 다시 입력해 주세요" />
-            </label>
+            <TextField
+              containerClassName={styles.field}
+              label="기본 주소"
+              className={styles.readOnlyField}
+              name="address"
+              type="text"
+              required
+              readOnly
+              autoComplete="address-line1"
+              value={address}
+              placeholder="주소 검색 후 자동으로 입력됩니다"
+            />
+            <TextField
+              ref={detailAddressRef}
+              containerClassName={styles.field}
+              label="상세 주소"
+              name="detailAddress"
+              type="text"
+              required
+              autoComplete="address-line2"
+              value={detailAddress}
+              onChange={(event) => setDetailAddress(event.target.value)}
+              placeholder="동·호수 등 상세 주소를 입력해 주세요"
+            />
+            <TextField containerClassName={styles.field} label="비밀번호" name="password" type="password" required autoComplete="new-password" placeholder="비밀번호를 입력해 주세요" />
+            <TextField containerClassName={styles.field} label="비밀번호 확인" name="passwordConfirm" type="password" required autoComplete="new-password" placeholder="비밀번호를 다시 입력해 주세요" />
             {error && <div className={styles.errorMessage} role="alert">{error}</div>}
-            <button className={styles.submitButton} type="submit">회원가입</button>
+            <LoadingButton className={styles.submitButton} type="submit">회원가입</LoadingButton>
           </form>
 
           <p className={styles.switchText}>이미 계정이 있나요? <Link to="/login">로그인</Link></p>

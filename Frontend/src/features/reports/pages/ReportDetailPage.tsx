@@ -44,7 +44,7 @@ export function ReportDetailPage() {
   }, [pets, reportId, selectPet])
 
   if (isLoading) {
-    return <div className={common.page}><DataState title="주간 리포트를 불러오는 중입니다." /></div>
+    return <div className={common.page}><DataState title="주간 리포트를 불러오는 중입니다." isLoading /></div>
   }
 
   if (!report || error) {

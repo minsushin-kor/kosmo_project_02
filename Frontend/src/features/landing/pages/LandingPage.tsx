@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import heroImage from '../../../assets/images/pet-wellness-hero.png'
+import heroImage from '../../../assets/images/pet-wellness-hero.webp'
 import styles from './LandingPage.module.css'
 
 const features = [
@@ -58,6 +58,10 @@ export function LandingPage() {
           <img
             src={heroImage}
             alt="햇살이 비치는 정원에서 함께 쉬고 있는 강아지와 고양이"
+            width="1280"
+            height="853"
+            decoding="async"
+            fetchPriority="high"
           />
           <div className={styles.imageFrame} aria-hidden="true" />
           <div className={styles.statusCard}>

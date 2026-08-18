@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { DataState } from '../../../components/common/DataState'
+import { LoadingButton } from '../../../components/common/LoadingButton'
 import { getApiErrorMessage } from '../../../shared/api/apiClient'
 import { PetSectionNav } from '../../pets/components/PetSectionNav'
 import { useRoutePet } from '../../pets/hooks/useRoutePet'
@@ -237,7 +238,7 @@ export function QuestionnairePage() {
           {currentStep > 0 ? <button className={styles.backButton} type="button" disabled={isSubmitting} onClick={() => setCurrentStep((step) => step - 1)}>이전</button> : <span />}
           {currentStep < steps.length - 1
             ? <button className={styles.nextButton} type="button" onClick={() => setCurrentStep((step) => step + 1)}>다음 단계</button>
-            : <button className={styles.nextButton} type="button" disabled={isSubmitting} onClick={() => void handleAnalyze()}>{isSubmitting ? 'AI 분석 중...' : 'AI 분석 요청하기'}</button>}
+            : <LoadingButton className={styles.nextButton} type="button" isLoading={isSubmitting} loadingText="AI 분석 중..." onClick={() => void handleAnalyze()}>AI 분석 요청하기</LoadingButton>}
         </div></section>
       </div>
     </>

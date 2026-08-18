@@ -41,7 +41,7 @@ export function PetListPage() {
         </div>
       )}
 
-      {isLoading && <DataState title="반려동물 정보를 불러오는 중입니다." />}
+      {isLoading && <DataState title="반려동물 정보를 불러오는 중입니다." isLoading />}
       {isDemoMode && error && (
         <DataState
           title="Spring Boot 연결 전이라 데모 데이터를 표시하고 있습니다."

@@ -8,7 +8,7 @@ export function PetSelector() {
   const { pets, selectedPet, selectPet, isLoading } = usePets()
 
   if (isLoading) {
-    return <div className={styles.selector}>반려동물 정보를 불러오는 중...</div>
+    return <div className={styles.selector} role="status" aria-live="polite">반려동물 정보를 불러오는 중...</div>
   }
 
   if (!selectedPet) {

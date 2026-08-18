@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { DataState } from '../../../components/common/DataState'
+import { LoadingButton } from '../../../components/common/LoadingButton'
 import { getApiErrorMessage } from '../../../shared/api/apiClient'
 import { PetSectionNav } from '../../pets/components/PetSectionNav'
 import { useRoutePet } from '../../pets/hooks/useRoutePet'
@@ -127,47 +128,47 @@ export function HealthHistoryPage() {
           <h1 className={common.title}>알림과 건강 이력</h1>
           <p className={common.description}>{selectedPet.name}에게 도착한 건강 신호와 문진 결과를 시간순으로 모았어요.</p>
         </div>
-        <button className={common.secondaryButton} type="button" disabled={isMarkingAll || unreadCount === 0} onClick={() => void handleMarkAllRead()}>{isMarkingAll ? '처리 중...' : '모두 읽음 처리'}</button>
+        <LoadingButton className={common.secondaryButton} type="button" isLoading={isMarkingAll} loadingText="처리 중..." disabled={unreadCount === 0} onClick={() => void handleMarkAllRead()}>모두 읽음 처리</LoadingButton>
       </header>
 
-      {isLoading && <DataState title="건강 이력을 불러오는 중입니다." />}
+      {isLoading && <DataState title="건강 이력을 불러오는 중입니다." isLoading />}
       {error && <DataState title="일부 건강 기록을 처리하지 못했습니다." tone="error">{error}</DataState>}
 
       <div className={styles.tabs} role="tablist" aria-label="건강 기록 종류">
-        <button className={tab === 'alerts' ? styles.active : ''} onClick={() => setTab('alerts')} role="tab" aria-selected={tab === 'alerts'} type="button">알림 <span>{unreadCount}</span></button>
-        <button className={tab === 'history' ? styles.active : ''} onClick={() => setTab('history')} role="tab" aria-selected={tab === 'history'} type="button">과거 예측 이력</button>
+        <button id="alerts-tab" className={tab === 'alerts' ? styles.active : ''} onClick={() => setTab('alerts')} role="tab" aria-selected={tab === 'alerts'} aria-controls="alerts-panel" tabIndex={tab === 'alerts' ? 0 : -1} type="button">알림 <span>{unreadCount}</span></button>
+        <button id="history-tab" className={tab === 'history' ? styles.active : ''} onClick={() => setTab('history')} role="tab" aria-selected={tab === 'history'} aria-controls="history-panel" tabIndex={tab === 'history' ? 0 : -1} type="button">과거 예측 이력</button>
       </div>
 
       {tab === 'alerts' ? (
-        alerts.length ? <section className={styles.timeline} aria-label="최근 알림">
-          {alerts.map((alert, index) => {
-            const tone = alert.isRead ? 'normal' : alert.severity === 'WATCH' ? 'notice' : 'warning'
-            return (
-              <article className={`${styles.alertCard} ${styles[tone]}`} key={alert.alertId}>
-                <div className={styles.alertMarker}><span>{!alert.isRead && index === 0 ? '!' : '•'}</span></div>
-                <div className={styles.alertBody}>
-                  <div className={styles.alertMeta}><span>{alertTypeLabel(alert.alertType)}</span><time>{formatDate(alert.createdAt)}</time></div>
-                  <h2>{alert.title}</h2><p>{alert.message}</p>
-                </div>
-                <button type="button" disabled={alert.isRead} onClick={() => void handleMarkRead(alert)} aria-label={`${alert.title} 알림 읽음 처리`}>{alert.isRead ? '읽음' : '읽음 처리'}</button>
-              </article>
-            )
-          })}
-        </section> : <DataState title="도착한 건강 알림이 없습니다." />
+        <section className={alerts.length ? styles.timeline : undefined} id="alerts-panel" role="tabpanel" aria-labelledby="alerts-tab">
+          {alerts.length ? alerts.map((alert, index) => {
+              const tone = alert.isRead ? 'normal' : alert.severity === 'WATCH' ? 'notice' : 'warning'
+              return (
+                <article className={`${styles.alertCard} ${styles[tone]}`} key={alert.alertId}>
+                  <div className={styles.alertMarker}><span>{!alert.isRead && index === 0 ? '!' : '•'}</span></div>
+                  <div className={styles.alertBody}>
+                    <div className={styles.alertMeta}><span>{alertTypeLabel(alert.alertType)}</span><time>{formatDate(alert.createdAt)}</time></div>
+                    <h2>{alert.title}</h2><p>{alert.message}</p>
+                  </div>
+                  <button type="button" disabled={alert.isRead} onClick={() => void handleMarkRead(alert)} aria-label={`${alert.title} 알림 읽음 처리`}>{alert.isRead ? '읽음' : '읽음 처리'}</button>
+                </article>
+              )
+            }) : <DataState title="도착한 건강 알림이 없습니다." />}
+        </section>
       ) : (
-        history.length ? <section className={styles.historyList} aria-label="과거 예측 이력">
-          {history.map((item) => (
-            <article className={styles.historyCard} key={item.predictionId}>
-              <time>{formatDate(item.predictedAt)}</time>
-              <div>
-                <span className={item.riskGrade === 'NORMAL' ? styles.normalGrade : styles.watchGrade}>{gradeLabels[item.riskGrade]}</span>
-                <h2>{item.primaryRiskFactor || '건강 문진 결과'}</h2>
-                <p>{item.aiSummary || '저장된 건강 예측 결과입니다.'}</p>
-              </div>
-              <div className={styles.historyScore}><strong>{Math.round(Number(item.abnormalProbability) * 100)}%</strong><Link to={`/predictions/${item.predictionId}`}>결과 보기 →</Link></div>
-            </article>
-          ))}
-        </section> : <DataState title="저장된 예측 이력이 없습니다.">건강 문진을 완료하면 예측 결과가 여기에 표시됩니다.</DataState>
+        <section className={history.length ? styles.historyList : undefined} id="history-panel" role="tabpanel" aria-labelledby="history-tab">
+          {history.length ? history.map((item) => (
+              <article className={styles.historyCard} key={item.predictionId}>
+                <time>{formatDate(item.predictedAt)}</time>
+                <div>
+                  <span className={item.riskGrade === 'NORMAL' ? styles.normalGrade : styles.watchGrade}>{gradeLabels[item.riskGrade]}</span>
+                  <h2>{item.primaryRiskFactor || '건강 문진 결과'}</h2>
+                  <p>{item.aiSummary || '저장된 건강 예측 결과입니다.'}</p>
+                </div>
+                <div className={styles.historyScore}><strong>{Math.round(Number(item.abnormalProbability) * 100)}%</strong><Link to={`/predictions/${item.predictionId}`}>결과 보기 →</Link></div>
+              </article>
+            )) : <DataState title="저장된 예측 이력이 없습니다.">건강 문진을 완료하면 예측 결과가 여기에 표시됩니다.</DataState>}
+        </section>
       )}
     </div>
   )

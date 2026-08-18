@@ -1,0 +1,5 @@
+.requiredMark {
+  margin-left: 0.25rem;
+  color: var(--color-caution);
+  font-style: normal;
+}
