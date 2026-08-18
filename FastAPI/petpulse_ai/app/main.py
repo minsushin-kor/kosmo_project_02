@@ -6,6 +6,10 @@ import numpy as np
 import pandas as pd
 from typing import List, Optional, AsyncGenerator
 from contextlib import asynccontextmanager
+from dotenv import load_dotenv
+
+# .env 파일 자동 로드
+load_dotenv()
 
 from fastapi import FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
