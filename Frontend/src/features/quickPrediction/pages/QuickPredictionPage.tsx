@@ -111,12 +111,37 @@ function RangeField({
   onChange,
 }: RangeFieldProps) {
   const progress = ((value - min) / (max - min)) * 100
+  const updateRangeValue = (nextValue: number) => {
+    if (!Number.isFinite(nextValue)) {
+      return
+    }
+
+    const decimalPlaces = step.toString().split('.')[1]?.length ?? 0
+    const clampedValue = Math.min(max, Math.max(min, nextValue))
+    onChange(Number(clampedValue.toFixed(decimalPlaces)))
+  }
 
   return (
-    <label className={styles.rangeField} htmlFor={id}>
+    <div className={styles.rangeField}>
       <span className={styles.rangeHeading}>
-        <span><strong>{label}</strong><small>{description}</small></span>
-        <output htmlFor={id}>{value}<em>{unit}</em></output>
+        <span>
+          <label htmlFor={`${id}-number`}><strong>{label}</strong></label>
+          <small id={`${id}-description`}>{description}</small>
+        </span>
+        <span className={styles.rangeValueInput}>
+          <input
+            id={`${id}-number`}
+            type="number"
+            min={min}
+            max={max}
+            step={step}
+            value={value}
+            aria-label={`${label} 직접 입력`}
+            aria-describedby={`${id}-description`}
+            onChange={(event) => updateRangeValue(event.currentTarget.valueAsNumber)}
+          />
+          <em>{unit}</em>
+        </span>
       </span>
       <input
         id={id}
@@ -125,11 +150,13 @@ function RangeField({
         max={max}
         step={step}
         value={value}
+        aria-label={`${label} 슬라이더`}
+        aria-describedby={`${id}-description`}
         style={{ '--range-progress': `${progress}%` } as CSSProperties}
-        onChange={(event) => onChange(Number(event.target.value))}
+        onChange={(event) => updateRangeValue(event.currentTarget.valueAsNumber)}
       />
       <span className={styles.rangeLimits}><small>{min}{unit}</small><small>{max}{unit}</small></span>
-    </label>
+    </div>
   )
 }
 
