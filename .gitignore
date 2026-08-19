@@ -130,6 +130,7 @@ uploads/
 
 # 대용량 AI 모델 · 학습 결과물
 *.pkl
+!FastAPI/petpulse_ai/models/pet_risk_pipeline.pkl
 *.pickle
 *.joblib
 *.onnx
