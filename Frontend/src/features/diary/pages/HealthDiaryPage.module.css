@@ -1,7 +1,7 @@
 .diaryLayout {
   display: grid;
   grid-template-columns: minmax(0, 1.35fr) minmax(20rem, 0.72fr);
-  align-items: start;
+  align-items: stretch;
   gap: 1rem;
 }
 
@@ -246,6 +246,8 @@
 .dayPanel {
   position: sticky;
   top: 6.25rem;
+  align-self: stretch;
+  height: 100%;
   overflow: hidden;
 }
 
@@ -366,7 +368,10 @@
 
 .noteField textarea {
   width: 100%;
-  resize: vertical;
+  height: 8rem;
+  overflow-y: auto;
+  resize: none;
+  scrollbar-gutter: stable;
   padding: 0.8rem 0.9rem;
   border: 1px solid var(--color-line);
   border-radius: 0.85rem;
@@ -699,6 +704,7 @@
 
   .dayPanel {
     position: static;
+    height: auto;
   }
 
   .summaryGrid {
@@ -780,18 +786,64 @@
 }
 
 @media print {
-  .diaryLayout,
+  @page {
+    size: A4 portrait;
+    margin: 12mm;
+  }
+
+  :global(body:has(#diary-print-summary)) {
+    min-height: 0 !important;
+    margin: 0 !important;
+    background: #fff !important;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  :global(body:has(#diary-print-summary) #root) {
+    display: block !important;
+    width: 100% !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  :global(body:has(#diary-print-summary) #root *:not(:has(#diary-print-summary)):not(#diary-print-summary):not(#diary-print-summary *)) {
+    display: none !important;
+  }
+
+  :global(body:has(#diary-print-summary) #root *:has(#diary-print-summary)) {
+    position: static !important;
+    display: block !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    overflow: visible !important;
+  }
+
   .summaryActions,
   .monthRecordHeading a {
-    display: none;
+    display: none !important;
   }
 
   .monthSummary {
-    margin: 0;
-    border: 0;
+    display: block !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 10mm !important;
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-card);
+    background: var(--color-surface) !important;
     box-shadow: none;
   }
 
+  .summaryGrid article,
+  .coverageCard,
   .monthRecordList > button {
     break-inside: avoid;
   }

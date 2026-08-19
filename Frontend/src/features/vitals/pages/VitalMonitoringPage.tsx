@@ -5,43 +5,51 @@ import { getApiErrorMessage } from '../../../shared/api/apiClient'
 import { PetSectionNav } from '../../pets/components/PetSectionNav'
 import { useRoutePet } from '../../pets/hooks/useRoutePet'
 import { getVitalRecords, type VitalRecord } from '../api/vitalApi'
+import {
+  buildVitalTrendPoints,
+  buildVitalTrendTicks,
+  filterVitalRecordsByPeriod,
+  formatVitalTrendTick,
+  getVitalTrendRange,
+  VITAL_TREND_PERIODS,
+  type VitalTrendPeriod,
+} from '../utils/vitalTrend'
 import shared from '../../../styles/featurePage.module.css'
 import styles from './VitalMonitoringPage.module.css'
 
-type Period = '24시간' | '7일' | '30일'
+const HOUR_MS = 60 * 60 * 1000
 
-const demoMeasurements: VitalRecord[] = [
-  { vitalRecordId: 1, petId: 0, temperature: 38.4, heartRate: 92, respiratoryRate: 24, measuredAt: '2026-08-18T08:30:00', sourceType: 'MANUAL', status: 'NORMAL' },
-  { vitalRecordId: 2, petId: 0, temperature: 38.6, heartRate: 96, respiratoryRate: 25, measuredAt: '2026-08-17T20:10:00', sourceType: 'MANUAL', status: 'NORMAL' },
-  { vitalRecordId: 3, petId: 0, temperature: 38.5, heartRate: 94, respiratoryRate: 24, measuredAt: '2026-08-17T08:25:00', sourceType: 'MANUAL', status: 'NORMAL' },
-  { vitalRecordId: 4, petId: 0, temperature: 38.8, heartRate: 101, respiratoryRate: 28, measuredAt: '2026-08-16T20:05:00', sourceType: 'MANUAL', status: 'WATCH' },
-]
+function createDemoMeasurements(): VitalRecord[] {
+  const now = Date.now()
+  const measurements = [
+    { hoursAgo: 2, temperature: 38.4, heartRate: 92, respiratoryRate: 24, status: 'NORMAL' },
+    { hoursAgo: 10, temperature: 38.6, heartRate: 96, respiratoryRate: 25, status: 'NORMAL' },
+    { hoursAgo: 20, temperature: 38.5, heartRate: 94, respiratoryRate: 24, status: 'NORMAL' },
+    { hoursAgo: 48, temperature: 38.8, heartRate: 101, respiratoryRate: 28, status: 'WATCH' },
+    { hoursAgo: 120, temperature: 38.7, heartRate: 98, respiratoryRate: 26, status: 'NORMAL' },
+    { hoursAgo: 240, temperature: 38.3, heartRate: 90, respiratoryRate: 23, status: 'NORMAL' },
+    { hoursAgo: 528, temperature: 38.9, heartRate: 104, respiratoryRate: 29, status: 'WATCH' },
+  ] as const
+
+  return measurements.map((measurement, index) => ({
+    vitalRecordId: index + 1,
+    petId: 0,
+    temperature: measurement.temperature,
+    heartRate: measurement.heartRate,
+    respiratoryRate: measurement.respiratoryRate,
+    measuredAt: new Date(now - measurement.hoursAgo * HOUR_MS).toISOString(),
+    sourceType: 'MANUAL',
+    status: measurement.status,
+  }))
+}
 
 function formatMeasuredAt(value: string) {
   return new Intl.DateTimeFormat('ko-KR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }).format(new Date(value))
 }
 
-function buildPoints(records: VitalRecord[], selector: (record: VitalRecord) => number) {
-  if (records.length === 0) {
-    return ''
-  }
-
-  const ordered = [...records].reverse()
-  const values = ordered.map(selector)
-  const min = Math.min(...values)
-  const max = Math.max(...values)
-  const range = max - min || 1
-
-  return ordered.map((record, index) => {
-    const x = ordered.length === 1 ? 400 : (index / (ordered.length - 1)) * 800
-    const y = 185 - ((selector(record) - min) / range) * 100
-    return `${x.toFixed(1)},${y.toFixed(1)}`
-  }).join(' ')
-}
-
 export function VitalMonitoringPage() {
   const { selectedPet, routePetMissing, isDemoMode } = useRoutePet()
-  const [period, setPeriod] = useState<Period>('7일')
+  const [period, setPeriod] = useState<VitalTrendPeriod>('7일')
   const [records, setRecords] = useState<VitalRecord[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
@@ -52,7 +60,7 @@ export function VitalMonitoringPage() {
     }
 
     if (isDemoMode) {
-      setRecords(demoMeasurements)
+      setRecords(createDemoMeasurements())
       setError('')
       return
     }
@@ -72,15 +80,17 @@ export function VitalMonitoringPage() {
     return () => controller.abort()
   }, [isDemoMode, selectedPet])
 
-  const visibleRecords = useMemo(() => {
-    if (isDemoMode) {
-      return records
+  const trend = useMemo(() => {
+    const rangeEnd = Date.now()
+    const range = getVitalTrendRange(period, rangeEnd)
+    return {
+      ...range,
+      records: filterVitalRecordsByPeriod(records, period, rangeEnd),
+      ticks: buildVitalTrendTicks(period, range.start, range.end),
     }
+  }, [period, records])
 
-    const hours = period === '24시간' ? 24 : period === '7일' ? 24 * 7 : 24 * 30
-    const threshold = Date.now() - hours * 60 * 60 * 1000
-    return records.filter((record) => Date.parse(record.measuredAt) >= threshold)
-  }, [isDemoMode, period, records])
+  const visibleRecords = trend.records
 
   if (!selectedPet || routePetMissing) {
     return <div className={shared.page}><DataState title="반려동물 정보를 찾을 수 없습니다." action={<Link to="/pets">반려동물 목록으로 이동</Link>} /></div>
@@ -128,19 +138,26 @@ export function VitalMonitoringPage() {
             <div className={styles.panelHeader}>
               <div><p>VITAL TREND</p><h2>최근 측정 흐름</h2></div>
               <div className={styles.periodButtons} aria-label="조회 기간">
-                {(['24시간', '7일', '30일'] as Period[]).map((item) => <button type="button" className={period === item ? styles.active : ''} aria-pressed={period === item} onClick={() => setPeriod(item)} key={item}>{item}</button>)}
+                {VITAL_TREND_PERIODS.map((item) => <button type="button" className={period === item ? styles.active : ''} aria-pressed={period === item} onClick={() => setPeriod(item)} key={item}>{item}</button>)}
               </div>
             </div>
-            <div className={styles.legend}><span><i className={styles.temperature} />체온</span><span><i className={styles.heart} />심박수</span><span><i className={styles.breath} />호흡수</span></div>
-            <div className={styles.chart} role="img" aria-label={`${period} 동안의 생체정보 변화 그래프`}>
-              <div className={styles.gridLines}>{[0, 1, 2, 3].map((line) => <span key={line} />)}</div>
-              <svg viewBox="0 0 800 220" preserveAspectRatio="none" aria-hidden="true">
-                <polyline className={styles.temperatureLine} points={buildPoints(visibleRecords, (record) => record.temperature)} />
-                <polyline className={styles.heartLine} points={buildPoints(visibleRecords, (record) => record.heartRate)} />
-                <polyline className={styles.breathLine} points={buildPoints(visibleRecords, (record) => record.respiratoryRate)} />
-              </svg>
-              <div className={styles.xAxis}>{visibleRecords.slice().reverse().map((record) => <span key={record.vitalRecordId}>{new Date(record.measuredAt).toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric' })}</span>)}</div>
+            <div className={styles.chartMeta}>
+              <div className={styles.legend}><span><i className={styles.temperature} />체온</span><span><i className={styles.heart} />심박수</span><span><i className={styles.breath} />호흡수</span></div>
+              <span>{period} · 측정 {visibleRecords.length}건</span>
             </div>
+            {visibleRecords.length > 0 ? (
+              <div className={styles.chart} role="img" aria-label={`${period} 동안의 생체정보 변화 그래프, 측정 ${visibleRecords.length}건`}>
+                <div className={styles.gridLines}>{[0, 1, 2, 3].map((line) => <span key={line} />)}</div>
+                <svg viewBox="0 0 800 220" preserveAspectRatio="none" aria-hidden="true">
+                  <polyline className={styles.temperatureLine} points={buildVitalTrendPoints(visibleRecords, (record) => record.temperature, trend.start, trend.end)} />
+                  <polyline className={styles.heartLine} points={buildVitalTrendPoints(visibleRecords, (record) => record.heartRate, trend.start, trend.end)} />
+                  <polyline className={styles.breathLine} points={buildVitalTrendPoints(visibleRecords, (record) => record.respiratoryRate, trend.start, trend.end)} />
+                </svg>
+                <div className={styles.xAxis}>{trend.ticks.map((tick) => <span key={tick}>{formatVitalTrendTick(tick, period)}</span>)}</div>
+              </div>
+            ) : (
+              <div className={styles.emptyChart} role="status"><span aria-hidden="true">⌁</span><p>최근 {period} 동안 측정된 생체정보가 없습니다.</p></div>
+            )}
           </section>
 
           <section className={`${shared.panel} ${styles.historyPanel}`}>

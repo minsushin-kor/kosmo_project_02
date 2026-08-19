@@ -327,7 +327,7 @@ export function HealthDiaryPage() {
 
           <form className={styles.diaryForm} onSubmit={handleSave}>
             <fieldset>
-              <legend>보호자가 본 오늘 상태</legend>
+              <legend>{selectedPet.name}의 오늘 상태</legend>
               <div className={styles.statusChoices}>
                 <label className={draftStatus === 'GOOD' ? styles.checkedGood : ''}>
                   <input type="radio" name="diaryStatus" value="GOOD" checked={draftStatus === 'GOOD'} onChange={() => setDraftStatus('GOOD')} />
@@ -340,8 +340,8 @@ export function HealthDiaryPage() {
               </div>
             </fieldset>
             <label className={styles.noteField}>
-              <span>관찰 메모</span>
-              <textarea value={draftNote} maxLength={300} rows={4} onChange={(event) => setDraftNote(event.target.value)} placeholder="식사, 활동, 수면 등 오늘 관찰한 내용을 남겨주세요." />
+              <span>오늘의 {selectedPet.name}는 어땠나요?</span>
+              <textarea value={draftNote} maxLength={300} rows={4} onChange={(event) => setDraftNote(event.target.value)} placeholder={`${selectedPet.name}의 식사, 활동, 수면 등 오늘 있었던 일을 남겨주세요.`} />
               <small>{draftNote.length} / 300자</small>
             </label>
             {saveMessage && <p className={styles.saveMessage} role="status">{saveMessage}</p>}
@@ -389,7 +389,7 @@ export function HealthDiaryPage() {
         </aside>
       </section>
 
-      <section className={styles.monthSummary} aria-labelledby="month-summary-title">
+      <section id="diary-print-summary" className={styles.monthSummary} aria-labelledby="month-summary-title">
         <div className={styles.summaryHeading}>
           <div><p>MONTHLY SUMMARY</p><h2 id="month-summary-title">{formatMonthTitle(displayMonth)} 기록 요약</h2></div>
           <div className={styles.summaryActions}>
