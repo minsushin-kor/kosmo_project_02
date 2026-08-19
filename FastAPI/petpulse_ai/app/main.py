@@ -250,6 +250,30 @@ class WeeklyReportResponse(BaseModel):
     recommendedCare: List[str] = Field(..., description="이번 주 추천 케어 포인트")
 
 
+# --- 4) /ai/recommend-food 요청/응답 스키마 ---
+class IngredientInfo(BaseModel):
+    name: str = Field(..., description="추천 원료 또는 영양 성분명")
+    reason: str = Field(..., description="해당 성분/원료가 추천되는 이유")
+
+
+class FoodRecommendRequest(BaseModel):
+    petName: Optional[str] = Field("아이", example="초코", description="반려동물 이름")
+    species: str = Field("DOG", example="DOG", description="반려동물 종 (DOG/CAT)")
+    age: int = Field(3, example=3, description="나이 (세)")
+    weight: Optional[float] = Field(None, example=5.5, description="체중 (kg)")
+    healthConcerns: Optional[str] = Field(None, example="피부 알레르기", description="주요 건강 고민 (피부/알레르기, 비만, 관절, 소화기, 노령기 등)")
+    currentFoodType: Optional[str] = Field(None, example="건식", description="현재 급여 중인 사료 형태 (건식, 습식, 화식 등)")
+    additionalNotes: Optional[str] = Field(None, example="닭고기 알레르기가 의심돼요.", description="기타 특이사항이나 알레르기 의심 원료")
+
+
+class FoodRecommendResponse(BaseModel):
+    petSummary: str = Field(..., description="반려동물 프로필 및 맞춤 케어 요약")
+    recommendedIngredients: List[IngredientInfo] = Field(..., description="추천 핵심 원료 및 영양소 목록")
+    avoidIngredients: List[str] = Field(..., description="피해야 할 성분/주의 원료")
+    feedingTips: List[str] = Field(..., description="맞춤형 급여 및 관리 팁")
+    vetNote: str = Field(..., description="수의학적 조언 및 모니터링 가이드")
+
+
 # =====================================================================
 # 4. 헬퍼 함수
 # =====================================================================
@@ -753,8 +777,120 @@ def generate_weekly_report(req: WeeklyReportRequest):
 
 
 
+# ---------------------------------------------------------------------
+# [Endpoint 6] POST /ai/recommend-food : 맞춤형 사료 및 영양 추천 (LLM)
+# ---------------------------------------------------------------------
+@app.post(
+    "/ai/recommend-food",
+    response_model=FoodRecommendResponse,
+    summary="맞춤형 사료 및 영양 성분 추천 (LLM)",
+    tags=["Generative AI"]
+)
+def recommend_food(req: FoodRecommendRequest):
+    species_kr = "강아지" if req.species.upper() == "DOG" else "고양이"
+    weight_str = f", 체중 {req.weight}kg" if req.weight else ""
+    concern_str = f" / 주요 고민: {req.healthConcerns}" if req.healthConcerns else ""
+
+    summary = f"{req.petName}({species_kr}, {req.age}세{weight_str}){concern_str}"
+
+    # 1. RAG 지식 검색 (식이/영양 관련 문서 매칭)
+    rag_query = f"[{req.species}] 사료 영양식이 {req.healthConcerns or ''} {req.additionalNotes or ''}".strip()
+    rag_results = search_rag(rag_query, n_results=2)
+    rag_context = ""
+    if rag_results and rag_results.get("documents"):
+        rag_context = "\n".join(rag_results["documents"])
+
+    # 2. Gemini API 호출
+    api_key = os.getenv("GEMINI_API_KEY")
+    if HAS_GEMINI and api_key:
+        try:
+            genai.configure(api_key=api_key)
+            model = genai.GenerativeModel(LLM_MODEL)
+            prompt = f"""
+너는 전문적이고 다정한 반려동물 임상영양사 겸 수의학 웰니스 코치야.
+보호자의 반려동물 정보를 바탕으로 맞춤형 사료 선택 기준, 추천 원료 및 영양 성분, 주의해야 할 성분, 급여 팁을 JSON 형식으로 작성해줘.
+
+[반려동물 정보]
+- 이름: {req.petName}
+- 종: {species_kr} ({req.species})
+- 나이: {req.age}세
+- 체중: {req.weight if req.weight else '정보 없음'} kg
+- 건강 고민/목적: {req.healthConcerns or '일반 건강 유지'}
+- 현재 급여 형태: {req.currentFoodType or '정보 없음'}
+- 특이사항/알레르기 메모: {req.additionalNotes or '없음'}
+
+[수의학 참고 지식]
+{rag_context}
+
+반드시 아래 JSON 스키마 형식에 맞춰 정확한 JSON 문자열만 출력해줘 (마크다운 코드블록이나 불필요한 설명 없이 순수 JSON):
+{{
+  "petSummary": "{summary}",
+  "recommendedIngredients": [
+    {{"name": "추천 원료 또는 영양소명", "reason": "이 성분이 추천되는 이유 1~2문장"}},
+    {{"name": "추천 원료 또는 영양소명", "reason": "이 성분이 추천되는 이유 1~2문장"}},
+    {{"name": "추천 원료 또는 영양소명", "reason": "이 성분이 추천되는 이유 1~2문장"}}
+  ],
+  "avoidIngredients": [
+    "피해야 하거나 주의할 원료/성분 1",
+    "피해야 하거나 주의할 원료/성분 2",
+    "피해야 하거나 주의할 원료/성분 3"
+  ],
+  "feedingTips": [
+    "7~10일 점진적 사료 교체법 등 실질적인 급여 팁 1",
+    "음수량 또는 간식 조절 관련 팁 2",
+    "하루 급여 횟수 및 보관법 팁 3"
+  ],
+  "vetNote": "수의학적 관점에서의 모니터링 조언 및 내원 안내 2~3문장"
+}}
+"""
+            response = model.generate_content(prompt)
+            raw_text = response.text.strip()
+
+            # JSON 코드블록(```json ... ```) 제거 처리
+            if raw_text.startswith("```"):
+                lines = raw_text.splitlines()
+                if lines[0].startswith("```"):
+                    lines = lines[1:]
+                if lines and lines[-1].startswith("```"):
+                    lines = lines[:-1]
+                raw_text = "\n".join(lines).strip()
+
+            parsed = json.loads(raw_text)
+            return FoodRecommendResponse(
+                petSummary=parsed.get("petSummary", summary),
+                recommendedIngredients=[IngredientInfo(**item) for item in parsed.get("recommendedIngredients", [])],
+                avoidIngredients=parsed.get("avoidIngredients", []),
+                feedingTips=parsed.get("feedingTips", []),
+                vetNote=parsed.get("vetNote", "")
+            )
+        except Exception as e:
+            print(f"⚠️ Gemini 사료 추천 JSON 파싱/호출 실패 (스마트 템플릿 사용): {e}")
+
+    # 3. Fallback (규칙 기반)
+    default_ingredients = [
+        IngredientInfo(name="단일 단백질원 (LID)", reason="소화 흡수가 쉽고 식이 알레르기 유발 가능성을 낮춥니다."),
+        IngredientInfo(name="오메가-3 및 오메가-6 지방산", reason="피부 장벽을 강화하고 피모 건강 및 염증 완화에 도움을 줍니다."),
+        IngredientInfo(name="프리바이오틱스 / 식이섬유", reason="장내 유익균 증식을 돕고 건강한 변 형성을 지원합니다.")
+    ]
+    default_avoid = ["인공 색소 및 합성 감미료", "밀/옥수수 글루텐", "육류 부산물 및 불분명한 원료"]
+    default_tips = [
+        "기존 사료에서 새 사료로 전환 시 7~10일에 걸쳐 서서히 비율을 늘려주세요.",
+        "하루 권장 칼로리를 2~3회로 나누어 일정한 시간에 급여하세요.",
+        "사료 교체 기간에는 불필요한 간식 급여를 최소화하세요."
+    ]
+    default_note = "사료 교체 후 2주 이상 설사, 구토, 피부 발적이 지속된다면 수의사의 진료와 상담을 권장합니다."
+
+    return FoodRecommendResponse(
+        petSummary=summary,
+        recommendedIngredients=default_ingredients,
+        avoidIngredients=default_avoid,
+        feedingTips=default_tips,
+        vetNote=default_note
+    )
+
+
 # =====================================================================
-# [Endpoint 6] POST /ai/chat/stream : RAG 기반 SSE 스트리밍 챗봇
+# [Endpoint 7] POST /ai/chat/stream : RAG 기반 SSE 스트리밍 챗봇
 # =====================================================================
 
 class ChatStreamRequest(BaseModel):
