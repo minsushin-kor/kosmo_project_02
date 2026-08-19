@@ -2,6 +2,7 @@ import { createBrowserRouter } from 'react-router-dom'
 import { DashboardPage } from '../features/dashboard/pages/DashboardPage'
 import { HealthDiaryPage } from '../features/diary/pages/HealthDiaryPage'
 import { NotFoundPage } from '../features/errors/pages/NotFoundPage'
+import { FoodRecommendationPage } from '../features/foodRecommendation/pages/FoodRecommendationPage'
 import { HealthHistoryPage } from '../features/history/pages/HealthHistoryPage'
 import { LandingPage } from '../features/landing/pages/LandingPage'
 import { LoginPage } from '../features/auth/pages/LoginPage'
@@ -28,6 +29,7 @@ export const router = createBrowserRouter([
       { path: '/signup', element: <SignupPage /> },
       { path: '/mypage', element: <MyPage /> },
       { path: '/quick-prediction', element: <QuickPredictionPage /> },
+      { path: '/food-recommendation', element: <FoodRecommendationPage /> },
       { path: '/pets', element: <PetListPage /> },
       { path: '/pets/new', element: <PetRegisterPage /> },
       { path: '/pets/:petId/edit', element: <PetEditPage /> },

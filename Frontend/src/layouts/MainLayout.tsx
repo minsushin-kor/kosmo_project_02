@@ -23,7 +23,8 @@ function MainLayoutContent() {
   const isHome = pathname === '/'
   const isDashboard = pathname === '/dashboard'
   const isQuickPrediction = pathname === '/quick-prediction'
-  const hidesFloatingChat = isHome || isQuickPrediction || pathname === '/login' || pathname === '/signup' || pathname.endsWith('/diary')
+  const isFoodRecommendation = pathname === '/food-recommendation'
+  const hidesFloatingChat = isHome || isQuickPrediction || isFoodRecommendation || pathname === '/login' || pathname === '/signup' || pathname.endsWith('/diary')
   const healthRecordsPath = selectedPet ? `/pets/${selectedPet.id}/vitals` : '/pets'
   const isHealthRecords = /^\/pets\/[^/]+\/(vitals|questionnaire|history|alerts|reports|diary)$/.test(pathname) ||
     pathname.startsWith('/predictions/') || pathname.startsWith('/reports/')
@@ -112,6 +113,13 @@ function MainLayoutContent() {
               onClick={() => setIsMobileNavOpen(false)}
             >
               상태 간단 예측
+            </NavLink>
+            <NavLink
+              to="/food-recommendation"
+              className={({ isActive }) => (isActive ? styles.active : undefined)}
+              onClick={() => setIsMobileNavOpen(false)}
+            >
+              사료 추천
             </NavLink>
             <NavLink
               to="/dashboard"
