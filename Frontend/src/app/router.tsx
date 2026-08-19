@@ -12,6 +12,7 @@ import { PetListPage } from '../features/pets/pages/PetListPage'
 import { PetEditPage } from '../features/pets/pages/PetEditPage'
 import { PetRegisterPage } from '../features/pets/pages/PetRegisterPage'
 import { QuestionnairePage } from '../features/questionnaire/pages/QuestionnairePage'
+import { QuickPredictionPage } from '../features/quickPrediction/pages/QuickPredictionPage'
 import { ReportDetailPage } from '../features/reports/pages/ReportDetailPage'
 import { ReportsListPage } from '../features/reports/pages/ReportsListPage'
 import { VitalMonitoringPage } from '../features/vitals/pages/VitalMonitoringPage'
@@ -26,6 +27,7 @@ export const router = createBrowserRouter([
       { path: '/login', element: <LoginPage /> },
       { path: '/signup', element: <SignupPage /> },
       { path: '/mypage', element: <MyPage /> },
+      { path: '/quick-prediction', element: <QuickPredictionPage /> },
       { path: '/pets', element: <PetListPage /> },
       { path: '/pets/new', element: <PetRegisterPage /> },
       { path: '/pets/:petId/edit', element: <PetEditPage /> },
