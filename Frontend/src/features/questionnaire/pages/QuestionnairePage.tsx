@@ -205,15 +205,15 @@ export function QuestionnairePage() {
       )
 
       navigate(
-  `/predictions/${prediction.predictionId}`,
-  {
-    state: {
-      prediction,
-      questionnaire,
-      petName: selectedPet.name,
-    },
-  },
-)
+        `/predictions/${prediction.predictionId}`,
+        {
+          state: {
+            prediction,
+            questionnaire,
+            petName: selectedPet.name,
+          },
+        },
+      )
     } catch (error) {
       console.error(
         '문진 또는 예측 처리 실패:',
