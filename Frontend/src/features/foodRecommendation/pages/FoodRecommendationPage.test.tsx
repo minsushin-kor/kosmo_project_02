@@ -7,7 +7,7 @@ import type { Pet } from '../../pets/types'
 import { FoodRecommendationPage } from './FoodRecommendationPage'
 
 const pet: Pet = {
-  id: '1',
+  id: 1,
   name: '코코',
   species: 'DOG',
   breed: '푸들',

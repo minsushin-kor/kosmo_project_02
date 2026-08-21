@@ -33,16 +33,18 @@ const accents: PetAccent[] = ['sage', 'sand', 'peach']
 
 export function getConfiguredUserId() {
   const parsed = Number(import.meta.env.VITE_DEMO_USER_ID ?? '1')
+
   return Number.isInteger(parsed) && parsed > 0 ? parsed : 1
 }
 
 function toPet(response: PetResponse): Pet {
   return {
-    id: String(response.petId),
+    id: response.petId,
     name: response.petName,
     species: response.species,
     breed: response.breed ?? '품종 미등록',
-    birthDate: response.birthDate ?? new Date().toISOString().slice(0, 10),
+    birthDate:
+      response.birthDate ?? new Date().toISOString().slice(0, 10),
     sex: response.gender ?? 'MALE',
     weight: response.weight ?? 0,
     neutered: response.neutered ?? false,
@@ -52,10 +54,14 @@ function toPet(response: PetResponse): Pet {
   }
 }
 
-function toRequest(input: CreatePetInput, userId: number): PetRequest {
-  const persistableImage = input.imageUrl && input.imageUrl.length <= 500
-    ? input.imageUrl
-    : null
+function toRequest(
+  input: CreatePetInput,
+  userId: number,
+): PetRequest {
+  const persistableImage =
+    input.imageUrl && input.imageUrl.length <= 500
+      ? input.imageUrl
+      : null
 
   return {
     userId,
@@ -71,27 +77,59 @@ function toRequest(input: CreatePetInput, userId: number): PetRequest {
   }
 }
 
-export async function getPets(userId = getConfiguredUserId()) {
-  const response = await apiRequest<PetResponse[]>(`/pets?userId=${userId}`)
+export async function getPets(
+  userId = getConfiguredUserId(),
+) {
+  const response = await apiRequest<PetResponse[]>(
+    `/pets?userId=${userId}`,
+  )
+
   return response.map(toPet)
 }
 
-export async function createPet(input: CreatePetInput, userId = getConfiguredUserId()) {
-  const response = await apiRequest<PetResponse>('/pets', {
-    method: 'POST',
-    body: JSON.stringify(toRequest(input, userId)),
-  })
+export async function getPet(petId: number) {
+  const response = await apiRequest<PetResponse>(
+    `/pets/${petId}`,
+  )
+
   return toPet(response)
 }
 
-export async function updatePet(pet: Pet, userId = getConfiguredUserId()) {
-  const response = await apiRequest<PetResponse>(`/pets/${pet.id}`, {
-    method: 'PUT',
-    body: JSON.stringify(toRequest(pet, userId)),
-  })
+export async function createPet(
+  input: CreatePetInput,
+  userId = getConfiguredUserId(),
+) {
+  const response = await apiRequest<PetResponse>(
+    '/pets',
+    {
+      method: 'POST',
+      body: JSON.stringify(toRequest(input, userId)),
+    },
+  )
+
   return toPet(response)
 }
 
-export async function deletePet(petId: string) {
-  await apiRequest<void>(`/pets/${petId}`, { method: 'DELETE' })
+export async function updatePet(
+  pet: Pet,
+  userId = getConfiguredUserId(),
+) {
+  const response = await apiRequest<PetResponse>(
+    `/pets/${pet.id}`,
+    {
+      method: 'PUT',
+      body: JSON.stringify(toRequest(pet, userId)),
+    },
+  )
+
+  return toPet(response)
+}
+
+export async function deletePet(petId: number) {
+  await apiRequest<void>(
+    `/pets/${petId}`,
+    {
+      method: 'DELETE',
+    },
+  )
 }

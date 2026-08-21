@@ -12,14 +12,34 @@ export type HealthAlert = {
   createdAt: string
 }
 
-export function getHealthAlerts(petId: string, signal?: AbortSignal) {
-  return apiRequest<HealthAlert[]>(`/pets/${petId}/alerts`, { signal })
+export function getHealthAlerts(
+  petId: number,
+  signal?: AbortSignal,
+) {
+  return apiRequest<HealthAlert[]>(
+    `/pets/${petId}/alerts`,
+    { signal },
+  )
 }
 
-export function markAllHealthAlertsRead(petId: string) {
-  return apiRequest<number>(`/pets/${petId}/alerts/read-all`, { method: 'PATCH' })
+export function markAllHealthAlertsRead(
+  petId: number,
+) {
+  return apiRequest<number>(
+    `/pets/${petId}/alerts/read-all`,
+    {
+      method: 'PATCH',
+    },
+  )
 }
 
-export function markHealthAlertRead(alertId: number) {
-  return apiRequest<HealthAlert>(`/alerts/${alertId}/read`, { method: 'PATCH' })
+export function markHealthAlertRead(
+  alertId: number,
+) {
+  return apiRequest<HealthAlert>(
+    `/alerts/${alertId}/read`,
+    {
+      method: 'PATCH',
+    },
+  )
 }

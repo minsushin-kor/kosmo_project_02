@@ -34,197 +34,211 @@ import java.util.stream.Collectors;
 @Transactional(readOnly = true)
 public class WeeklyReportService {
 
-    private final WeeklyReportRepository weeklyReportRepository;
-    private final PetRepository petRepository;
-    private final VitalRecordRepository vitalRecordRepository;
-    private final QuestionnaireRepository questionnaireRepository;
-    private final HealthPredictionRepository healthPredictionRepository;
-    private final HealthAlertRepository healthAlertRepository;
-    private final FastApiWeeklyReportClient fastApiWeeklyReportClient;
+        private final WeeklyReportRepository weeklyReportRepository;
+        private final PetRepository petRepository;
+        private final VitalRecordRepository vitalRecordRepository;
+        private final QuestionnaireRepository questionnaireRepository;
+        private final HealthPredictionRepository healthPredictionRepository;
+        private final HealthAlertRepository healthAlertRepository;
+        private final FastApiWeeklyReportClient fastApiWeeklyReportClient;
 
-    @Transactional
-    public WeeklyReportResponse createWeeklyReport(Long petId) {
+        @Transactional
+        public WeeklyReportResponse createWeeklyReport(Long petId) {
 
-        Pet pet = petRepository.findById(petId)
-                .orElseThrow(() -> new IllegalArgumentException(
-                        "존재하지 않는 반려동물입니다. petId=" + petId));
+                Pet pet = petRepository.findById(petId)
+                                .orElseThrow(() -> new IllegalArgumentException(
+                                                "존재하지 않는 반려동물입니다. petId=" + petId));
 
-        LocalDate endDate = LocalDate.now();
-        LocalDate startDate = endDate.minusDays(6);
+                LocalDate endDate = LocalDate.now();
+                LocalDate startDate = endDate.minusDays(6);
 
-        LocalDateTime startDateTime = startDate.atStartOfDay();
-        LocalDateTime endDateTime = endDate
-                .plusDays(1)
-                .atStartOfDay()
-                .minusNanos(1);
+                if (weeklyReportRepository
+                                .existsByPetPetIdAndStartDateAndEndDate(
+                                                petId,
+                                                startDate,
+                                                endDate)) {
 
-        List<VitalRecord> vitals = vitalRecordRepository
-                .findByPetPetIdAndMeasuredAtBetweenOrderByMeasuredAtAsc(
-                        petId,
-                        startDateTime,
-                        endDateTime);
+                        throw new IllegalStateException(
+                                        "이미 생성된 주간 리포트입니다. "
+                                                        + "petId=" + petId
+                                                        + ", period=" + startDate
+                                                        + " ~ " + endDate);
+                }
 
-        List<Questionnaire> questionnaires = questionnaireRepository
-                .findByPetPetIdAndSubmittedAtBetweenOrderBySubmittedAtAsc(
-                        petId,
-                        startDateTime,
-                        endDateTime);
+                LocalDateTime startDateTime = startDate.atStartOfDay();
+                LocalDateTime endDateTime = endDate
+                                .plusDays(1)
+                                .atStartOfDay()
+                                .minusNanos(1);
 
-        List<HealthPrediction> predictions = healthPredictionRepository
-                .findByQuestionnairePetPetIdAndPredictedAtBetweenOrderByPredictedAtAsc(
-                        petId,
-                        startDateTime,
-                        endDateTime);
+                List<VitalRecord> vitals = vitalRecordRepository
+                                .findByPetPetIdAndMeasuredAtBetweenOrderByMeasuredAtAsc(
+                                                petId,
+                                                startDateTime,
+                                                endDateTime);
 
-        List<HealthAlert> alerts = healthAlertRepository
-                .findByPetPetIdAndCreatedAtBetween(
-                        petId,
-                        startDateTime,
-                        endDateTime);
+                List<Questionnaire> questionnaires = questionnaireRepository
+                                .findByPetPetIdAndSubmittedAtBetweenOrderBySubmittedAtAsc(
+                                                petId,
+                                                startDateTime,
+                                                endDateTime);
 
-        double avgTemperature = vitals.stream()
-                .mapToDouble(vital -> vital.getTemperature().doubleValue())
-                .average()
-                .orElse(0.0);
+                List<HealthPrediction> predictions = healthPredictionRepository
+                                .findByQuestionnairePetPetIdAndPredictedAtBetweenOrderByPredictedAtAsc(
+                                                petId,
+                                                startDateTime,
+                                                endDateTime);
 
-        double avgHeartRate = vitals.stream()
-                .mapToInt(VitalRecord::getHeartRate)
-                .average()
-                .orElse(0.0);
+                List<HealthAlert> alerts = healthAlertRepository
+                                .findByPetPetIdAndCreatedAtBetween(
+                                                petId,
+                                                startDateTime,
+                                                endDateTime);
 
-        double avgRespiratoryRate = vitals.stream()
-                .mapToInt(VitalRecord::getRespiratoryRate)
-                .average()
-                .orElse(0.0);
+                double avgTemperature = vitals.stream()
+                                .mapToDouble(vital -> vital.getTemperature().doubleValue())
+                                .average()
+                                .orElse(0.0);
 
-        int cautionAlertCount = (int) alerts.stream()
-                .filter(alert -> alert.getSeverity() == AlertSeverity.CAUTION)
-                .count();
+                double avgHeartRate = vitals.stream()
+                                .mapToInt(VitalRecord::getHeartRate)
+                                .average()
+                                .orElse(0.0);
 
-        int dangerAlertCount = (int) alerts.stream()
-                .filter(alert -> alert.getSeverity() == AlertSeverity.DANGER)
-                .count();
+                double avgRespiratoryRate = vitals.stream()
+                                .mapToInt(VitalRecord::getRespiratoryRate)
+                                .average()
+                                .orElse(0.0);
 
-        double averageRiskProbability = predictions.stream()
-                .mapToDouble(prediction -> prediction.getAbnormalProbability().doubleValue())
-                .average()
-                .orElse(0.0);
+                int cautionAlertCount = (int) alerts.stream()
+                                .filter(alert -> alert.getSeverity() == AlertSeverity.CAUTION)
+                                .count();
 
-        String mainSymptomsSummary = buildMainSymptomsSummary(
-                questionnaires,
-                predictions);
+                int dangerAlertCount = (int) alerts.stream()
+                                .filter(alert -> alert.getSeverity() == AlertSeverity.DANGER)
+                                .count();
 
-        AiWeeklyReportRequest aiRequest = new AiWeeklyReportRequest(
-                pet.getPetName(),
-                pet.getSpecies().name(),
-                calculateAge(pet),
-                avgTemperature,
-                avgHeartRate,
-                avgRespiratoryRate,
-                cautionAlertCount,
-                dangerAlertCount,
-                questionnaires.size(),
-                mainSymptomsSummary);
+                double averageRiskProbability = predictions.stream()
+                                .mapToDouble(prediction -> prediction.getAbnormalProbability().doubleValue())
+                                .average()
+                                .orElse(0.0);
 
-        AiWeeklyReportResponse aiResponse = fastApiWeeklyReportClient
-                .generateWeeklyReport(aiRequest);
+                String mainSymptomsSummary = buildMainSymptomsSummary(
+                                questionnaires,
+                                predictions);
 
-        WeeklyReport weeklyReport = new WeeklyReport(
-                pet,
-                startDate,
-                endDate,
-                toBigDecimal(avgTemperature, 1),
-                toBigDecimal(avgHeartRate, 2),
-                cautionAlertCount,
-                dangerAlertCount,
-                questionnaires.size(),
-                toBigDecimal(averageRiskProbability, 4),
-                aiResponse.oneLineSummary(),
-                aiResponse.reportContent());
+                AiWeeklyReportRequest aiRequest = new AiWeeklyReportRequest(
+                                pet.getPetName(),
+                                pet.getSpecies().name(),
+                                calculateAge(pet),
+                                avgTemperature,
+                                avgHeartRate,
+                                avgRespiratoryRate,
+                                cautionAlertCount,
+                                dangerAlertCount,
+                                questionnaires.size(),
+                                averageRiskProbability,
+                                mainSymptomsSummary);
 
-        WeeklyReport saved = weeklyReportRepository.save(weeklyReport);
+                AiWeeklyReportResponse aiResponse = fastApiWeeklyReportClient
+                                .generateWeeklyReport(aiRequest);
 
-        return WeeklyReportResponse.from(saved);
-    }
+                WeeklyReport weeklyReport = new WeeklyReport(
+                                pet,
+                                startDate,
+                                endDate,
+                                toBigDecimal(avgTemperature, 1),
+                                toBigDecimal(avgHeartRate, 2),
+                                cautionAlertCount,
+                                dangerAlertCount,
+                                questionnaires.size(),
+                                toBigDecimal(averageRiskProbability, 4),
+                                aiResponse.oneLineSummary(),
+                                aiResponse.reportContent());
 
-    private String buildMainSymptomsSummary(
-            List<Questionnaire> questionnaires,
-            List<HealthPrediction> predictions) {
+                WeeklyReport saved = weeklyReportRepository.save(weeklyReport);
 
-        String symptoms = questionnaires.stream()
-                .map(Questionnaire::getAdditionalSymptoms)
-                .filter(value -> value != null && !value.isBlank())
-                .distinct()
-                .collect(Collectors.joining(", "));
-
-        String riskFactors = predictions.stream()
-                .map(HealthPrediction::getPrimaryRiskFactor)
-                .filter(value -> value != null && !value.isBlank())
-                .distinct()
-                .collect(Collectors.joining(", "));
-
-        if (!symptoms.isBlank() && !riskFactors.isBlank()) {
-            return "주요 증상: "
-                    + symptoms
-                    + " / 주요 위험 요인: "
-                    + riskFactors;
+                return WeeklyReportResponse.from(saved);
         }
 
-        if (!symptoms.isBlank()) {
-            return "주요 증상: " + symptoms;
+        private String buildMainSymptomsSummary(
+                        List<Questionnaire> questionnaires,
+                        List<HealthPrediction> predictions) {
+
+                String symptoms = questionnaires.stream()
+                                .map(Questionnaire::getAdditionalSymptoms)
+                                .filter(value -> value != null && !value.isBlank())
+                                .distinct()
+                                .collect(Collectors.joining(", "));
+
+                String riskFactors = predictions.stream()
+                                .map(HealthPrediction::getPrimaryRiskFactor)
+                                .filter(value -> value != null && !value.isBlank())
+                                .distinct()
+                                .collect(Collectors.joining(", "));
+
+                if (!symptoms.isBlank() && !riskFactors.isBlank()) {
+                        return "주요 증상: "
+                                        + symptoms
+                                        + " / 주요 위험 요인: "
+                                        + riskFactors;
+                }
+
+                if (!symptoms.isBlank()) {
+                        return "주요 증상: " + symptoms;
+                }
+
+                if (!riskFactors.isBlank()) {
+                        return "주요 위험 요인: " + riskFactors;
+                }
+
+                return "특이 증상 기록 없음";
         }
 
-        if (!riskFactors.isBlank()) {
-            return "주요 위험 요인: " + riskFactors;
+        private BigDecimal toBigDecimal(
+                        double value,
+                        int scale) {
+
+                return BigDecimal.valueOf(value)
+                                .setScale(scale, RoundingMode.HALF_UP);
         }
 
-        return "특이 증상 기록 없음";
-    }
+        private int calculateAge(Pet pet) {
 
-    private BigDecimal toBigDecimal(
-            double value,
-            int scale) {
+                if (pet.getBirthDate() == null) {
+                        return 0;
+                }
 
-        return BigDecimal.valueOf(value)
-                .setScale(scale, RoundingMode.HALF_UP);
-    }
-
-    private int calculateAge(Pet pet) {
-
-        if (pet.getBirthDate() == null) {
-            return 0;
+                return Period.between(
+                                pet.getBirthDate(),
+                                LocalDate.now())
+                                .getYears();
         }
 
-        return Period.between(
-                pet.getBirthDate(),
-                LocalDate.now())
-                .getYears();
-    }
+        public List<WeeklyReportResponse> getWeeklyReports(
+                        Long petId) {
 
-    public List<WeeklyReportResponse> getWeeklyReports(
-            Long petId) {
+                if (!petRepository.existsById(petId)) {
+                        throw new IllegalArgumentException(
+                                        "존재하지 않는 반려동물입니다. petId=" + petId);
+                }
 
-        if (!petRepository.existsById(petId)) {
-            throw new IllegalArgumentException(
-                    "존재하지 않는 반려동물입니다. petId=" + petId);
+                return weeklyReportRepository
+                                .findByPetPetIdOrderByCreatedAtDesc(petId)
+                                .stream()
+                                .map(WeeklyReportResponse::from)
+                                .toList();
         }
 
-        return weeklyReportRepository
-                .findByPetPetIdOrderByCreatedAtDesc(petId)
-                .stream()
-                .map(WeeklyReportResponse::from)
-                .toList();
-    }
+        public WeeklyReportResponse getWeeklyReport(
+                        Long reportId) {
 
-    public WeeklyReportResponse getWeeklyReport(
-            Long reportId) {
+                WeeklyReport report = weeklyReportRepository
+                                .findById(reportId)
+                                .orElseThrow(() -> new IllegalArgumentException(
+                                                "존재하지 않는 주간 리포트입니다. reportId="
+                                                                + reportId));
 
-        WeeklyReport report = weeklyReportRepository
-                .findById(reportId)
-                .orElseThrow(() -> new IllegalArgumentException(
-                        "존재하지 않는 주간 리포트입니다. reportId="
-                                + reportId));
-
-        return WeeklyReportResponse.from(report);
-    }
+                return WeeklyReportResponse.from(report);
+        }
 }

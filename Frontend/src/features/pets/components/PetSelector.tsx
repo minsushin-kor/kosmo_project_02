@@ -20,7 +20,10 @@ export function PetSelector() {
       <PetAvatar pet={selectedPet} size="small" />
       <label className={styles.field}>
         <span className={styles.srOnly}>현재 반려동물 선택</span>
-        <select value={selectedPet.id} onChange={(event) => selectPet(event.target.value)}>
+        <select
+          value={selectedPet.id}
+          onChange={(event) => selectPet(Number(event.target.value))}
+        >
           {pets.map((pet) => (
             <option key={pet.id} value={pet.id}>
               {pet.name} · {pet.breed}

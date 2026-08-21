@@ -3,13 +3,12 @@ package com.petpulse.app.vital.repository;
 import com.petpulse.app.vital.entity.VitalRecord;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
-import java.time.LocalDateTime;
-import java.util.List;
-
-public interface VitalRecordRepository extends JpaRepository<VitalRecord, Long> {
+public interface VitalRecordRepository
+        extends JpaRepository<VitalRecord, Long> {
 
     List<VitalRecord> findByPetPetIdOrderByMeasuredAtDesc(Long petId);
 

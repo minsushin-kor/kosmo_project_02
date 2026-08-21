@@ -240,7 +240,13 @@ class WeeklyReportRequest(BaseModel):
     cautionAlertCount: int = Field(0, example=2)
     dangerAlertCount: int = Field(0, example=0)
     questionnaireCount: int = Field(1, example=3)
-    mainSymptomsSummary: Optional[str] = Field(None, example="주초 미열 및 경미한 식욕 저하 관찰")
+
+    averageRiskProbability: float = Field(0.0, example=0.595)
+
+    mainSymptomsSummary: Optional[str] = Field(
+        None,
+        example="주초 미열 및 경미한 식욕 저하 관찰"
+    )
 
 
 class WeeklyReportResponse(BaseModel):
@@ -734,6 +740,7 @@ def generate_weekly_report(req: WeeklyReportRequest):
 - 이름/종/나이: {req.petName} ({req.species}, {req.age}세)
 - 주간 평균 생체 지표: 체온 {req.avgTemperature}°C, 심박수 {req.avgHeartRate}bpm, 호흡수 {req.avgRespiratoryRate}회/분
 - 알림 내역: 주의 알림 {req.cautionAlertCount}회, 위험 알림 {req.dangerAlertCount}회
+- AI 건강 이상 평균 위험도: {req.averageRiskProbability * 100:.1f}%
 - 건강 상태 종합 소견: {req.mainSymptomsSummary or '특이사항 없음'}
 
 작성 지침:
@@ -758,9 +765,12 @@ def generate_weekly_report(req: WeeklyReportRequest):
 
     # 3. LLM 미연동 시 사용하는 스마트 템플릿 (Fallback)
     content_text = (
-        f"한 주 동안 {req.petName}의 평균 체온은 {req.avgTemperature}°C, 심박수는 {req.avgHeartRate}bpm, "
+        f"한 주 동안 {req.petName}의 평균 체온은 {req.avgTemperature}°C, "
+        f"심박수는 {req.avgHeartRate}bpm, "
         f"호흡수는 {req.avgRespiratoryRate}회/분으로 기록되었습니다. "
-        f"주간 총 {req.questionnaireCount}회의 건강 문진이 기록되었으며, {one_line} "
+        f"주간 총 {req.questionnaireCount}회의 건강 문진이 기록되었으며, "
+        f"AI 건강 이상 평균 위험도는 {req.averageRiskProbability * 100:.1f}%였습니다. "
+        f"{one_line} "
         f"앞으로도 정기적인 생체 수치 측정과 깨끗한 음수 환경을 지속적으로 제공해 주시기 바랍니다."
     )
 

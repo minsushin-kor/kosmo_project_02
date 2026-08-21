@@ -106,8 +106,20 @@ export function QuestionnairePage() {
       return
     }
 
-    if (isDemoMode || !/^\d+$/.test(selectedPet.id)) {
-      setSubmitError('현재는 Spring Boot 연결 전 데모 반려동물입니다. 서버와 PostgreSQL을 실행한 뒤 실제 반려동물을 등록해 주세요.')
+    if (isDemoMode) {
+      setSubmitError(
+        '현재는 Spring Boot 연결 전 데모 반려동물입니다. 서버와 PostgreSQL을 실행한 뒤 실제 반려동물을 등록해 주세요.',
+      )
+      return
+    }
+
+    if (
+      !Number.isInteger(selectedPet.id) ||
+      selectedPet.id <= 0
+    ) {
+      setSubmitError(
+        '반려동물 정보를 확인할 수 없습니다.',
+      )
       return
     }
 
@@ -115,25 +127,55 @@ export function QuestionnairePage() {
     setSubmitError('')
 
     try {
-      const questionnaire = await createQuestionnaire(selectedPet.id, {
-        temperature: Number(data.temperature),
-        heartRate: Number(data.heartRate),
-        respiratoryRate: Number(data.respiratoryRate),
-        skinCondition: data.skinCondition,
-        itching: data.itching,
-        hairLoss: data.hairLoss,
-        vomiting: data.vomiting,
-        diarrhea: data.diarrhea,
-        appetiteLevel: data.appetiteLevel,
-        waterIntakeLevel: data.waterIntakeLevel,
-        activityLevel: data.activityLevel,
-        symptomDurationDays: Number(data.symptomDurationDays),
-        additionalSymptoms: data.additionalSymptoms.trim(),
-      })
-      const prediction = await createPrediction(questionnaire.questionnaireId)
-      navigate(`/predictions/${prediction.predictionId}`)
+      const questionnaire =
+        await createQuestionnaire(
+          selectedPet.id,
+          {
+            temperature: Number(data.temperature),
+            heartRate: Number(data.heartRate),
+            respiratoryRate: Number(
+              data.respiratoryRate,
+            ),
+            skinCondition: data.skinCondition,
+            itching: data.itching,
+            hairLoss: data.hairLoss,
+            vomiting: data.vomiting,
+            diarrhea: data.diarrhea,
+            appetiteLevel: data.appetiteLevel,
+            waterIntakeLevel:
+              data.waterIntakeLevel,
+            activityLevel: data.activityLevel,
+            symptomDurationDays: Number(
+              data.symptomDurationDays,
+            ),
+            additionalSymptoms:
+              data.additionalSymptoms.trim() ||
+              null,
+          },
+        )
+
+      const prediction =
+        await createPrediction(
+          questionnaire.questionnaireId,
+        )
+
+      navigate(
+        `/predictions/${prediction.predictionId}`,
+        {
+          state: {
+            prediction,
+            questionnaire,
+            petName: selectedPet.name,
+          },
+        },
+      )
     } catch (error) {
-      setSubmitError(getApiErrorMessage(error, '건강 분석을 요청하지 못했습니다.'))
+      setSubmitError(
+        getApiErrorMessage(
+          error,
+          '건강 분석을 요청하지 못했습니다.',
+        ),
+      )
     } finally {
       setIsSubmitting(false)
     }

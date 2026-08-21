@@ -3,7 +3,7 @@ export type Sex = 'MALE' | 'FEMALE'
 export type PetAccent = 'sage' | 'sand' | 'peach'
 
 export type Pet = {
-  id: string
+  id: number
   name: string
   species: Species
   breed: string
