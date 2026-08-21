@@ -1,4 +1,5 @@
 import { Link, useLocation } from 'react-router-dom'
+import { DataState } from '../../../components/common/DataState'
 import { PetAvatar } from '../components/PetAvatar'
 import { usePets } from '../hooks/usePets'
 import { getPetAge, sexLabel, speciesLabel } from '../types'
@@ -10,7 +11,7 @@ type PetListLocationState = {
 }
 
 export function PetListPage() {
-  const { pets, selectedPet, selectPet } = usePets()
+  const { pets, selectedPet, selectPet, isLoading, isDemoMode, error, reloadPets } = usePets()
   const location = useLocation()
   const state = location.state as PetListLocationState | null
 
@@ -40,7 +41,24 @@ export function PetListPage() {
         </div>
       )}
 
-      <section className={styles.selectedPanel} aria-labelledby="selected-pet-heading">
+      {isLoading && <DataState title="반려동물 정보를 불러오는 중입니다." isLoading />}
+      {isDemoMode && error && (
+        <DataState
+          title="Spring Boot 연결 전이라 데모 데이터를 표시하고 있습니다."
+          tone="error"
+          action={<button type="button" onClick={() => void reloadPets()}>다시 연결</button>}
+        >
+          {error}
+        </DataState>
+      )}
+
+      {!isLoading && !selectedPet && (
+        <DataState title="등록된 반려동물이 없습니다." action={<Link to="/pets/new">첫 반려동물 등록하기</Link>}>
+          반려동물을 등록하면 생체정보와 건강 문진을 시작할 수 있습니다.
+        </DataState>
+      )}
+
+      {selectedPet && <section className={styles.selectedPanel} aria-labelledby="selected-pet-heading">
         <div className={styles.selectedLabel}>
           <span aria-hidden="true">●</span> 현재 선택된 반려동물
         </div>
@@ -57,14 +75,14 @@ export function PetListPage() {
             </div>
           </div>
           <div className={styles.selectedActions}>
-            <p>대시보드와 문진은 현재 선택된 반려동물을 기준으로 표시됩니다.</p>
+            <p>우리 아이 상태와 문진은 현재 선택된 반려동물을 기준으로 표시됩니다.</p>
             <div className={styles.actionLinks}>
               <Link to={`/pets/${selectedPet.id}/edit`}>프로필 수정</Link>
-              <Link to="/dashboard">건강 대시보드 보기 <span aria-hidden="true">→</span></Link>
+              <Link to="/dashboard">우리 아이 상태 보기 <span aria-hidden="true">→</span></Link>
             </div>
           </div>
         </div>
-      </section>
+      </section>}
 
       <section className={styles.petSection} aria-labelledby="pet-list-heading">
         <div className={styles.sectionHeading}>
@@ -77,7 +95,7 @@ export function PetListPage() {
 
         <div className={styles.petGrid}>
           {pets.map((pet) => {
-            const isSelected = pet.id === selectedPet.id
+            const isSelected = pet.id === selectedPet?.id
 
             return (
               <article className={`${styles.petCard} ${isSelected ? styles.selectedCard : ''}`} key={pet.id}>

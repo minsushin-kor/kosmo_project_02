@@ -5,7 +5,15 @@ import { PetAvatar } from './PetAvatar'
 import styles from './PetSelector.module.css'
 
 export function PetSelector() {
-  const { pets, selectedPet, selectPet } = usePets()
+  const { pets, selectedPet, selectPet, isLoading } = usePets()
+
+  if (isLoading) {
+    return <div className={styles.selector} role="status" aria-live="polite">반려동물 정보를 불러오는 중...</div>
+  }
+
+  if (!selectedPet) {
+    return <Link to="/pets/new">반려동물 등록</Link>
+  }
 
   return (
     <div className={styles.selector}>

@@ -1,4 +1,4 @@
-import type { ChatSource, ChatStreamRequest } from '../types'
+import type { ChatSource, ChatStreamEvent, ChatStreamRequest } from '../types'
 
 type ChatStreamCallbacks = {
   onDelta: (text: string) => void
@@ -6,10 +6,9 @@ type ChatStreamCallbacks = {
   onComplete: () => void
 }
 
-type StreamPayload = {
-  text?: string
-  delta?: string
+type JsonChatResponse = {
   answer?: string
+  content?: string
   message?: string
   items?: ChatSourcePayload[]
   sources?: ChatSourcePayload[]
@@ -40,33 +39,28 @@ function normalizeSources(sources: ChatSourcePayload[] = []): ChatSource[] {
     }))
 }
 
-function parsePayload(data: string): StreamPayload {
+function parsePayload(data: string): ChatStreamEvent | null {
   if (!data || data === '[DONE]') {
-    return {}
+    return null
   }
 
   try {
-    return JSON.parse(data) as StreamPayload
+    return JSON.parse(data) as ChatStreamEvent
   } catch {
-    return { text: data }
+    return { type: 'token', content: data }
   }
 }
 
 function readEventBlock(block: string) {
-  let event = 'message'
   const data: string[] = []
 
   block.split(/\r?\n/).forEach((line) => {
-    if (line.startsWith('event:')) {
-      event = line.slice(6).trim()
-    }
-
     if (line.startsWith('data:')) {
       data.push(line.slice(5).trimStart())
     }
   })
 
-  return { event, data: data.join('\n') }
+  return data.join('\n')
 }
 
 export async function streamChat(
@@ -100,8 +94,8 @@ export async function streamChat(
   const contentType = response.headers.get('content-type') ?? ''
 
   if (contentType.includes('application/json')) {
-    const payload = await response.json() as StreamPayload
-    const answer = payload.answer ?? payload.text ?? ''
+    const payload = await response.json() as JsonChatResponse
+    const answer = payload.answer ?? payload.content ?? ''
 
     if (answer) {
       callbacks.onDelta(answer)
@@ -126,29 +120,28 @@ export async function streamChat(
       return
     }
 
-    const { event, data } = readEventBlock(block)
+    const data = readEventBlock(block)
     const payload = parsePayload(data)
 
-    if (event === 'message.delta' || event === 'message') {
-      const text = payload.text ?? payload.delta ?? ''
-      if (text) {
-        callbacks.onDelta(text)
+    if (!payload) {
+      return
+    }
+
+    if (payload.type === 'token') {
+      if (payload.content) {
+        callbacks.onDelta(payload.content)
       }
       return
     }
 
-    if (event === 'sources' || event === 'source') {
-      callbacks.onSources(normalizeSources(payload.items ?? payload.sources))
-      return
-    }
-
-    if (event === 'message.completed') {
+    if (payload.type === 'done') {
+      callbacks.onSources(normalizeSources(payload.sources))
       completed = true
       callbacks.onComplete()
       return
     }
 
-    if (event === 'error') {
+    if (payload.type === 'error') {
       throw new Error(payload.message ?? '답변 생성 중 오류가 발생했습니다.')
     }
   }

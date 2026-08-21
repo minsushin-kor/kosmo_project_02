@@ -1,0 +1,850 @@
+.diaryLayout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(20rem, 0.72fr);
+  align-items: stretch;
+  gap: 1rem;
+}
+
+.calendarCard,
+.dayPanel,
+.monthSummary {
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+}
+
+.calendarCard {
+  padding: clamp(1rem, 2.5vw, 1.75rem);
+}
+
+.calendarHeader,
+.dayPanelHeader,
+.summaryHeading,
+.monthRecordHeading,
+.connectedHeading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.calendarHeader p,
+.dayPanelHeader p,
+.summaryHeading p {
+  margin: 0 0 0.35rem;
+  color: var(--color-secondary-strong);
+  font-size: 0.63rem;
+  font-weight: 900;
+  letter-spacing: 0.13em;
+}
+
+.calendarHeader h2,
+.dayPanelHeader h2,
+.summaryHeading h2 {
+  margin: 0;
+  color: var(--color-text-strong);
+  font-family: var(--font-display);
+  letter-spacing: -0.045em;
+}
+
+.calendarHeader h2 {
+  font-size: clamp(1.55rem, 3vw, 2.15rem);
+}
+
+.monthControls,
+.summaryActions,
+.formActions {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.monthControls button,
+.summaryActions button {
+  min-height: 2.5rem;
+  padding: 0 0.85rem;
+  border: 1px solid var(--color-line);
+  border-radius: 999px;
+  background: var(--color-surface);
+  color: var(--color-text-strong);
+  cursor: pointer;
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.monthControls button:first-child,
+.monthControls button:last-child {
+  width: 2.5rem;
+  padding: 0;
+}
+
+.monthControls button:disabled,
+.summaryActions button:disabled {
+  color: var(--color-text-soft);
+  opacity: 0.5;
+}
+
+.legend {
+  display: flex;
+  margin: 1.4rem 0 0.85rem;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.9rem;
+  flex-wrap: wrap;
+}
+
+.legend span {
+  display: inline-flex;
+  color: var(--color-text-muted);
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.63rem;
+  font-weight: 700;
+}
+
+.legend i {
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 50%;
+}
+
+.goodDot {
+  background: var(--color-success);
+}
+
+.watchDot {
+  background: var(--color-watch);
+}
+
+.noneDot {
+  border: 1px solid var(--color-line);
+  background: var(--color-bg);
+}
+
+.dataDot {
+  background: var(--color-secondary);
+  box-shadow: 0 0 0 2px var(--color-sage-soft);
+}
+
+.weekDays,
+.calendarGrid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+
+.weekDays {
+  border-top: 1px solid var(--color-line);
+  border-bottom: 1px solid var(--color-line);
+}
+
+.weekDays span {
+  padding: 0.75rem 0;
+  color: var(--color-text-soft);
+  font-size: 0.66rem;
+  font-weight: 800;
+  text-align: center;
+}
+
+.weekDays span:first-child {
+  color: var(--color-caution);
+}
+
+.dayButton {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  min-height: 6.2rem;
+  padding: 0.65rem;
+  border: 0;
+  border-right: 1px solid var(--color-line);
+  border-bottom: 1px solid var(--color-line);
+  outline-offset: -3px;
+  background: transparent;
+  color: var(--color-text-strong);
+  cursor: pointer;
+  align-items: flex-start;
+  flex-direction: column;
+  gap: 0.55rem;
+  text-align: left;
+  transition: background-color 150ms ease, box-shadow 150ms ease;
+}
+
+.dayButton:nth-child(7n) {
+  border-right: 0;
+}
+
+.dayButton:hover:not(:disabled) {
+  background: var(--color-sand-soft);
+}
+
+.dayButton > span {
+  display: grid;
+  width: 1.55rem;
+  height: 1.55rem;
+  place-items: center;
+  border-radius: 50%;
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.dayButton small {
+  overflow: hidden;
+  max-width: 100%;
+  padding: 0.27rem 0.45rem;
+  border-radius: 999px;
+  font-size: 0.58rem;
+  font-weight: 850;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.goodDay small {
+  background: var(--color-success-soft);
+  color: var(--color-success-strong);
+}
+
+.watchDay small {
+  background: var(--color-watch-soft);
+  color: var(--color-watch);
+}
+
+.noneDay small {
+  background: var(--color-bg);
+  color: var(--color-text-soft);
+}
+
+.today > span {
+  background: var(--color-primary);
+  color: var(--color-cream);
+}
+
+.selectedDay {
+  z-index: 1;
+  box-shadow: inset 0 0 0 2px var(--color-secondary-strong);
+}
+
+.outsideMonth {
+  color: var(--color-text-soft);
+  opacity: 0.34;
+}
+
+.dayButton:disabled {
+  cursor: default;
+}
+
+.recordMarker {
+  position: absolute;
+  right: 0.65rem;
+  bottom: 0.65rem;
+  width: 0.42rem;
+  height: 0.42rem;
+  border-radius: 50%;
+  background: var(--color-secondary);
+  box-shadow: 0 0 0 2px var(--color-sage-soft);
+}
+
+.dayPanel {
+  position: sticky;
+  top: 6.25rem;
+  align-self: stretch;
+  height: 100%;
+  overflow: hidden;
+}
+
+.dayPanelHeader {
+  padding: 1.35rem 1.35rem 1.1rem;
+  border-bottom: 1px solid var(--color-line);
+}
+
+.dayPanelHeader h2 {
+  font-size: 1.35rem;
+}
+
+.goodBadge,
+.watchBadge,
+.noneBadge {
+  display: inline-flex;
+  min-height: 1.8rem;
+  align-items: center;
+  padding: 0 0.62rem;
+  border-radius: 999px;
+  font-size: 0.64rem;
+  font-weight: 850;
+  white-space: nowrap;
+}
+
+.goodBadge {
+  background: var(--color-success-soft);
+  color: var(--color-success-strong);
+}
+
+.watchBadge {
+  background: var(--color-watch-soft);
+  color: var(--color-watch);
+}
+
+.noneBadge {
+  background: var(--color-bg);
+  color: var(--color-text-soft);
+}
+
+.diaryForm {
+  padding: 1.25rem 1.35rem;
+  border-bottom: 1px solid var(--color-line);
+}
+
+.diaryForm fieldset {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.diaryForm legend,
+.noteField > span {
+  margin-bottom: 0.65rem;
+  color: var(--color-text-strong);
+  font-size: 0.72rem;
+  font-weight: 850;
+}
+
+.statusChoices {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+}
+
+.statusChoices label {
+  position: relative;
+  display: flex;
+  min-height: 2.8rem;
+  border: 1px solid var(--color-line);
+  border-radius: 0.85rem;
+  background: var(--color-bg);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  gap: 0.42rem;
+  font-size: 0.7rem;
+  font-weight: 800;
+}
+
+.statusChoices input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+.statusChoices label:has(input:focus-visible) {
+  outline: 3px solid rgba(64, 70, 45, 0.35);
+  outline-offset: 2px;
+}
+
+.statusChoices label > span {
+  font-size: 0.62rem;
+}
+
+.checkedGood {
+  border-color: var(--color-success) !important;
+  background: var(--color-success-soft) !important;
+  color: var(--color-success-strong) !important;
+}
+
+.checkedWatch {
+  border-color: var(--color-watch) !important;
+  background: var(--color-watch-soft) !important;
+  color: var(--color-watch) !important;
+}
+
+.noteField {
+  display: block;
+  margin-top: 1rem;
+}
+
+.noteField > span {
+  display: block;
+}
+
+.noteField textarea {
+  width: 100%;
+  height: 8rem;
+  overflow-y: auto;
+  resize: none;
+  scrollbar-gutter: stable;
+  padding: 0.8rem 0.9rem;
+  border: 1px solid var(--color-line);
+  border-radius: 0.85rem;
+  outline: 0;
+  background: var(--color-bg);
+  color: var(--color-text-strong);
+  font-size: 0.76rem;
+  line-height: 1.6;
+}
+
+.noteField textarea:focus {
+  border-color: var(--color-secondary-strong);
+  box-shadow: 0 0 0 3px rgba(127, 138, 102, 0.15);
+}
+
+.noteField small {
+  display: block;
+  margin-top: 0.35rem;
+  color: var(--color-text-soft);
+  font-size: 0.6rem;
+  text-align: right;
+}
+
+.saveMessage {
+  margin: 0.75rem 0 0;
+  color: var(--color-secondary-strong);
+  font-size: 0.68rem;
+  line-height: 1.5;
+}
+
+.formActions {
+  margin-top: 1rem;
+}
+
+.formActions button {
+  min-height: 2.8rem;
+  padding: 0 1rem;
+  border-radius: 999px;
+  cursor: pointer;
+  font-size: 0.72rem;
+  font-weight: 850;
+}
+
+.saveButton {
+  border: 1px solid var(--color-primary);
+  background: var(--color-primary);
+  color: var(--color-cream);
+  flex: 1;
+}
+
+.deleteButton {
+  border: 1px solid var(--color-line);
+  background: var(--color-surface);
+  color: var(--color-danger);
+}
+
+.connectedRecords {
+  padding: 1.2rem 1.35rem;
+}
+
+.connectedHeading h3 {
+  margin: 0;
+  color: var(--color-text-strong);
+  font-family: var(--font-display);
+  font-size: 1rem;
+  letter-spacing: -0.035em;
+}
+
+.connectedHeading > span {
+  color: var(--color-text-soft);
+  font-size: 0.65rem;
+  font-weight: 800;
+}
+
+.recordItem {
+  display: grid;
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--color-line);
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.recordItem > span {
+  display: grid;
+  width: 2rem;
+  height: 2rem;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--color-sage-soft);
+  color: var(--color-primary);
+  font-size: 0.72rem;
+  font-weight: 900;
+}
+
+.recordItem strong,
+.recordItem small {
+  display: block;
+}
+
+.recordItem strong {
+  color: var(--color-text-strong);
+  font-size: 0.7rem;
+}
+
+.recordItem small {
+  overflow: hidden;
+  margin-top: 0.25rem;
+  color: var(--color-text-muted);
+  font-size: 0.63rem;
+  line-height: 1.45;
+  text-overflow: ellipsis;
+}
+
+.recordItem > a {
+  color: var(--color-text-strong);
+  font-weight: 900;
+  text-decoration: none;
+}
+
+.emptyRecords {
+  margin: 0.9rem 0 0;
+  padding: 0.85rem;
+  border-radius: 0.85rem;
+  background: var(--color-bg);
+  color: var(--color-text-soft);
+  font-size: 0.67rem;
+  line-height: 1.55;
+  text-align: center;
+}
+
+.localNotice {
+  margin: 0;
+  padding: 0.8rem 1.35rem;
+  background: var(--color-sand-soft);
+  color: var(--color-text-muted);
+  font-size: 0.62rem;
+  line-height: 1.5;
+  text-align: center;
+}
+
+.monthSummary {
+  margin-top: 1rem;
+  padding: clamp(1.25rem, 3vw, 2rem);
+}
+
+.summaryHeading h2 {
+  font-size: clamp(1.55rem, 3vw, 2.15rem);
+}
+
+.summaryActions button:last-child {
+  border-color: var(--color-primary);
+  background: var(--color-primary);
+  color: var(--color-cream);
+}
+
+.summaryGrid {
+  display: grid;
+  margin-top: 1.5rem;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.summaryGrid article {
+  padding: 1.1rem;
+  border: 1px solid var(--color-line);
+  border-radius: 1.1rem;
+}
+
+.summaryGrid article > span,
+.summaryGrid article > strong,
+.summaryGrid article > p {
+  display: block;
+}
+
+.summaryGrid article > span {
+  font-size: 0.68rem;
+  font-weight: 850;
+}
+
+.summaryGrid article > strong {
+  margin-top: 0.8rem;
+  color: var(--color-text-strong);
+  font-family: var(--font-display);
+  font-size: 2rem;
+  letter-spacing: -0.05em;
+}
+
+.summaryGrid article > strong small {
+  margin-left: 0.2rem;
+  font-family: var(--font-sans);
+  font-size: 0.65rem;
+}
+
+.summaryGrid article > p {
+  margin: 0.35rem 0 0;
+  color: var(--color-text-muted);
+  font-size: 0.64rem;
+  line-height: 1.45;
+}
+
+.goodSummary {
+  background: var(--color-success-soft);
+  color: var(--color-success-strong);
+}
+
+.watchSummary {
+  background: var(--color-watch-soft);
+  color: var(--color-watch);
+}
+
+.noneSummary {
+  background: var(--color-bg);
+  color: var(--color-text-soft);
+}
+
+.recordSummary {
+  background: var(--color-sage-soft);
+  color: var(--color-primary);
+}
+
+.coverageCard {
+  margin-top: 0.8rem;
+  padding: 1.15rem;
+  border-radius: 1rem;
+  background: var(--color-bg);
+}
+
+.coverageCard > div:first-child {
+  display: flex;
+  color: var(--color-text-strong);
+  justify-content: space-between;
+  font-size: 0.72rem;
+}
+
+.coverageTrack {
+  overflow: hidden;
+  height: 0.55rem;
+  margin-top: 0.75rem;
+  border-radius: 999px;
+  background: var(--color-sage-soft);
+}
+
+.coverageTrack > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--color-primary);
+}
+
+.coverageCard > p {
+  margin: 0.55rem 0 0;
+  color: var(--color-text-muted);
+  font-size: 0.64rem;
+}
+
+.monthRecordSection {
+  margin-top: 1.75rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--color-line);
+}
+
+.monthRecordHeading h3,
+.monthRecordHeading p {
+  margin: 0;
+}
+
+.monthRecordHeading h3 {
+  color: var(--color-text-strong);
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  letter-spacing: -0.04em;
+}
+
+.monthRecordHeading p {
+  margin-top: 0.4rem;
+  color: var(--color-text-muted);
+  font-size: 0.7rem;
+}
+
+.monthRecordHeading a {
+  color: var(--color-text-strong);
+  font-size: 0.72rem;
+  font-weight: 850;
+  text-underline-offset: 0.25rem;
+  white-space: nowrap;
+}
+
+.monthRecordList {
+  display: grid;
+  margin-top: 1rem;
+  gap: 0.5rem;
+}
+
+.monthRecordList > button {
+  display: grid;
+  width: 100%;
+  padding: 0.8rem 0.9rem;
+  border: 1px solid var(--color-line);
+  border-radius: 0.9rem;
+  background: var(--color-surface);
+  color: var(--color-text);
+  cursor: pointer;
+  grid-template-columns: 7rem 5rem minmax(0, 1fr);
+  align-items: center;
+  gap: 0.75rem;
+  text-align: left;
+}
+
+.monthRecordList time {
+  color: var(--color-text-strong);
+  font-size: 0.7rem;
+  font-weight: 800;
+}
+
+.monthRecordList p {
+  overflow: hidden;
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 0.7rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 1040px) {
+  .diaryLayout {
+    grid-template-columns: 1fr;
+  }
+
+  .dayPanel {
+    position: static;
+    height: auto;
+  }
+
+  .summaryGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .calendarCard {
+    padding: 0.85rem;
+  }
+
+  .calendarHeader,
+  .summaryHeading,
+  .monthRecordHeading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .legend {
+    justify-content: flex-start;
+  }
+
+  .dayButton {
+    min-height: 4.2rem;
+    padding: 0.35rem;
+    align-items: center;
+  }
+
+  .dayButton small {
+    width: 0.48rem;
+    height: 0.48rem;
+    padding: 0;
+    border-radius: 50%;
+    color: transparent;
+  }
+
+  .recordMarker {
+    right: 0.35rem;
+    bottom: 0.35rem;
+  }
+
+  .summaryGrid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .summaryActions {
+    width: 100%;
+  }
+
+  .summaryActions button {
+    flex: 1;
+  }
+
+  .monthRecordList > button {
+    grid-template-columns: 1fr auto;
+  }
+
+  .monthRecordList p {
+    grid-column: 1 / -1;
+    white-space: normal;
+  }
+}
+
+@media (max-width: 400px) {
+  .calendarHeader {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .dayButton {
+    min-height: 3.8rem;
+  }
+
+  .statusChoices,
+  .summaryGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 12mm;
+  }
+
+  :global(body:has(#diary-print-summary)) {
+    min-height: 0 !important;
+    margin: 0 !important;
+    background: #fff !important;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  :global(body:has(#diary-print-summary) #root) {
+    display: block !important;
+    width: 100% !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  :global(body:has(#diary-print-summary) #root *:not(:has(#diary-print-summary)):not(#diary-print-summary):not(#diary-print-summary *)) {
+    display: none !important;
+  }
+
+  :global(body:has(#diary-print-summary) #root *:has(#diary-print-summary)) {
+    position: static !important;
+    display: block !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    overflow: visible !important;
+  }
+
+  .summaryActions,
+  .monthRecordHeading a {
+    display: none !important;
+  }
+
+  .monthSummary {
+    display: block !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 10mm !important;
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-card);
+    background: var(--color-surface) !important;
+    box-shadow: none;
+  }
+
+  .summaryGrid article,
+  .coverageCard,
+  .monthRecordList > button {
+    break-inside: avoid;
+  }
+}

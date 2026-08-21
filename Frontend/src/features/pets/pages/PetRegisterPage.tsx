@@ -1,5 +1,7 @@
 import { useState, type ChangeEvent, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { LoadingButton } from '../../../components/common/LoadingButton'
+import { TextField } from '../../../components/common/TextField'
 import { usePets } from '../hooks/usePets'
 import { getPetEmoji, type Sex, type Species } from '../types'
 import styles from './PetRegisterPage.module.css'
@@ -8,11 +10,13 @@ const today = new Date().toISOString().slice(0, 10)
 
 export function PetRegisterPage() {
   const navigate = useNavigate()
-  const { addPet } = usePets()
+  const { addPet, isDemoMode } = usePets()
   const [previewName, setPreviewName] = useState('새로운 가족')
   const [previewSpecies, setPreviewSpecies] = useState<Species>('DOG')
   const [imageUrl, setImageUrl] = useState<string>()
   const [imageError, setImageError] = useState('')
+  const [submitError, setSubmitError] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   const handleImageChange = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
@@ -37,27 +41,35 @@ export function PetRegisterPage() {
     reader.readAsDataURL(file)
   }
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
+    setSubmitError('')
+    setIsSubmitting(true)
     const formData = new FormData(event.currentTarget)
     const name = String(formData.get('name')).trim()
 
-    const newPet = addPet({
-      name,
-      species: String(formData.get('species')) as Species,
-      breed: String(formData.get('breed')).trim(),
-      birthDate: String(formData.get('birthDate')),
-      sex: String(formData.get('sex')) as Sex,
-      weight: Number(formData.get('weight')),
-      neutered: formData.get('neutered') === 'true',
-      medicalHistory: String(formData.get('medicalHistory')).trim(),
-      imageUrl,
-    })
+    try {
+      const newPet = await addPet({
+        name,
+        species: String(formData.get('species')) as Species,
+        breed: String(formData.get('breed')).trim(),
+        birthDate: String(formData.get('birthDate')),
+        sex: String(formData.get('sex')) as Sex,
+        weight: Number(formData.get('weight')),
+        neutered: formData.get('neutered') === 'true',
+        medicalHistory: String(formData.get('medicalHistory')).trim(),
+        imageUrl,
+      })
 
-    navigate('/pets', {
-      replace: true,
-      state: { createdPetName: newPet.name },
-    })
+      navigate('/pets', {
+        replace: true,
+        state: { createdPetName: newPet.name },
+      })
+    } catch (error) {
+      setSubmitError(error instanceof Error ? error.message : '반려동물 정보를 등록하지 못했습니다.')
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
@@ -97,17 +109,16 @@ export function PetRegisterPage() {
             </div>
 
             <div className={styles.fieldGrid}>
-              <label className={styles.field}>
-                <span>이름 <em>*</em></span>
-                <input
-                  name="name"
-                  type="text"
-                  required
-                  maxLength={20}
-                  placeholder="예: 코코"
-                  onChange={(event) => setPreviewName(event.target.value)}
-                />
-              </label>
+              <TextField
+                containerClassName={styles.field}
+                label="이름"
+                name="name"
+                type="text"
+                required
+                maxLength={20}
+                placeholder="예: 코코"
+                onChange={(event) => setPreviewName(event.target.value)}
+              />
 
               <label className={styles.field}>
                 <span>동물 종류 <em>*</em></span>
@@ -122,15 +133,9 @@ export function PetRegisterPage() {
                 </select>
               </label>
 
-              <label className={styles.field}>
-                <span>품종 <em>*</em></span>
-                <input name="breed" type="text" required maxLength={30} placeholder="예: 웰시코기" />
-              </label>
+              <TextField containerClassName={styles.field} label="품종" name="breed" type="text" required maxLength={30} placeholder="예: 웰시코기" />
 
-              <label className={styles.field}>
-                <span>생년월일 <em>*</em></span>
-                <input name="birthDate" type="date" required max={today} />
-              </label>
+              <TextField containerClassName={styles.field} label="생년월일" name="birthDate" type="date" required max={today} />
             </div>
           </section>
 
@@ -180,12 +185,14 @@ export function PetRegisterPage() {
 
           <div className={styles.mockNotice}>
             <span aria-hidden="true">i</span>
-            <p>현재는 프론트 화면 검증 단계로, 등록 정보는 새로고침 전까지 임시로 유지됩니다.</p>
+            <p>{isDemoMode ? 'Spring Boot 연결 전에는 등록 정보가 새로고침 전까지만 유지됩니다.' : '등록 정보는 Spring Boot API와 PostgreSQL에 저장됩니다. 프로필 사진 파일 저장은 별도 파일 API가 필요합니다.'}</p>
           </div>
+
+          {submitError && <div className={styles.imageError} role="alert">{submitError}</div>}
 
           <div className={styles.formActions}>
             <Link to="/pets">취소</Link>
-            <button type="submit">등록하고 건강관리 시작하기</button>
+            <LoadingButton type="submit" isLoading={isSubmitting} loadingText="등록 중...">등록하고 건강관리 시작하기</LoadingButton>
           </div>
         </div>
       </form>

@@ -1,4 +1,4 @@
-import { apiRequest } from '../../../lib/api'
+import { apiRequest } from '../../../shared/api/apiClient'
 
 export type RiskGrade =
     | 'NORMAL'
@@ -6,7 +6,7 @@ export type RiskGrade =
     | 'CAUTION'
     | 'DANGER'
 
-export type PredictionResponse = {
+export type HealthPrediction = {
     predictionId: number
     questionnaireId: number
     abnormalProbability: number
@@ -18,11 +18,16 @@ export type PredictionResponse = {
     predictedAt: string
 }
 
+/**
+ * 기존 우리 코드에서 사용하던 타입명 호환용
+ */
+export type PredictionResponse = HealthPrediction
+
 export function createPrediction(
     questionnaireId: number,
 ) {
-    return apiRequest<PredictionResponse>(
-        `/api/questionnaires/${questionnaireId}/predictions`,
+    return apiRequest<HealthPrediction>(
+        `/questionnaires/${questionnaireId}/predictions`,
         {
             method: 'POST',
         },
@@ -31,8 +36,24 @@ export function createPrediction(
 
 export function getPrediction(
     predictionId: number,
+    signal?: AbortSignal,
 ) {
-    return apiRequest<PredictionResponse>(
-        `/api/predictions/${predictionId}`,
+    return apiRequest<HealthPrediction>(
+        `/predictions/${predictionId}`,
+        {
+            signal,
+        },
+    )
+}
+
+export function getPredictionByQuestionnaire(
+    questionnaireId: number,
+    signal?: AbortSignal,
+) {
+    return apiRequest<HealthPrediction>(
+        `/questionnaires/${questionnaireId}/prediction`,
+        {
+            signal,
+        },
     )
 }

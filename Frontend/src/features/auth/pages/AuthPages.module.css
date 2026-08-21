@@ -95,7 +95,8 @@
   margin-top: 1rem;
 }
 
-.field > span {
+.field > span,
+.field > label > span {
   display: block;
   margin-bottom: 0.5rem;
   color: var(--color-text-strong);

@@ -1,293 +1,490 @@
-import { useCallback, useEffect, useState } from 'react'
+import {
+  useEffect,
+  useState,
+} from 'react'
 import { Link } from 'react-router-dom'
+
+import { DataState } from '../../../components/common/DataState'
+import { LoadingButton } from '../../../components/common/LoadingButton'
+import {
+  ApiError,
+  getApiErrorMessage,
+} from '../../../shared/api/apiClient'
 import { PetSectionNav } from '../../pets/components/PetSectionNav'
-import { usePets } from '../../pets/hooks/usePets'
+import { useRoutePet } from '../../pets/hooks/useRoutePet'
 import {
   createWeeklyReport,
   getWeeklyReports,
-  type WeeklyReportResponse,
+  type WeeklyReport,
 } from '../api/reportApi'
-import { ApiError } from '../../../lib/api'
 import common from '../../../styles/featurePage.module.css'
 import styles from './ReportPages.module.css'
 
-function formatDate(date: string) {
-  const [, month, day] = date.split('-')
+function formatPeriod(
+  report: WeeklyReport,
+) {
+  const formatter =
+    new Intl.DateTimeFormat(
+      'ko-KR',
+      {
+        month: '2-digit',
+        day: '2-digit',
+      },
+    )
 
-  return `${month}.${day}`
+  return `${formatter.format(
+    new Date(report.startDate),
+  )} — ${formatter.format(
+    new Date(report.endDate),
+  )}`
 }
 
-function formatPeriod(report: WeeklyReportResponse) {
-  return `${formatDate(report.startDate)} — ${formatDate(report.endDate)}`
+function getWellnessScore(
+  report: WeeklyReport,
+) {
+  const riskProbability =
+    Number(
+      report.averageRiskProbability ??
+      0,
+    )
+
+  return Math.max(
+    0,
+    Math.round(
+      (1 - riskProbability) * 100,
+    ),
+  )
 }
 
-function getRiskStatus(probability: number) {
-  if (probability >= 0.75) {
+function getReportStatus(
+  report: WeeklyReport,
+) {
+  if (report.dangerCount > 0) {
     return '위험'
   }
 
-  if (probability >= 0.5) {
-    return '주의'
-  }
-
-  if (probability >= 0.3) {
+  if (report.warningCount > 0) {
     return '관찰'
   }
 
-  return '정상'
-}
-
-function getRiskPercent(probability: number) {
-  return Math.round(probability * 100)
+  return '좋음'
 }
 
 export function ReportsListPage() {
-  const { selectedPet } = usePets()
+  const {
+    selectedPet,
+    routePetMissing,
+    isDemoMode,
+  } = useRoutePet()
 
-  const [reports, setReports] = useState<WeeklyReportResponse[]>([])
-  const [loading, setLoading] = useState(true)
-  const [errorMessage, setErrorMessage] = useState('')
-  const [creating, setCreating] = useState(false)
-  const [createMessage, setCreateMessage] = useState('')
+  const [reports, setReports] =
+    useState<WeeklyReport[]>([])
 
-  const loadReports = useCallback(async () => {
-    setLoading(true)
-    setErrorMessage('')
+  const [isLoading, setIsLoading] =
+    useState(false)
 
-    try {
-      const response = await getWeeklyReports(selectedPet.id)
-      setReports(response)
-    } catch (error) {
-      console.error(
-        '주간 리포트 목록을 불러오지 못했습니다.',
-        error,
-      )
+  const [isCreating, setIsCreating] =
+    useState(false)
 
-      setErrorMessage(
-        '주간 리포트를 불러오지 못했습니다.',
-      )
-    } finally {
-      setLoading(false)
-    }
-  }, [selectedPet.id])
+  const [error, setError] =
+    useState('')
+
+  const [createMessage, setCreateMessage] =
+    useState('')
 
   useEffect(() => {
-    void loadReports()
-  }, [loadReports])
-
-  async function handleCreateReport() {
-    setCreating(true)
-    setCreateMessage('')
-
-    try {
-      await createWeeklyReport(selectedPet.id)
-
-      setCreateMessage(
-        '이번 주 리포트가 생성되었습니다.',
-      )
-
-      await loadReports()
-    } catch (error) {
-      console.error(
-        '주간 리포트 생성에 실패했습니다.',
-        error,
-      )
-
-      if (error instanceof ApiError && error.status === 409) {
-        setCreateMessage(
-          '이번 주 리포트가 이미 생성되어 있습니다.',
-        )
-
-        return
-      }
-
-      setCreateMessage(
-        '주간 리포트를 생성하지 못했습니다.',
-      )
-    } finally {
-      setCreating(false)
+    if (
+      !selectedPet ||
+      isDemoMode
+    ) {
+      setReports([])
+      return
     }
+
+    const controller =
+      new AbortController()
+
+    setIsLoading(true)
+    setError('')
+
+    getWeeklyReports(
+      selectedPet.id,
+      controller.signal,
+    )
+      .then((items) => {
+        setReports(items)
+      })
+      .catch((loadError) => {
+        if (
+          loadError instanceof
+          DOMException &&
+          loadError.name ===
+          'AbortError'
+        ) {
+          return
+        }
+
+        setError(
+          getApiErrorMessage(
+            loadError,
+            '주간 리포트를 불러오지 못했습니다.',
+          ),
+        )
+      })
+      .finally(() => {
+        setIsLoading(false)
+      })
+
+    return () => {
+      controller.abort()
+    }
+  }, [
+    isDemoMode,
+    selectedPet,
+  ])
+
+  if (
+    !selectedPet ||
+    routePetMissing
+  ) {
+    return (
+      <div className={common.page}>
+        <DataState
+          title="반려동물 정보를 찾을 수 없습니다."
+          action={
+            <Link to="/pets">
+              반려동물 목록으로 이동
+            </Link>
+          }
+        />
+      </div>
+    )
   }
 
-  const latestReport = reports[0]
+  const handleCreate =
+    async () => {
+      setIsCreating(true)
+      setError('')
+      setCreateMessage('')
+
+      try {
+        const created =
+          await createWeeklyReport(
+            selectedPet.id,
+          )
+
+        setReports(
+          (current) => [
+            created,
+            ...current.filter(
+              (report) =>
+                report.reportId !==
+                created.reportId,
+            ),
+          ],
+        )
+
+        setCreateMessage(
+          '이번 주 리포트가 생성되었습니다.',
+        )
+      } catch (createError) {
+        if (
+          createError instanceof
+          ApiError &&
+          createError.status === 409
+        ) {
+          setCreateMessage(
+            '이번 주 리포트가 이미 생성되어 있습니다.',
+          )
+
+          return
+        }
+
+        setError(
+          getApiErrorMessage(
+            createError,
+            '주간 리포트를 생성하지 못했습니다.',
+          ),
+        )
+      } finally {
+        setIsCreating(false)
+      }
+    }
+
+  const latest = reports[0]
 
   return (
     <div className={common.page}>
       <PetSectionNav />
 
-      <header className={common.header}>
+      <header
+        className={
+          common.header
+        }
+      >
         <div>
-          <p className={common.eyebrow}>
+          <p
+            className={
+              common.eyebrow
+            }
+          >
             WEEKLY WELLNESS REPORT
           </p>
 
-          <h1 className={common.title}>
+          <h1
+            className={
+              common.title
+            }
+          >
             주간 건강 리포트
           </h1>
 
-          <p className={common.description}>
-            {selectedPet.name}의 일주일 건강 기록을
+          <p
+            className={
+              common.description
+            }
+          >
+            {selectedPet.name}의
+            일주일 건강 기록을
             한눈에 확인해 보세요.
           </p>
         </div>
 
         <div>
-          <button
-            className={common.secondaryButton}
+          <LoadingButton
+            className={
+              common.secondaryButton
+            }
             type="button"
-            onClick={handleCreateReport}
-            disabled={creating}
+            isLoading={
+              isCreating
+            }
+            loadingText="생성 중..."
+            disabled={isDemoMode}
+            onClick={() =>
+              void handleCreate()
+            }
           >
-            {creating
-              ? '리포트 생성 중...'
-              : '이번 주 리포트 생성'}
-          </button>
+            이번 주 리포트 생성
+          </LoadingButton>
 
           {createMessage && (
-            <p style={{ marginTop: '0.75rem' }}>
+            <p
+              style={{
+                marginTop:
+                  '0.75rem',
+              }}
+            >
               {createMessage}
             </p>
           )}
         </div>
       </header>
 
-      {loading && (
-        <section className={common.panel}>
-          <p>주간 리포트를 불러오는 중입니다.</p>
-        </section>
+      {isDemoMode && (
+        <DataState title="리포트 API를 사용하려면 Spring Boot 연결이 필요합니다.">
+          PostgreSQL과 Spring Boot를
+          실행하면 저장된 주간
+          리포트를 조회하고 새
+          리포트를 생성할 수 있습니다.
+        </DataState>
       )}
 
-      {!loading && errorMessage && (
-        <section className={common.panel}>
-          <p>{errorMessage}</p>
-        </section>
+      {isLoading && (
+        <DataState
+          title="주간 리포트를 불러오는 중입니다."
+          isLoading
+        />
       )}
 
-      {!loading && !errorMessage && reports.length === 0 && (
-        <section className={common.panel}>
-          <h2 className={common.sectionTitle}>
-            아직 생성된 주간 리포트가 없습니다.
-          </h2>
-
-          <p>
-            건강 기록이 쌓이면 주간 리포트에서
-            한 주간의 상태를 확인할 수 있습니다.
-          </p>
-        </section>
+      {error && (
+        <DataState
+          title="주간 리포트를 처리하지 못했습니다."
+          tone="error"
+        >
+          {error}
+        </DataState>
       )}
 
-      {!loading && !errorMessage && latestReport && (
+      {latest ? (
         <>
-          <section className={styles.latestReport}>
+          <section
+            className={
+              styles.latestReport
+            }
+          >
             <div>
-              <span className={styles.kicker}>
-                LATEST REPORT · {formatPeriod(latestReport)}
+              <span
+                className={
+                  styles.kicker
+                }
+              >
+                LATEST REPORT ·{' '}
+                {formatPeriod(
+                  latest,
+                )}
               </span>
 
               <h2>
-                {selectedPet.name}의
-                <br />
-                최신 주간 건강 리포트
+                {latest.oneLineSummary ||
+                  '이번 주의 건강 기록을 확인해 보세요.'}
               </h2>
 
-              <p>{latestReport.oneLineSummary}</p>
+              <p>
+                {latest.reportContent ||
+                  '저장된 생체정보와 건강 문진을 바탕으로 생성된 리포트입니다.'}
+              </p>
 
               <Link
-                className={common.primaryButton}
-                to={`/reports/${latestReport.reportId}`}
+                className={
+                  common.primaryButton
+                }
+                to={`/reports/${latest.reportId}`}
               >
                 최신 리포트 자세히 보기
               </Link>
             </div>
 
             <div
-              className={styles.scoreVisual}
-              aria-label={`평균 건강 이상 위험도 ${getRiskPercent(
-                latestReport.averageRiskProbability,
-              )}%`}
+              className={
+                styles.scoreVisual
+              }
+              aria-label={`이번 주 건강 점수 ${getWellnessScore(
+                latest,
+              )}점`}
             >
-              <small>RISK PROBABILITY</small>
+              <small>
+                WELLNESS SCORE
+              </small>
 
               <strong>
-                {getRiskPercent(
-                  latestReport.averageRiskProbability,
+                {getWellnessScore(
+                  latest,
                 )}
               </strong>
 
               <span>
-                {getRiskStatus(
-                  latestReport.averageRiskProbability,
-                )}
+                위험 확률 기준 환산
               </span>
             </div>
           </section>
 
-          <section className={styles.reportSection}>
-            <div className={styles.sectionHeading}>
-              <h2 className={common.sectionTitle}>
+          <section
+            className={
+              styles.reportSection
+            }
+          >
+            <div
+              className={
+                styles.sectionHeading
+              }
+            >
+              <h2
+                className={
+                  common.sectionTitle
+                }
+              >
                 지난 리포트
               </h2>
 
               <span>
-                총 {reports.length}개의 리포트
+                총 {reports.length}건
               </span>
             </div>
 
-            <div className={styles.reportList}>
-              {reports.map((report) => {
-                const status = getRiskStatus(
-                  report.averageRiskProbability,
-                )
+            <div
+              className={
+                styles.reportList
+              }
+            >
+              {reports.map(
+                (report) => {
+                  const status =
+                    getReportStatus(
+                      report,
+                    )
 
-                return (
-                  <article
-                    className={styles.reportCard}
-                    key={report.reportId}
-                  >
-                    <time>
-                      {formatPeriod(report)}
-                    </time>
+                  return (
+                    <article
+                      className={
+                        styles.reportCard
+                      }
+                      key={
+                        report.reportId
+                      }
+                    >
+                      <time>
+                        {formatPeriod(
+                          report,
+                        )}
+                      </time>
 
-                    <div>
-                      <span
+                      <div>
+                        <span
+                          className={
+                            status ===
+                              '좋음'
+                              ? styles.goodBadge
+                              : styles.watchBadge
+                          }
+                        >
+                          {status}
+                        </span>
+
+                        <h3>
+                          {report.oneLineSummary ||
+                            '주간 건강 기록'}
+                        </h3>
+                      </div>
+
+                      <div
                         className={
-                          status === '정상'
-                            ? styles.goodBadge
-                            : styles.watchBadge
+                          styles.reportScore
                         }
                       >
-                        {status}
-                      </span>
+                        <strong>
+                          {getWellnessScore(
+                            report,
+                          )}
+                        </strong>
 
-                      <h3>
-                        {report.oneLineSummary}
-                      </h3>
-                    </div>
+                        <small>
+                          {Math.round(
+                            Number(
+                              report.averageRiskProbability ??
+                              0,
+                            ) *
+                            100,
+                          )}
+                          % 위험
+                        </small>
+                      </div>
 
-                    <div className={styles.reportScore}>
-                      <strong>
-                        {getRiskPercent(
-                          report.averageRiskProbability,
-                        )}
-                      </strong>
-
-                      <small>%</small>
-                    </div>
-
-                    <Link
-                      to={`/reports/${report.reportId}`}
-                      aria-label={`${formatPeriod(
-                        report,
-                      )} 리포트 보기`}
-                    >
-                      →
-                    </Link>
-                  </article>
-                )
-              })}
+                      <Link
+                        to={`/reports/${report.reportId}`}
+                        aria-label={`${formatPeriod(
+                          report,
+                        )} 리포트 보기`}
+                      >
+                        →
+                      </Link>
+                    </article>
+                  )
+                },
+              )}
             </div>
           </section>
         </>
+      ) : (
+        !isLoading &&
+        !isDemoMode &&
+        !error && (
+          <DataState title="생성된 주간 리포트가 없습니다.">
+            이번 주 리포트 생성
+            버튼을 눌러 첫 리포트를
+            만들어보세요.
+          </DataState>
+        )
       )}
     </div>
   )

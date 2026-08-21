@@ -1,6 +1,8 @@
 import { useState, type FormEvent } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { BrandMark } from '../../../components/common/BrandMark'
+import { LoadingButton } from '../../../components/common/LoadingButton'
+import { TextField } from '../../../components/common/TextField'
 import { useAuth } from '../hooks/useAuth'
 import styles from './AuthPages.module.css'
 
@@ -64,17 +66,16 @@ export function LoginPage() {
           )}
 
           <form onSubmit={handleSubmit}>
-            <label className={styles.field}>
-              <span>아이디</span>
-              <input
-                name="username"
-                type="text"
-                required
-                autoComplete="username"
-                defaultValue={state?.username ?? ''}
-                placeholder="아이디를 입력해 주세요"
-              />
-            </label>
+            <TextField
+              containerClassName={styles.field}
+              label="아이디"
+              name="username"
+              type="text"
+              required
+              autoComplete="username"
+              defaultValue={state?.username ?? ''}
+              placeholder="아이디를 입력해 주세요"
+            />
             <label className={styles.field}>
               <span>비밀번호</span>
               <div className={styles.passwordField}>
@@ -94,7 +95,7 @@ export function LoginPage() {
               <label><input name="remember" type="checkbox" /> 로그인 유지</label>
             </div>
             {error && <div className={styles.errorMessage} role="alert">{error}</div>}
-            <button className={styles.submitButton} type="submit">로그인</button>
+            <LoadingButton className={styles.submitButton} type="submit">로그인</LoadingButton>
           </form>
 
           <p className={styles.switchText}>아직 계정이 없나요? <Link to="/signup">회원가입</Link></p>

@@ -1,203 +1,429 @@
-import { useEffect, useMemo, useState } from 'react'
+import {
+  useEffect,
+  useMemo,
+  useState,
+} from 'react'
 import { Link } from 'react-router-dom'
-import { getAlerts, type HealthAlertResponse } from '../../history/api/alertApi'
+
+import { DataState } from '../../../components/common/DataState'
+import {
+  getHealthAlerts,
+  type HealthAlert,
+} from '../../history/api/healthHistoryApi'
 import { PetSelector } from '../../pets/components/PetSelector'
 import { usePets } from '../../pets/hooks/usePets'
 import {
+  getPredictionByQuestionnaire,
+  type HealthPrediction,
+} from '../../predictions/api/predictionApi'
+import { getQuestionnaires } from '../../questionnaire/api/questionnaireApi'
+import {
+  getWeeklyReports,
+  type WeeklyReport,
+} from '../../reports/api/reportApi'
+import {
   getLatestVital,
-  type VitalRecordResponse,
+  type VitalRecord,
   type VitalStatus,
 } from '../../vitals/api/vitalApi'
 import styles from './DashboardPage.module.css'
 
-const weeklyData = [48, 56, 53, 68, 72, 64, 78]
+const demoVitals = [
+  {
+    label: '체온',
+    value: '38.4',
+    unit: '°C',
+    note: '평소 범위예요',
+    icon: '♨',
+  },
+  {
+    label: '심박수',
+    value: '92',
+    unit: 'bpm',
+    note: '안정적으로 보여요',
+    icon: '♥',
+  },
+  {
+    label: '호흡수',
+    value: '24',
+    unit: '회/분',
+    note: '최근 측정 기준',
+    icon: '⌁',
+  },
+]
 
-function getStatusLabel(status: VitalStatus) {
+const weeklyData = [
+  48,
+  56,
+  53,
+  68,
+  72,
+  64,
+  78,
+]
+
+const weekLabels = [
+  '월',
+  '화',
+  '수',
+  '목',
+  '금',
+  '토',
+  '일',
+]
+
+function getStatusLabel(
+  status: VitalStatus,
+) {
   switch (status) {
     case 'NORMAL':
       return '정상'
+
     case 'WATCH':
       return '관찰'
+
     case 'CAUTION':
       return '주의'
+
     case 'DANGER':
       return '위험'
   }
 }
 
-function getStatusMessage(status: VitalStatus) {
+function getStatusMessage(
+  status: VitalStatus,
+) {
   switch (status) {
     case 'NORMAL':
       return '전반적으로 안정적이에요'
+
     case 'WATCH':
       return '조금 더 관찰이 필요해요'
+
     case 'CAUTION':
       return '건강 상태에 주의가 필요해요'
+
     case 'DANGER':
       return '빠른 상태 확인이 필요해요'
   }
 }
 
 export function DashboardPage() {
-  const { selectedPet } = usePets()
-  const petBase = `/pets/${selectedPet.id}`
+  const {
+    selectedPet,
+    isLoading,
+    isDemoMode,
+  } = usePets()
 
-  const [latestVital, setLatestVital] =
-    useState<VitalRecordResponse | null>(null)
-
-  const [loading, setLoading] = useState(true)
-  const [errorMessage, setErrorMessage] = useState('')
+  const [
+    latestVital,
+    setLatestVital,
+  ] = useState<VitalRecord | null>(
+    null,
+  )
 
   const [alerts, setAlerts] =
-    useState<HealthAlertResponse[]>([])
+    useState<HealthAlert[]>([])
 
-  const [alertsLoading, setAlertsLoading] =
-    useState(true)
+  const [
+    latestPrediction,
+    setLatestPrediction,
+  ] =
+    useState<HealthPrediction | null>(
+      null,
+    )
+
+  const [
+    latestReport,
+    setLatestReport,
+  ] =
+    useState<WeeklyReport | null>(
+      null,
+    )
 
   useEffect(() => {
-    let cancelled = false
+    if (
+      !selectedPet ||
+      isDemoMode
+    ) {
+      setLatestVital(null)
+      setAlerts([])
+      setLatestPrediction(null)
+      setLatestReport(null)
+      return
+    }
 
-    async function loadLatestVital() {
-      setLoading(true)
-      setErrorMessage('')
+    const controller =
+      new AbortController()
+    const petId = selectedPet.id
 
-      try {
-        const response =
-          await getLatestVital(selectedPet.id)
+    async function loadDashboard() {
+      const [
+        vital,
+        healthAlerts,
+        questionnaires,
+        reports,
+      ] = await Promise.all([
+        getLatestVital(
+          petId,
+          controller.signal,
+        ).catch(() => null),
 
-        if (cancelled) {
-          return
-        }
+        getHealthAlerts(
+          petId,
+          controller.signal,
+        ).catch(() => []),
 
-        setLatestVital(response)
-      } catch (error) {
-        console.error(
-          '최근 생체정보를 불러오지 못했습니다.',
-          error,
+        getQuestionnaires(
+          petId,
+          controller.signal,
+        ).catch(() => []),
+
+        getWeeklyReports(
+          petId,
+          controller.signal,
+        ).catch(() => []),
+      ])
+
+      if (
+        controller.signal.aborted
+      ) {
+        return
+      }
+
+      setLatestVital(vital)
+      setAlerts(healthAlerts)
+      setLatestReport(
+        reports[0] ?? null,
+      )
+
+      if (
+        questionnaires.length === 0
+      ) {
+        setLatestPrediction(null)
+        return
+      }
+
+      const prediction =
+        await getPredictionByQuestionnaire(
+          questionnaires[0]
+            .questionnaireId,
+          controller.signal,
+        ).catch(() => null)
+
+      if (
+        !controller.signal.aborted
+      ) {
+        setLatestPrediction(
+          prediction,
         )
-
-        if (!cancelled) {
-          setLatestVital(null)
-          setErrorMessage(
-            '최근 생체정보를 불러오지 못했습니다.',
-          )
-        }
-      } finally {
-        if (!cancelled) {
-          setLoading(false)
-        }
       }
     }
 
-    void loadLatestVital()
+    void loadDashboard()
 
     return () => {
-      cancelled = true
+      controller.abort()
     }
-  }, [selectedPet.id])
+  }, [
+    isDemoMode,
+    selectedPet,
+  ])
 
-  useEffect(() => {
-    let cancelled = false
+  const unreadAlerts =
+    useMemo(
+      () =>
+        alerts.filter(
+          (alert) =>
+            !alert.isRead,
+        ),
+      [alerts],
+    )
 
-    async function loadAlerts() {
-      setAlertsLoading(true)
+  const latestAlert =
+    unreadAlerts[0] ??
+    alerts[0] ??
+    null
 
-      try {
-        const response =
-          await getAlerts(selectedPet.id)
+  if (isLoading) {
+    return (
+      <div
+        className={styles.page}
+      >
+        <DataState
+          title="아이들의 상태를 불러오고 있습니다."
+          isLoading
+        />
+      </div>
+    )
+  }
 
-        if (!cancelled) {
-          setAlerts(response)
-        }
-      } catch (error) {
-        console.error(
-          '알림을 불러오지 못했습니다.',
-          error,
-        )
+  if (!selectedPet) {
+    return (
+      <div
+        className={styles.page}
+      >
+        <DataState
+          title="등록된 반려동물이 없습니다."
+          action={
+            <Link to="/pets/new">
+              반려동물 등록하기
+            </Link>
+          }
+        />
+      </div>
+    )
+  }
 
-        if (!cancelled) {
-          setAlerts([])
-        }
-      } finally {
-        if (!cancelled) {
-          setAlertsLoading(false)
-        }
-      }
-    }
+  const petBase =
+    `/pets/${selectedPet.id}`
 
-    void loadAlerts()
-
-    return () => {
-      cancelled = true
-    }
-  }, [selectedPet.id])
-
-  const vitals = useMemo(
-    () => [
+  const vitals = latestVital
+    ? [
       {
         label: '체온',
         value:
-          latestVital?.temperature.toFixed(1) ??
-          '-',
+          latestVital.temperature.toFixed(
+            1,
+          ),
         unit: '°C',
-        note: latestVital
-          ? '최근 측정 기준'
-          : '측정 기록이 없어요',
+        note: '최근 측정값',
         icon: '♨',
       },
       {
         label: '심박수',
-        value:
-          latestVital?.heartRate.toString() ??
-          '-',
+        value: String(
+          latestVital.heartRate,
+        ),
         unit: 'bpm',
-        note: latestVital
-          ? '최근 측정 기준'
-          : '측정 기록이 없어요',
+        note: '최근 측정값',
         icon: '♥',
       },
       {
         label: '호흡수',
-        value:
-          latestVital?.respiratoryRate.toString() ??
-          '-',
+        value: String(
+          latestVital.respiratoryRate,
+        ),
         unit: '회/분',
-        note: latestVital
-          ? '최근 측정 기준'
-          : '측정 기록이 없어요',
+        note: '최근 측정값',
         icon: '⌁',
       },
-    ],
-    [latestVital],
-  )
+    ]
+    : isDemoMode
+      ? demoVitals
+      : [
+        {
+          label: '체온',
+          value: '-',
+          unit: '°C',
+          note: '측정 기록 없음',
+          icon: '♨',
+        },
+        {
+          label: '심박수',
+          value: '-',
+          unit: 'bpm',
+          note: '측정 기록 없음',
+          icon: '♥',
+        },
+        {
+          label: '호흡수',
+          value: '-',
+          unit: '회/분',
+          note: '측정 기록 없음',
+          icon: '⌁',
+        },
+      ]
 
-  const unreadAlerts = useMemo(
-    () => alerts.filter((alert) => !alert.isRead),
-    [alerts],
-  )
+  const riskPercent =
+    latestPrediction
+      ? Math.round(
+        Number(
+          latestPrediction.abnormalProbability,
+        ) * 100,
+      )
+      : null
 
-  const latestAlert = alerts[0] ?? null
+  const healthScore =
+    riskPercent == null
+      ? null
+      : Math.max(
+        0,
+        100 - riskPercent,
+      )
 
-  const statusLabel = latestVital
-    ? getStatusLabel(latestVital.status)
-    : '기록 없음'
+  const statusLabel =
+    latestVital
+      ? getStatusLabel(
+        latestVital.status,
+      )
+      : '기록 없음'
 
-  const statusMessage = latestVital
-    ? getStatusMessage(latestVital.status)
-    : '최근 생체정보를 확인해 주세요'
+  const statusMessage =
+    latestVital
+      ? getStatusMessage(
+        latestVital.status,
+      )
+      : '최근 생체정보를 확인해 주세요'
+
+  const overallTitle =
+    latestPrediction
+      ? latestPrediction.riskGrade ===
+        'NORMAL'
+        ? '최근 기록은 정상 범위예요'
+        : '최근 건강 신호를 관찰해 주세요'
+      : statusMessage
+
+  const overallDescription =
+    latestPrediction?.aiSummary ??
+    (latestVital
+      ? '가장 최근에 측정된 생체정보를 기준으로 현재 상태를 보여드리고 있어요.'
+      : '오늘의 건강 문진을 완료하면 AI 위험도 분석 결과가 표시됩니다.')
+
+  const insightTitle =
+    latestReport?.oneLineSummary ??
+    (latestPrediction
+      ? '최근 AI 예측 결과를 확인해 보세요.'
+      : '건강 문진을 시작해 보세요.')
+
+  const insightCopy =
+    latestReport?.reportContent ??
+    latestPrediction?.aiSummary ??
+    '문진과 생체정보가 쌓이면 AI 건강 인사이트가 표시됩니다.'
+
+  /*
+   * 아직 실제 활동량 API는 없으므로
+   * 데모 모드에서만 샘플 그래프를 표시합니다.
+   */
+  const chartData =
+    isDemoMode
+      ? weeklyData
+      : [0, 0, 0, 0, 0, 0, 0]
 
   return (
     <div className={styles.page}>
-      <section className={styles.welcome}>
+      <section
+        className={
+          styles.welcome
+        }
+      >
         <div>
-          <p className={styles.eyebrow}>
-            TODAY&apos;S PET WELLNESS
+          <p
+            className={
+              styles.eyebrow
+            }
+          >
+            TODAY&apos;S PET
+            WELLNESS
           </p>
 
-          <h1>안녕하세요, 보호자님.</h1>
+          <h1>
+            안녕하세요, 보호자님.
+          </h1>
 
           <p>
-            {selectedPet.name}의 오늘 건강 신호를
+            {selectedPet.name}의
+            오늘 건강 신호를
             차분하게 살펴볼까요?
           </p>
         </div>
@@ -206,159 +432,276 @@ export function DashboardPage() {
       </section>
 
       <section
-        className={styles.summaryGrid}
+        className={
+          styles.summaryGrid
+        }
         aria-label="건강 상태 요약"
       >
-        <article className={styles.overallCard}>
-          <div className={styles.cardHeading}>
+        <article
+          className={
+            styles.overallCard
+          }
+        >
+          <div
+            className={
+              styles.cardHeading
+            }
+          >
             <div>
-              <p>오늘의 건강 신호</p>
+              <p>
+                오늘의 건강 신호
+              </p>
 
-              <h2>{statusMessage}</h2>
+              <h2>
+                {overallTitle}
+              </h2>
             </div>
 
-            <span className={styles.normalBadge}>
-              {statusLabel}
+            <span
+              className={
+                styles.normalBadge
+              }
+            >
+              {latestPrediction
+                ? latestPrediction.riskGrade
+                : statusLabel}
             </span>
           </div>
 
-          <div className={styles.scoreArea}>
+          <div
+            className={
+              styles.scoreArea
+            }
+          >
             <div
-              className={styles.scoreRing}
-              aria-label="건강 상태"
+              className={
+                styles.scoreRing
+              }
+              aria-label={
+                healthScore == null
+                  ? '건강 점수 없음'
+                  : `건강 점수 ${healthScore}점`
+              }
             >
               <strong>
-                {latestVital
-                  ? getStatusLabel(
-                    latestVital.status,
-                  )
-                  : '-'}
+                {healthScore ??
+                  '-'}
               </strong>
+
+              <small>
+                / 100
+              </small>
             </div>
 
             <p>
-              {loading
-                ? '최근 생체정보를 확인하고 있어요.'
-                : errorMessage
-                  ? errorMessage
-                  : latestVital
-                    ? '가장 최근에 측정된 생체정보를 기준으로 현재 상태를 보여드리고 있어요.'
-                    : '아직 등록된 생체정보가 없어요. 생체정보를 먼저 기록해 주세요.'}
+              {overallDescription}
             </p>
           </div>
 
           <Link
-            className={styles.darkButton}
+            className={
+              styles.darkButton
+            }
             to={`${petBase}/questionnaire`}
           >
             오늘 건강 문진 시작하기
           </Link>
         </article>
 
-        <article className={styles.noticeCard}>
+        <article
+          className={
+            styles.noticeCard
+          }
+        >
           <span
-            className={styles.noticeIcon}
+            className={
+              styles.noticeIcon
+            }
             aria-hidden="true"
           >
             ✦
           </span>
 
           <div>
-            <p>건강 알림</p>
+            <p>
+              건강 알림
+            </p>
 
             <h2>
-              {alertsLoading
-                ? '알림 확인 중...'
-                : unreadAlerts.length > 0
-                  ? `확인하지 않은 알림 ${unreadAlerts.length}건`
+              {unreadAlerts.length >
+                0
+                ? `확인하지 않은 알림 ${unreadAlerts.length}건`
+                : latestAlert
+                  ? latestAlert.title
                   : '새로운 알림이 없어요'}
             </h2>
 
             <small>
-              {alertsLoading
-                ? `${selectedPet.name}의 최근 알림을 확인하고 있어요.`
-                : latestAlert
-                  ? latestAlert.message
-                  : '현재 확인이 필요한 건강 알림이 없습니다.'}
+              {latestAlert?.message ??
+                '현재 확인이 필요한 건강 알림이 없습니다.'}
             </small>
           </div>
 
-          <Link to={`${petBase}/history`}>
-            {unreadAlerts.length > 0
+          <Link
+            to={`${petBase}/history`}
+          >
+            {unreadAlerts.length >
+              0
               ? '알림 확인'
               : '알림 기록 보기'}
           </Link>
         </article>
       </section>
 
-      <section className={styles.vitalsSection}>
-        <div className={styles.sectionTitle}>
+      <section
+        className={
+          styles.vitalsSection
+        }
+      >
+        <div
+          className={
+            styles.sectionTitle
+          }
+        >
           <div>
-            <p>LIVE HEALTH SIGNALS</p>
-            <h2>최근 생체정보</h2>
+            <p>
+              LIVE HEALTH SIGNALS
+            </p>
+
+            <h2>
+              최근 생체정보
+            </h2>
           </div>
 
-          <Link to={`${petBase}/vitals`}>
+          <Link
+            to={`${petBase}/vitals`}
+          >
             전체 기록 보기{' '}
-            <span aria-hidden="true">→</span>
+            <span
+              aria-hidden="true"
+            >
+              →
+            </span>
           </Link>
         </div>
 
-        <div className={styles.vitalGrid}>
-          {vitals.map((vital) => (
-            <article
-              className={styles.vitalCard}
-              key={vital.label}
-            >
-              <div className={styles.vitalTop}>
-                <span aria-hidden="true">
-                  {vital.icon}
-                </span>
+        <div
+          className={
+            styles.vitalGrid
+          }
+        >
+          {vitals.map(
+            (vital) => (
+              <article
+                className={
+                  styles.vitalCard
+                }
+                key={
+                  vital.label
+                }
+              >
+                <div
+                  className={
+                    styles.vitalTop
+                  }
+                >
+                  <span
+                    aria-hidden="true"
+                  >
+                    {vital.icon}
+                  </span>
 
-                <p>{vital.label}</p>
+                  <p>
+                    {vital.label}
+                  </p>
 
-                <small>
-                  {latestVital
-                    ? statusLabel
-                    : '-'}
-                </small>
-              </div>
+                  <small>
+                    {latestVital
+                      ? statusLabel
+                      : isDemoMode
+                        ? '데모'
+                        : '기록 전'}
+                  </small>
+                </div>
 
-              <div className={styles.vitalValue}>
-                <strong>{vital.value}</strong>
-                <span>{vital.unit}</span>
-              </div>
+                <div
+                  className={
+                    styles.vitalValue
+                  }
+                >
+                  <strong>
+                    {vital.value}
+                  </strong>
 
-              <p className={styles.vitalNote}>
-                {vital.note}
-              </p>
-            </article>
-          ))}
+                  <span>
+                    {vital.unit}
+                  </span>
+                </div>
+
+                <p
+                  className={
+                    styles.vitalNote
+                  }
+                >
+                  {vital.note}
+                </p>
+              </article>
+            ),
+          )}
         </div>
       </section>
 
-      <section className={styles.detailGrid}>
-        <article className={styles.chartCard}>
-          <div className={styles.cardHeading}>
+      <section
+        className={
+          styles.detailGrid
+        }
+      >
+        <article
+          className={
+            styles.chartCard
+          }
+        >
+          <div
+            className={
+              styles.cardHeading
+            }
+          >
             <div>
-              <p>WEEKLY TREND</p>
-              <h2>이번 주 활동 흐름</h2>
+              <p>
+                WEEKLY TREND
+              </p>
+
+              <h2>
+                이번 주 활동 흐름
+              </h2>
             </div>
 
-            <button type="button">
-              최근 7일 ⌄
+            <button
+              type="button"
+              disabled={!isDemoMode}
+            >
+              {isDemoMode
+                ? '최근 7일 ⌄'
+                : '활동 API 준비 필요'}
             </button>
           </div>
 
           <div
-            className={styles.chart}
+            className={
+              styles.chart
+            }
             aria-label="최근 7일 활동량 막대그래프"
           >
-            {weeklyData.map(
-              (value, index) => (
+            {chartData.map(
+              (
+                value,
+                index,
+              ) => (
                 <div
-                  className={styles.chartColumn}
-                  key={`${value}-${index}`}
+                  className={
+                    styles.chartColumn
+                  }
+                  key={`${index}-${value}`}
                 >
                   <div
                     className={
@@ -367,22 +710,17 @@ export function DashboardPage() {
                   >
                     <span
                       style={{
-                        height: `${value}%`,
+                        height:
+                          `${value}%`,
                       }}
                     />
                   </div>
 
                   <small>
                     {
-                      [
-                        '월',
-                        '화',
-                        '수',
-                        '목',
-                        '금',
-                        '토',
-                        '일',
-                      ][index]
+                      weekLabels[
+                      index
+                      ]
                     }
                   </small>
                 </div>
@@ -391,33 +729,45 @@ export function DashboardPage() {
           </div>
         </article>
 
-        <article className={styles.insightCard}>
-          <p className={styles.insightLabel}>
+        <article
+          className={
+            styles.insightCard
+          }
+        >
+          <p
+            className={
+              styles.insightLabel
+            }
+          >
             AI HEALTH INSIGHT
           </p>
 
           <span
-            className={styles.insightIcon}
+            className={
+              styles.insightIcon
+            }
             aria-hidden="true"
           >
             ◎
           </span>
 
           <h2>
-            이번 주는 활동량이
-            <br />
-            조금씩 좋아지고 있어요.
+            {insightTitle}
           </h2>
 
           <p>
-            평소보다 수분 섭취량이 조금
-            적었어요. 산책 후 물을 충분히
-            마시는지 살펴봐 주세요.
+            {insightCopy}
           </p>
 
-          <Link to={`${petBase}/reports`}>
+          <Link
+            to={`${petBase}/reports`}
+          >
             주간 리포트 확인하기{' '}
-            <span aria-hidden="true">→</span>
+            <span
+              aria-hidden="true"
+            >
+              →
+            </span>
           </Link>
         </article>
       </section>

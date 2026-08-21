@@ -1,4 +1,4 @@
-import { apiRequest } from '../../../lib/api'
+import { apiRequest } from '../../../shared/api/apiClient'
 
 export type SkinCondition =
     | 'NORMAL'
@@ -38,31 +38,19 @@ export type QuestionnaireRequest = {
     additionalSymptoms: string | null
 }
 
-export type QuestionnaireResponse = {
-    questionnaireId: number
-    petId: number
-    temperature: number
-    heartRate: number
-    respiratoryRate: number
-    skinCondition: SkinCondition
-    itching: boolean
-    hairLoss: boolean
-    vomiting: boolean
-    diarrhea: boolean
-    appetiteLevel: AppetiteLevel
-    waterIntakeLevel: WaterIntakeLevel
-    activityLevel: ActivityLevel
-    symptomDurationDays: number
-    additionalSymptoms: string | null
-    submittedAt: string
-}
+export type QuestionnaireResponse =
+    QuestionnaireRequest & {
+        questionnaireId: number
+        petId: number
+        submittedAt: string
+    }
 
 export function createQuestionnaire(
     petId: number,
     request: QuestionnaireRequest,
 ) {
     return apiRequest<QuestionnaireResponse>(
-        `/api/pets/${petId}/questionnaires`,
+        `/pets/${petId}/questionnaires`,
         {
             method: 'POST',
             body: JSON.stringify(request),
@@ -70,14 +58,26 @@ export function createQuestionnaire(
     )
 }
 
-export function getQuestionnaires(petId: number) {
-    return apiRequest<QuestionnaireResponse[]>(
-        `/api/pets/${petId}/questionnaires`,
+export function getQuestionnaire(
+    questionnaireId: number,
+    signal?: AbortSignal,
+) {
+    return apiRequest<QuestionnaireResponse>(
+        `/questionnaires/${questionnaireId}`,
+        {
+            signal,
+        },
     )
 }
 
-export function getQuestionnaire(questionnaireId: number) {
-    return apiRequest<QuestionnaireResponse>(
-        `/api/questionnaires/${questionnaireId}`,
+export function getQuestionnaires(
+    petId: number,
+    signal?: AbortSignal,
+) {
+    return apiRequest<QuestionnaireResponse[]>(
+        `/pets/${petId}/questionnaires`,
+        {
+            signal,
+        },
     )
 }

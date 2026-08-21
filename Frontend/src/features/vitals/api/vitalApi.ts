@@ -1,4 +1,4 @@
-import { apiRequest } from '../../../lib/api'
+import { apiRequest } from '../../../shared/api/apiClient'
 
 export type VitalStatus =
     | 'NORMAL'
@@ -10,7 +10,7 @@ export type VitalSourceType =
     | 'DATASET'
     | 'MANUAL'
 
-export type VitalRecordResponse = {
+export type VitalRecord = {
     vitalRecordId: number
     petId: number
     temperature: number
@@ -21,14 +21,31 @@ export type VitalRecordResponse = {
     status: VitalStatus
 }
 
-export function getLatestVital(petId: number) {
-    return apiRequest<VitalRecordResponse>(
-        `/api/pets/${petId}/vitals/latest`,
+export type VitalRecordResponse = VitalRecord
+
+export function getLatestVital(
+    petId: number,
+    signal?: AbortSignal,
+) {
+    return apiRequest<VitalRecord>(
+        `/pets/${petId}/vitals/latest`,
+        { signal },
     )
 }
 
-export function getVitals(petId: number) {
-    return apiRequest<VitalRecordResponse[]>(
-        `/api/pets/${petId}/vitals`,
+export function getVitalRecords(
+    petId: number,
+    signal?: AbortSignal,
+) {
+    return apiRequest<VitalRecord[]>(
+        `/pets/${petId}/vitals`,
+        { signal },
     )
+}
+
+export function getVitals(
+    petId: number,
+    signal?: AbortSignal,
+) {
+    return getVitalRecords(petId, signal)
 }

@@ -6,18 +6,22 @@ import numpy as np
 import pandas as pd
 from typing import List, Optional, AsyncGenerator
 from contextlib import asynccontextmanager
+from dotenv import load_dotenv
+
+# .env 파일 자동 로드
+load_dotenv()
 
 from fastapi import FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
-# OpenAI API 라이브러리 (선택적 사용 및 에러 예외 처리)
+# Google Gemini API 라이브러리 (선택적 사용 및 에러 예외 처리)
 try:
-    import openai
-    HAS_OPENAI = True
+    import google.generativeai as genai
+    HAS_GEMINI = True
 except ImportError:
-    HAS_OPENAI = False
+    HAS_GEMINI = False
 
 # SHAP 라이브러리 (선택적 사용)
 try:
@@ -53,15 +57,32 @@ RAG_DB_PATH = "app/data/chroma_db"
 RAG_COLLECTION = None
 EMBEDDING_MODEL = None
 
-# 환경변수에서 LLM 모델명 로드 (기본값: gpt-4o-mini)
-LLM_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+# 환경변수에서 LLM 모델명 로드 (기본값: gemini-3.6-flash)
+LLM_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.6-flash")
+
+# 종별(Species) 생체 임계값 상수
+# 수의학 일반 기준: 강아지와 고양이의 정상 생체 범위가 다름
+# - 강아지 정상 체온: 37.5~39.2°C  / 고양이 정상 체온: 38.0~39.5°C
+# - 강아지 정상 심박수: 60~140bpm  / 고양이 정상 심박수: 120~220bpm
+SPECIES_THRESHOLDS = {
+    "DOG": {
+        "temp_mild_fever":  39.3,   # 미열 기준
+        "temp_high_fever":  40.0,   # 고열 기준
+        "hr_tachycardia":   160,    # 빈맥 기준 (bpm)
+    },
+    "CAT": {
+        "temp_mild_fever":  39.6,   # 고양이 정상 체온 상한이 더 높음
+        "temp_high_fever":  40.5,   # 고양이 고열 기준
+        "hr_tachycardia":   240,    # 고양이 정상 심박수 상한: 220bpm → 빈맥 기준 높게
+    },
+}
 
 # SHAP 피처명 → 한국어 위험 요인 매핑 테이블
 # ColumnTransformer 출력 피처명(prefix__원본명) 형식으로 매핑
 FEATURE_FACTOR_MAP = {
     "num__temperature":         "체온 이상",
-    "num__heart_rate":          "심박수 이상",
-    "num__respiratory_rate":    "호흡 급증",
+    "num__heartRate":           "심박수 이상",
+    "num__respiratoryRate":     "호흡 급증",
     "num__symptomDurationDays": "증상 장기화",
     "num__age":                 "고령",
     "num__weight":              "체중 이상",
@@ -85,8 +106,8 @@ async def lifespan(app: FastAPI):
     global MODEL_PIPELINE, LABEL_MAPPING, INVERSE_MAPPING, WELLNESS_KNOWLEDGE_BASE
     global SHAP_EXPLAINER, FEATURE_NAMES_OUT
 
-    print("🚀 [FastAPI] AI 서버 가동 프로세스를 시작합니다...")
-    print(f"ℹ️  [FastAPI] LLM 모델: {LLM_MODEL}")
+    print("[START] [FastAPI] AI 서버 가동 프로세스를 시작합니다...")
+    print(f"[INFO]  [FastAPI] LLM 모델: {LLM_MODEL}")
 
     # (1) ML 파이프라인 모델 로드
     if os.path.exists(MODEL_PATH):
@@ -98,28 +119,28 @@ async def lifespan(app: FastAPI):
             # SHAP 및 피처명 로드 (train_model.py 재실행 후 생성됨)
             FEATURE_NAMES_OUT = saved_data.get("feature_names_out", [])
             SHAP_EXPLAINER = saved_data.get("shap_explainer", None)
-            print(f"✅ [FastAPI] ML 파이프라인 로드 성공: {MODEL_PATH}")
+            print(f"[OK] [FastAPI] ML 파이프라인 로드 성공: {MODEL_PATH}")
             if SHAP_EXPLAINER is not None:
-                print("✅ [FastAPI] SHAP Explainer 로드 성공 → 모델 근거 추출 활성화")
+                print("[OK] [FastAPI] SHAP Explainer 로드 성공 -> 모델 근거 추출 활성화")
             else:
-                print("⚠️ [FastAPI] SHAP Explainer 없음 → 규칙 기반 요인 추출 사용 (train_model.py 재실행 권장)")
+                print("[WARN] [FastAPI] SHAP Explainer 없음 -> 규칙 기반 요인 추출 사용")
             if FEATURE_NAMES_OUT:
-                print(f"✅ [FastAPI] 피처명 {len(FEATURE_NAMES_OUT)}개 로드 성공")
+                print(f"[OK] [FastAPI] 피처명 {len(FEATURE_NAMES_OUT)}개 로드 성공")
         except Exception as e:
-            print(f"⚠️ [FastAPI] ML 파이프라인 로드 중 오류 발생: {e}")
+            print(f"[WARN] [FastAPI] ML 파이프라인 로드 중 오류 발생: {e}")
     else:
-        print(f"⚠️ [FastAPI] 경고: {MODEL_PATH} 파일이 없습니다. (scripts/train_model.py 먼저 실행 권장)")
+        print(f"[WARN] [FastAPI] 경고: {MODEL_PATH} 파일이 없습니다.")
 
     # (2) 수의학 웰니스 지식베이스 JSON 로드
     if os.path.exists(KNOWLEDGE_BASE_PATH):
         try:
             with open(KNOWLEDGE_BASE_PATH, "r", encoding="utf-8") as f:
                 WELLNESS_KNOWLEDGE_BASE = json.load(f)
-            print(f"✅ [FastAPI] 수의학 지식베이스 로드 성공: {KNOWLEDGE_BASE_PATH} ({len(WELLNESS_KNOWLEDGE_BASE)}개 항목)")
+            print(f"[OK] [FastAPI] 수의학 지식베이스 로드 성공: {KNOWLEDGE_BASE_PATH} ({len(WELLNESS_KNOWLEDGE_BASE)}개 항목)")
         except Exception as e:
-            print(f"⚠️ [FastAPI] 지식베이스 로드 중 오류 발생: {e}")
+            print(f"[WARN] [FastAPI] 지식베이스 로드 중 오류 발생: {e}")
     else:
-        print(f"⚠️ [FastAPI] 경고: {KNOWLEDGE_BASE_PATH} 파일이 없습니다.")
+        print(f"[WARN] [FastAPI] 경고: {KNOWLEDGE_BASE_PATH} 파일이 없습니다.")
 
     # (3) ChromaDB RAG 인덱스 로드 (build_rag_index.py 실행 후 생성됨)
     global RAG_COLLECTION, EMBEDDING_MODEL
@@ -128,18 +149,18 @@ async def lifespan(app: FastAPI):
             rag_client = chromadb.PersistentClient(path=RAG_DB_PATH)
             EMBEDDING_MODEL = SentenceTransformer("paraphrase-multilingual-MiniLM-L12-v2")
             RAG_COLLECTION = rag_client.get_collection("vet_knowledge")
-            print(f"✅ [FastAPI] RAG 인덱스 로드 성공: {RAG_COLLECTION.count()}개 수의학 문서 (벡터 검색 활성화)")
+            print(f"[OK] [FastAPI] RAG 인덱스 로드 성공: {RAG_COLLECTION.count()}개 수의학 문서 (벡터 검색 활성화)")
         except Exception as e:
-            print(f"⚠️ [FastAPI] RAG 인덱스 로드 실패 (JSON 룩업 Fallback 사용): {e}")
+            print(f"[WARN] [FastAPI] RAG 인덱스 로드 실패 (JSON 룩업 Fallback 사용): {e}")
     else:
         if not HAS_RAG:
-            print("⚠️ [FastAPI] chromadb/sentence-transformers 미설치 → JSON 룩업 사용")
+            print("[WARN] [FastAPI] chromadb/sentence-transformers 미설치 -> JSON 룩업 사용")
         else:
-            print("⚠️ [FastAPI] RAG 인덱스 없음 → scripts/build_rag_index.py 실행 권장")
+            print("[WARN] [FastAPI] RAG 인덱스 없음 -> scripts/build_rag_index.py 실행 권장")
 
     yield  # 서버 실행 대기
 
-    print("🛑 [FastAPI] AI 서버가 안전하게 종료되었습니다.")
+    print("[END] [FastAPI] AI 서버가 안전하게 종료되었습니다.")
 
 
 # =====================================================================
@@ -235,6 +256,30 @@ class WeeklyReportResponse(BaseModel):
     recommendedCare: List[str] = Field(..., description="이번 주 추천 케어 포인트")
 
 
+# --- 4) /ai/recommend-food 요청/응답 스키마 ---
+class IngredientInfo(BaseModel):
+    name: str = Field(..., description="추천 원료 또는 영양 성분명")
+    reason: str = Field(..., description="해당 성분/원료가 추천되는 이유")
+
+
+class FoodRecommendRequest(BaseModel):
+    petName: Optional[str] = Field("아이", example="초코", description="반려동물 이름")
+    species: str = Field("DOG", example="DOG", description="반려동물 종 (DOG/CAT)")
+    age: int = Field(3, example=3, description="나이 (세)")
+    weight: Optional[float] = Field(None, example=5.5, description="체중 (kg)")
+    healthConcerns: Optional[str] = Field(None, example="피부 알레르기", description="주요 건강 고민 (피부/알레르기, 비만, 관절, 소화기, 노령기 등)")
+    currentFoodType: Optional[str] = Field(None, example="건식", description="현재 급여 중인 사료 형태 (건식, 습식, 화식 등)")
+    additionalNotes: Optional[str] = Field(None, example="닭고기 알레르기가 의심돼요.", description="기타 특이사항이나 알레르기 의심 원료")
+
+
+class FoodRecommendResponse(BaseModel):
+    petSummary: str = Field(..., description="반려동물 프로필 및 맞춤 케어 요약")
+    recommendedIngredients: List[IngredientInfo] = Field(..., description="추천 핵심 원료 및 영양소 목록")
+    avoidIngredients: List[str] = Field(..., description="피해야 할 성분/주의 원료")
+    feedingTips: List[str] = Field(..., description="맞춤형 급여 및 관리 팁")
+    vetNote: str = Field(..., description="수의학적 조언 및 모니터링 가이드")
+
+
 # =====================================================================
 # 4. 헬퍼 함수
 # =====================================================================
@@ -299,18 +344,24 @@ def get_shap_risk_factors(df_input: pd.DataFrame, predicted_class_idx: int) -> O
 def get_rule_based_risk_factors(
         req: HealthRiskPredictRequest,
         risk_grade: str) -> str:
-
+    """
+    SHAP를 사용할 수 없을 때의 규칙 기반 primaryRiskFactor 생성 Fallback.
+    종(species)별로 다른 체온·심박수 임계값을 적용합니다.
+    """
     if risk_grade == "NORMAL":
         return "이상 없음(정상)"
 
+    # 종별 임계값 로드 (미등록 종은 DOG 기준 적용)
+    thr = SPECIES_THRESHOLDS.get(req.species, SPECIES_THRESHOLDS["DOG"])
+
     factors = []
 
-    if req.temperature >= 40.0:
+    if req.temperature >= thr["temp_high_fever"]:
         factors.append("고열")
-    elif req.temperature >= 39.3:
+    elif req.temperature >= thr["temp_mild_fever"]:
         factors.append("체온 상승")
 
-    if req.heartRate >= 150:
+    if req.heartRate >= thr["hr_tachycardia"]:
         factors.append("심박수 이상")
 
     if req.respiratoryRate >= 40:
@@ -483,10 +534,11 @@ def get_model_info():
 )
 def predict_health_risk(req: HealthRiskPredictRequest):
     if MODEL_PIPELINE is None:
-        # 모델이 로드되지 않은 예외 상황 시 안전한 스코어링 규칙 계산 Fallback
+        # 모델이 로드되지 않은 예외 상황 시 종별 임계값 기반 안전한 스코어링 Fallback
+        thr = SPECIES_THRESHOLDS.get(req.species, SPECIES_THRESHOLDS["DOG"])
         score = 0.0
-        if req.temperature >= 40.0: score += 0.4
-        elif req.temperature >= 39.3: score += 0.2
+        if req.temperature >= thr["temp_high_fever"]:   score += 0.4
+        elif req.temperature >= thr["temp_mild_fever"]: score += 0.2
         if req.vomiting or req.diarrhea: score += 0.2
         prob = round(min(score, 1.0), 2)
         grade = "NORMAL" if prob < 0.3 else "WATCH" if prob < 0.5 else "CAUTION" if prob < 0.75 else "DANGER"
@@ -500,8 +552,8 @@ def predict_health_risk(req: HealthRiskPredictRequest):
             "age": [req.age],
             "weight": [req.weight],
             "temperature": [req.temperature],
-            "heart_rate": [req.heartRate],
-            "respiratory_rate": [req.respiratoryRate],
+            "heartRate": [req.heartRate],
+            "respiratoryRate": [req.respiratoryRate],
             "skinRedness": [int(req.skinRedness)],
             "itching": [int(req.itching)],
             "hairLoss": [int(req.hairLoss)],
@@ -582,12 +634,13 @@ def explain_prediction(req: ExplainPredictionRequest):
     base_advice = knowledge.get("advice", "아이의 컨디션을 주의 깊게 살펴주세요.")
 
     # ----------------------------------------------------------------
-    # 3. OpenAI API 연동 시도 (RAG 컨텍스트를 프롬프트에 주입)
+    # 3. Gemini API 연동 시도 (RAG 컨텍스트를 프롬프트에 주입)
     # ----------------------------------------------------------------
-    api_key = os.getenv("OPENAI_API_KEY")
-    if HAS_OPENAI and api_key:
+    api_key = os.getenv("GEMINI_API_KEY")
+    if HAS_GEMINI and api_key:
         try:
-            client = openai.OpenAI(api_key=api_key)
+            genai.configure(api_key=api_key)
+            model = genai.GenerativeModel(LLM_MODEL)
 
             # RAG 검색 결과가 있으면 수의학 문서를 컨텍스트로 추가
             if rag_results and rag_results["documents"]:
@@ -616,20 +669,15 @@ def explain_prediction(req: ExplainPredictionRequest):
 2. 보호자가 가정에서 점검할 수 있는 환경적·생리적 원인 위주로 3문장 이내로 다정하게 작성할 것.
 3. 참고 문서 번호([수의학 참고문서 N])를 직접 언급하지 말 것."""
 
-            response = client.chat.completions.create(
-                model=LLM_MODEL,
-                messages=[{"role": "user", "content": prompt}],
-                max_tokens=350,
-                temperature=0.7
-            )
-            llm_text = response.choices[0].message.content.strip()
+            response = model.generate_content(prompt)
+            llm_text = response.text.strip()
             return ExplainPredictionResponse(
                 explanation=llm_text,
                 checkpoints=checkpoints,
                 advice=base_advice
             )
         except Exception as e:
-            print(f"⚠️ OpenAI API 호출 실패 (스마트 템플릿 사용): {e}")
+            print(f"⚠️ Gemini API 호출 실패 (스마트 템플릿 사용): {e}")
 
     # ----------------------------------------------------------------
     # 4. LLM 미연동 시 스마트 템플릿 Fallback
@@ -679,11 +727,12 @@ def generate_weekly_report(req: WeeklyReportRequest):
     else:
         one_line = f"지난 한 주간 전반적으로 안정적인 웰니스 상태를 유지했습니다."
 
-    # 2. OpenAI API 연동 시도 (API KEY가 있으면 고급 LLM 리포트 생성)
-    api_key = os.getenv("OPENAI_API_KEY")
-    if HAS_OPENAI and api_key:
+    # 2. Gemini API 연동 시도 (API KEY가 있으면 고급 LLM 리포트 생성)
+    api_key = os.getenv("GEMINI_API_KEY")
+    if HAS_GEMINI and api_key:
         try:
-            client = openai.OpenAI(api_key=api_key)
+            genai.configure(api_key=api_key)
+            model = genai.GenerativeModel(LLM_MODEL)
             prompt = f"""
 너는 반려동물 건강 리포트 전문 에디터야.
 아래 주간 데이터 통계를 바탕으로 보호자에게 보여줄 종합 주간 웰니스 리포트 문장을 다정하게 작성해줘.
@@ -698,13 +747,8 @@ def generate_weekly_report(req: WeeklyReportRequest):
 1. 다정하고 체계적인 어조로 4문장 내외로 종합 분석 문장을 작성할 것.
 2. 진정성이 느껴지는 웰니스 관리 조언을 담을 것.
 """
-            response = client.chat.completions.create(
-                model=LLM_MODEL,
-                messages=[{"role": "user", "content": prompt}],
-                max_tokens=400,
-                temperature=0.7
-            )
-            report_content = response.choices[0].message.content.strip()
+            response = model.generate_content(prompt)
+            report_content = response.text.strip()
 
             return WeeklyReportResponse(
                 reportTitle=title,
@@ -717,7 +761,7 @@ def generate_weekly_report(req: WeeklyReportRequest):
                 ]
             )
         except Exception as e:
-            print(f"⚠️ OpenAI API 주간 리포트 생성 실패 (스마트 템플릿 사용): {e}")
+            print(f"⚠️ Gemini API 주간 리포트 생성 실패 (스마트 템플릿 사용): {e}")
 
     # 3. LLM 미연동 시 사용하는 스마트 템플릿 (Fallback)
     content_text = (
@@ -743,12 +787,124 @@ def generate_weekly_report(req: WeeklyReportRequest):
 
 
 
+# ---------------------------------------------------------------------
+# [Endpoint 6] POST /ai/recommend-food : 맞춤형 사료 및 영양 추천 (LLM)
+# ---------------------------------------------------------------------
+@app.post(
+    "/ai/recommend-food",
+    response_model=FoodRecommendResponse,
+    summary="맞춤형 사료 및 영양 성분 추천 (LLM)",
+    tags=["Generative AI"]
+)
+def recommend_food(req: FoodRecommendRequest):
+    species_kr = "강아지" if req.species.upper() == "DOG" else "고양이"
+    weight_str = f", 체중 {req.weight}kg" if req.weight else ""
+    concern_str = f" / 주요 고민: {req.healthConcerns}" if req.healthConcerns else ""
+
+    summary = f"{req.petName}({species_kr}, {req.age}세{weight_str}){concern_str}"
+
+    # 1. RAG 지식 검색 (식이/영양 관련 문서 매칭)
+    rag_query = f"[{req.species}] 사료 영양식이 {req.healthConcerns or ''} {req.additionalNotes or ''}".strip()
+    rag_results = search_rag(rag_query, n_results=2)
+    rag_context = ""
+    if rag_results and rag_results.get("documents"):
+        rag_context = "\n".join(rag_results["documents"])
+
+    # 2. Gemini API 호출
+    api_key = os.getenv("GEMINI_API_KEY")
+    if HAS_GEMINI and api_key:
+        try:
+            genai.configure(api_key=api_key)
+            model = genai.GenerativeModel(LLM_MODEL)
+            prompt = f"""
+너는 전문적이고 다정한 반려동물 임상영양사 겸 수의학 웰니스 코치야.
+보호자의 반려동물 정보를 바탕으로 맞춤형 사료 선택 기준, 추천 원료 및 영양 성분, 주의해야 할 성분, 급여 팁을 JSON 형식으로 작성해줘.
+
+[반려동물 정보]
+- 이름: {req.petName}
+- 종: {species_kr} ({req.species})
+- 나이: {req.age}세
+- 체중: {req.weight if req.weight else '정보 없음'} kg
+- 건강 고민/목적: {req.healthConcerns or '일반 건강 유지'}
+- 현재 급여 형태: {req.currentFoodType or '정보 없음'}
+- 특이사항/알레르기 메모: {req.additionalNotes or '없음'}
+
+[수의학 참고 지식]
+{rag_context}
+
+반드시 아래 JSON 스키마 형식에 맞춰 정확한 JSON 문자열만 출력해줘 (마크다운 코드블록이나 불필요한 설명 없이 순수 JSON):
+{{
+  "petSummary": "{summary}",
+  "recommendedIngredients": [
+    {{"name": "추천 원료 또는 영양소명", "reason": "이 성분이 추천되는 이유 1~2문장"}},
+    {{"name": "추천 원료 또는 영양소명", "reason": "이 성분이 추천되는 이유 1~2문장"}},
+    {{"name": "추천 원료 또는 영양소명", "reason": "이 성분이 추천되는 이유 1~2문장"}}
+  ],
+  "avoidIngredients": [
+    "피해야 하거나 주의할 원료/성분 1",
+    "피해야 하거나 주의할 원료/성분 2",
+    "피해야 하거나 주의할 원료/성분 3"
+  ],
+  "feedingTips": [
+    "7~10일 점진적 사료 교체법 등 실질적인 급여 팁 1",
+    "음수량 또는 간식 조절 관련 팁 2",
+    "하루 급여 횟수 및 보관법 팁 3"
+  ],
+  "vetNote": "수의학적 관점에서의 모니터링 조언 및 내원 안내 2~3문장"
+}}
+"""
+            response = model.generate_content(prompt)
+            raw_text = response.text.strip()
+
+            # JSON 코드블록(```json ... ```) 제거 처리
+            if raw_text.startswith("```"):
+                lines = raw_text.splitlines()
+                if lines[0].startswith("```"):
+                    lines = lines[1:]
+                if lines and lines[-1].startswith("```"):
+                    lines = lines[:-1]
+                raw_text = "\n".join(lines).strip()
+
+            parsed = json.loads(raw_text)
+            return FoodRecommendResponse(
+                petSummary=parsed.get("petSummary", summary),
+                recommendedIngredients=[IngredientInfo(**item) for item in parsed.get("recommendedIngredients", [])],
+                avoidIngredients=parsed.get("avoidIngredients", []),
+                feedingTips=parsed.get("feedingTips", []),
+                vetNote=parsed.get("vetNote", "")
+            )
+        except Exception as e:
+            print(f"⚠️ Gemini 사료 추천 JSON 파싱/호출 실패 (스마트 템플릿 사용): {e}")
+
+    # 3. Fallback (규칙 기반)
+    default_ingredients = [
+        IngredientInfo(name="단일 단백질원 (LID)", reason="소화 흡수가 쉽고 식이 알레르기 유발 가능성을 낮춥니다."),
+        IngredientInfo(name="오메가-3 및 오메가-6 지방산", reason="피부 장벽을 강화하고 피모 건강 및 염증 완화에 도움을 줍니다."),
+        IngredientInfo(name="프리바이오틱스 / 식이섬유", reason="장내 유익균 증식을 돕고 건강한 변 형성을 지원합니다.")
+    ]
+    default_avoid = ["인공 색소 및 합성 감미료", "밀/옥수수 글루텐", "육류 부산물 및 불분명한 원료"]
+    default_tips = [
+        "기존 사료에서 새 사료로 전환 시 7~10일에 걸쳐 서서히 비율을 늘려주세요.",
+        "하루 권장 칼로리를 2~3회로 나누어 일정한 시간에 급여하세요.",
+        "사료 교체 기간에는 불필요한 간식 급여를 최소화하세요."
+    ]
+    default_note = "사료 교체 후 2주 이상 설사, 구토, 피부 발적이 지속된다면 수의사의 진료와 상담을 권장합니다."
+
+    return FoodRecommendResponse(
+        petSummary=summary,
+        recommendedIngredients=default_ingredients,
+        avoidIngredients=default_avoid,
+        feedingTips=default_tips,
+        vetNote=default_note
+    )
+
+
 # =====================================================================
-# [Endpoint 6] POST /ai/chat/stream : RAG 기반 SSE 스트리밍 챗봇
+# [Endpoint 7] POST /ai/chat/stream : RAG 기반 SSE 스트리밍 챗봇
 # =====================================================================
 
 class ChatStreamRequest(BaseModel):
-    message: str = Field(..., example="강아지가 헐담이는 이유가 뛭니요?", description="보호자가 입력한 자유 질문")
+    message: str = Field(..., example="강아지가 헐떡이는 이유가 무엇인가요?", description="보호자가 입력한 자유 질문")
     species: Optional[str] = Field(None, example="DOG", description="반려동물 종 (선택, DOG/CAT)")
 
 
@@ -759,11 +915,11 @@ async def _stream_chat_response(
     """
     SSE 이벤트 제네레이터.
     - RAG 벡터 검색으로 수의학 문서 3개 추출
-    - OpenAI stream=True 로 성 단위 SSE 전송
+    - Gemini stream=True 로 토큰 단위 SSE 전송
     - 완료 시 [SOURCES] 이벤트로 출처 목록 전송
-    - OpenAI 미연동 시 RAG 문서 요약 템플릿 Fallback
+    - Gemini 미연동 시 RAG 문서 요약 템플릿 Fallback
     """
-    # 1. RAG 빡터 검색
+    # 1. RAG 벡터 검색
     rag_query = message
     if species:
         rag_query = f"[{species}] {message}"
@@ -784,12 +940,13 @@ async def _stream_chat_response(
             for i, doc in enumerate(rag_results["documents"])
         )
 
-    # 2. OpenAI 스트리밍 시도
-    api_key = os.getenv("OPENAI_API_KEY")
-    if HAS_OPENAI and api_key and rag_context:
+    # 2. Gemini 스트리밍 시도
+    api_key = os.getenv("GEMINI_API_KEY")
+    if HAS_GEMINI and api_key and rag_context:
         try:
-            client = openai.OpenAI(api_key=api_key)
-            species_ctx = f" ({species}를 키우고 있습니다." if species else ""
+            genai.configure(api_key=api_key)
+            model = genai.GenerativeModel(LLM_MODEL)
+            species_ctx = f" ({species}를 키우고 있습니다.)" if species else ""
             prompt = f"""너는 다정하고 전문적인 반려동물 웰니스 코치야.{species_ctx}
 아래 수의학 참고 자료를 바탕으로 보호자의 질문에 친절하고 정확하게 답해줘.
 
@@ -803,21 +960,14 @@ async def _stream_chat_response(
 1. 특정 질병명이나 약품 처방을 절대 언급하지 말 것.
 2. 수의학 참고 자료 번호([수의학 참고 N])를 직접 언급하지 말 것.
 3. 3문단 이내로 친근하게 작성할 것.
-4. 증상이 24시간 이상 지속되는 경우 수의사 베지트 권유 문구를 자연스럽게 포함할 것."""
+4. 증상이 24시간 이상 지속되는 경우 수의사 방문 권유 문구를 자연스럽게 포함할 것."""
 
-            stream = client.chat.completions.create(
-                model=LLM_MODEL,
-                messages=[{"role": "user", "content": prompt}],
-                max_tokens=400,
-                temperature=0.7,
-                stream=True,
-            )
+            response = model.generate_content(prompt, stream=True)
 
-            # 성 단위로 SSE data 전송
-            for chunk in stream:
-                delta = chunk.choices[0].delta
-                if delta and delta.content:
-                    token = delta.content
+            # 토큰 단위로 SSE data 전송
+            for chunk in response:
+                if chunk.text:
+                    token = chunk.text
                     yield f"data: {json.dumps({'type': 'token', 'content': token}, ensure_ascii=False)}\n\n"
                     await asyncio.sleep(0)   # 이벤트 루프 양보
 
@@ -828,7 +978,7 @@ async def _stream_chat_response(
             yield f"data: {json.dumps({'type': 'token', 'content': fallback}, ensure_ascii=False)}\n\n"
 
     else:
-        # OpenAI 미연동 Fallback
+        # Gemini 미연동 Fallback
         fallback = _build_rag_fallback(message, rag_results)
         yield f"data: {json.dumps({'type': 'token', 'content': fallback}, ensure_ascii=False)}\n\n"
 

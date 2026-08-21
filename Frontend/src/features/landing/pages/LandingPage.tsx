@@ -1,133 +1,118 @@
-import { Link } from 'react-router-dom'
-import heroImage from '../../../assets/images/pet-wellness-hero.png'
+import { useState, type FormEvent } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
+import heroImage from '../../../assets/images/pet-wellness-hero.webp'
+import { LoadingButton } from '../../../components/common/LoadingButton'
+import { TextField } from '../../../components/common/TextField'
+import { useAuth } from '../../auth/hooks/useAuth'
 import styles from './LandingPage.module.css'
 
-const features = [
-  {
-    number: '01',
-    title: '매일의 생체정보',
-    description: '체온·심박수·호흡수의 흐름을 한눈에 살펴보고 작은 변화도 놓치지 않아요.',
-  },
-  {
-    number: '02',
-    title: '차근차근 건강 문진',
-    description: '복잡하지 않은 단계형 문진으로 오늘의 증상과 생활 상태를 편하게 기록해요.',
-  },
-  {
-    number: '03',
-    title: '이해하기 쉬운 위험도',
-    description: 'AI 분석 결과를 확률·등급·주요 요인으로 나누어 보호자가 이해하기 쉽게 보여줘요.',
-  },
-]
-
-const steps = [
-  ['반려동물 등록', '아이의 기본 정보와 평소 건강 상태를 등록해요.'],
-  ['건강 신호 기록', '생체정보와 문진을 통해 오늘의 상태를 남겨요.'],
-  ['변화 확인', '분석 결과와 주간 리포트에서 변화의 흐름을 확인해요.'],
-]
-
 export function LandingPage() {
+  const navigate = useNavigate()
+  const { currentUser, login } = useAuth()
+  const [showPassword, setShowPassword] = useState(false)
+  const [error, setError] = useState('')
+
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    setError('')
+
+    const data = new FormData(event.currentTarget)
+    const result = login(
+      String(data.get('username')),
+      String(data.get('password')),
+      data.get('remember') === 'on',
+    )
+
+    if (!result.success) {
+      setError(result.message ?? '로그인하지 못했습니다.')
+      return
+    }
+
+    navigate('/dashboard')
+  }
+
   return (
-    <>
-      <section className={styles.hero}>
-        <div className={styles.heroCopy}>
-          <p className={styles.eyebrow}>SMARTER CARE, EVERY DAY</p>
-          <h1>
-            매일의 작은 변화를,
-            <span> 더 일찍 알아보세요.</span>
-          </h1>
-          <p className={styles.heroDescription}>
-            생체정보와 건강 문진을 하나로 모아 반려동물의 이상 징후를
-            이해하기 쉬운 건강 신호로 전해드려요.
-          </p>
-          <div className={styles.heroActions}>
-            <Link className={styles.primaryButton} to="/dashboard">
-              건강 대시보드 보기
-            </Link>
-            <a className={styles.textLink} href="#how-it-works">
-              이용 방법 알아보기 <span aria-hidden="true">→</span>
-            </a>
-          </div>
-          <div className={styles.trustNote}>
-            <span aria-hidden="true">●</span>
-            <p>진단이 아닌, 일상 속 건강 변화 관리를 위한 서비스입니다.</p>
-          </div>
+    <div className={styles.page}>
+      <section className={styles.introPanel} aria-labelledby="home-heading">
+        <img
+          src={heroImage}
+          alt="햇살이 비치는 정원에서 함께 쉬고 있는 강아지와 고양이"
+          width="1280"
+          height="853"
+          decoding="async"
+          fetchPriority="high"
+        />
+        <div className={styles.imageOverlay} aria-hidden="true" />
+        <div className={styles.introCopy}>
+          <p>SMARTER CARE, EVERY DAY</p>
+          <h1 id="home-heading">매일의 작은 변화를,<br />더 일찍 알아보세요.</h1>
+          <span>
+            생체정보와 건강 문진을 한곳에 모아<br />
+            우리 아이의 오늘을 차분하게 살펴봅니다.
+          </span>
         </div>
+        <div className={styles.careNote}>
+          <span aria-hidden="true">●</span>
+          <p>건강관리를 위한 참고 서비스이며 의료 진단을 대신하지 않습니다.</p>
+        </div>
+      </section>
 
-        <div className={styles.heroVisual}>
-          <img
-            src={heroImage}
-            alt="햇살이 비치는 정원에서 함께 쉬고 있는 강아지와 고양이"
-          />
-          <div className={styles.imageFrame} aria-hidden="true" />
-          <div className={styles.statusCard}>
-            <span className={styles.statusIcon} aria-hidden="true">♥</span>
-            <div>
-              <small>오늘의 건강 신호</small>
-              <strong>안정적으로 보여요</strong>
+      <section className={styles.loginPanel} id="home-login" aria-labelledby="login-heading">
+        <div className={styles.loginWrap}>
+          {currentUser ? (
+            <div className={styles.signedInCard}>
+              <p className={styles.eyebrow}>WELCOME BACK</p>
+              <span className={styles.profileMark} aria-hidden="true">{currentUser.name.slice(0, 1)}</span>
+              <h2 id="login-heading">{currentUser.name}님,<br />다시 만나 반가워요.</h2>
+              <p>등록한 반려동물의 오늘 상태를 확인해 보세요.</p>
+              <Link className={styles.primaryButton} to="/dashboard">우리 아이 상태 확인하기</Link>
+              <Link className={styles.secondaryLink} to="/mypage">마이페이지로 이동</Link>
             </div>
-            <span className={styles.statusBadge}>정상</span>
-          </div>
+          ) : (
+            <>
+              <p className={styles.eyebrow}>MEMBER LOGIN</p>
+              <h2 id="login-heading">다시 만나 반가워요.</h2>
+              <p className={styles.description}>로그인하고 우리 아이의 오늘 상태를 확인해 보세요.</p>
+
+              <form onSubmit={handleSubmit}>
+                <TextField
+                  containerClassName={styles.field}
+                  label="아이디"
+                  name="username"
+                  type="text"
+                  required
+                  autoComplete="username"
+                  placeholder="아이디를 입력해 주세요"
+                />
+                <div className={styles.field}>
+                  <label htmlFor="home-password"><span>비밀번호</span></label>
+                  <div className={styles.passwordField}>
+                    <input
+                      id="home-password"
+                      name="password"
+                      type={showPassword ? 'text' : 'password'}
+                      required
+                      autoComplete="current-password"
+                      placeholder="비밀번호를 입력해 주세요"
+                    />
+                    <button type="button" onClick={() => setShowPassword((current) => !current)}>
+                      {showPassword ? '숨기기' : '보기'}
+                    </button>
+                  </div>
+                </div>
+                <div className={styles.formOptions}>
+                  <label><input name="remember" type="checkbox" /> 로그인 유지</label>
+                </div>
+                {error && <div className={styles.errorMessage} role="alert">{error}</div>}
+                <LoadingButton className={styles.submitButton} type="submit">로그인</LoadingButton>
+              </form>
+
+              <p className={styles.switchText}>아직 계정이 없나요? <Link to="/signup">회원가입</Link></p>
+              <div className={styles.mockNotice}>현재는 화면 시연 단계로 로그인 정보가 이 브라우저에만 저장됩니다.</div>
+            </>
+          )}
         </div>
       </section>
-
-      <section className={styles.promise} aria-label="서비스 핵심 가치">
-        <p>관찰은 가볍게</p>
-        <span aria-hidden="true">✦</span>
-        <p>기록은 간편하게</p>
-        <span aria-hidden="true">✦</span>
-        <p>건강 신호는 명확하게</p>
-      </section>
-
-      <section className={styles.section} id="services">
-        <div className={styles.sectionHeading}>
-          <p className={styles.eyebrow}>MEANINGFUL INSIGHTS</p>
-          <h2>함께 사는 매일이<br />건강 데이터가 됩니다.</h2>
-          <p>
-            어렵고 불안한 정보 대신, 보호자가 지금 확인해야 할 내용을
-            차분하고 분명하게 정리합니다.
-          </p>
-        </div>
-
-        <div className={styles.featureGrid}>
-          {features.map((feature) => (
-            <article className={styles.featureCard} key={feature.number}>
-              <span>{feature.number}</span>
-              <div className={styles.featureIcon} aria-hidden="true">
-                {feature.number === '01' ? '⌁' : feature.number === '02' ? '✓' : '◎'}
-              </div>
-              <h3>{feature.title}</h3>
-              <p>{feature.description}</p>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      <section className={styles.processSection} id="how-it-works">
-        <div className={styles.processIntro}>
-          <p className={styles.eyebrow}>SIMPLE HEALTH ROUTINE</p>
-          <h2>하루 몇 분으로 시작하는<br />우리 아이 건강 루틴</h2>
-        </div>
-        <ol className={styles.steps}>
-          {steps.map(([title, description], index) => (
-            <li key={title}>
-              <span>0{index + 1}</span>
-              <div>
-                <h3>{title}</h3>
-                <p>{description}</p>
-              </div>
-            </li>
-          ))}
-        </ol>
-      </section>
-
-      <section className={styles.finalCta}>
-        <p className={styles.eyebrow}>CARE WITH CONFIDENCE</p>
-        <h2>말하지 못하는 작은 신호까지<br />꾸준히 살펴볼 수 있도록.</h2>
-        <Link className={styles.lightButton} to="/dashboard">
-          PetPulse 시작하기
-        </Link>
-      </section>
-    </>
+    </div>
   )
 }

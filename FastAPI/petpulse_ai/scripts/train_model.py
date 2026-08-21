@@ -56,7 +56,7 @@ def train_and_evaluate():
             X[col] = X[col].astype(int)
 
     # 4. 피처 전처리기(ColumnTransformer) 구성
-    num_cols = ["age", "weight", "temperature", "heart_rate", "respiratory_rate", "symptomDurationDays"]
+    num_cols = ["age", "weight", "temperature", "heartRate", "respiratoryRate", "symptomDurationDays"]
     ordinal_cols = ["appetiteLevel", "waterIntakeLevel", "activityLevel"]
     ordinal_cats = [
         ["NONE", "DECREASED", "NORMAL", "INCREASED"],  # 식욕

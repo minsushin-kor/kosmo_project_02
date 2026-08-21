@@ -115,9 +115,22 @@
   box-shadow: 0 0.2rem 0.6rem rgba(64, 70, 45, 0.12);
 }
 
+.chartMeta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 1.5rem 0 0.75rem;
+  gap: 1rem;
+}
+
+.chartMeta > span {
+  color: var(--color-text-soft);
+  font-size: 0.68rem;
+  font-weight: 750;
+}
+
 .legend {
   display: flex;
-  margin: 1.5rem 0 0.75rem;
   gap: 1rem;
   flex-wrap: wrap;
 }
@@ -157,6 +170,8 @@
 .chart polyline {
   fill: none;
   stroke-width: 4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
   vector-effect: non-scaling-stroke;
 }
 
@@ -188,6 +203,36 @@
 .xAxis span {
   color: var(--color-text-soft);
   font-size: 0.65rem;
+}
+
+.emptyChart {
+  display: grid;
+  min-height: 14rem;
+  place-items: center;
+  align-content: center;
+  border: 1px dashed var(--color-line);
+  border-radius: 1rem;
+  background: var(--color-sand-soft);
+  color: var(--color-text-soft);
+  gap: 0.65rem;
+  text-align: center;
+}
+
+.emptyChart span {
+  display: grid;
+  width: 3rem;
+  height: 3rem;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--color-surface);
+  color: var(--color-secondary-strong);
+  font-size: 1.4rem;
+}
+
+.emptyChart p {
+  margin: 0;
+  font-size: 0.78rem;
+  font-weight: 700;
 }
 
 .panelHeader > button {
@@ -245,5 +290,10 @@
 
   .chart {
     height: 14rem;
+  }
+
+  .chartMeta {
+    align-items: flex-start;
+    flex-direction: column;
   }
 }

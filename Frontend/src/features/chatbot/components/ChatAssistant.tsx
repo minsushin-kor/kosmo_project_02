@@ -73,7 +73,7 @@ export function ChatAssistant({ variant, isOpen, onOpen, onClose }: ChatAssistan
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const lastMessageContent = messages.at(-1)?.content
   const suggestions = [
-    `${selectedPet.name}의 오늘 건강 상태를 요약해 줘`,
+    selectedPet ? `${selectedPet.name}의 오늘 건강 상태를 요약해 줘` : '반려동물의 오늘 건강 상태를 확인하는 방법은?',
     '반려동물의 정상 체온 범위는?',
     '식욕이 줄었을 때 확인할 점은?',
   ]
@@ -166,10 +166,12 @@ export function ChatAssistant({ variant, isOpen, onOpen, onClose }: ChatAssistan
             </div>
           </header>
 
-          <div className={styles.petContext}>
-            <span aria-hidden="true">{getPetEmoji(selectedPet.species)}</span>
-            <p><strong>{selectedPet.name}</strong>에 대해 질문하고 있어요</p>
-          </div>
+          {selectedPet && (
+            <div className={styles.petContext}>
+              <span aria-hidden="true">{getPetEmoji(selectedPet.species)}</span>
+              <p><strong>{selectedPet.name}</strong>에 대해 질문하고 있어요</p>
+            </div>
+          )}
 
           <div className={styles.messageList} ref={messageListRef} aria-live="polite">
             {messages.map((message) => (
@@ -196,7 +198,7 @@ export function ChatAssistant({ variant, isOpen, onOpen, onClose }: ChatAssistan
               onKeyDown={handleKeyDown}
               rows={1}
               maxLength={1000}
-              placeholder={`${selectedPet.name}의 건강에 대해 물어보세요`}
+              placeholder={selectedPet ? `${selectedPet.name}의 건강에 대해 물어보세요` : '반려동물 건강에 대해 물어보세요'}
               aria-label="챗봇 질문 입력"
             />
             {isStreaming ? (

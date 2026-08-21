@@ -507,6 +507,12 @@
   30% { opacity: 1; transform: translateY(-0.18rem); }
 }
 
+@media (max-width: 900px) {
+  .promptBubble {
+    display: none;
+  }
+}
+
 @media (max-width: 620px) {
   .floating,
   .dashboard {
