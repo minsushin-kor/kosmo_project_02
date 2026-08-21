@@ -6,6 +6,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequiredArgsConstructor
 public class HealthPredictionController {
@@ -36,5 +38,18 @@ public class HealthPredictionController {
                 return ResponseEntity.ok(
                                 healthPredictionService
                                                 .getPredictionByQuestionnaire(questionnaireId));
+        }
+
+        @GetMapping("/api/pets/{petId}/predictions")
+        public ResponseEntity<List<HealthPredictionResponse>> getMonthlyPredictions(
+                        @PathVariable Long petId,
+                        @RequestParam int year,
+                        @RequestParam int month) {
+
+                return ResponseEntity.ok(
+                                healthPredictionService.getMonthlyPredictions(
+                                                petId,
+                                                year,
+                                                month));
         }
 }
