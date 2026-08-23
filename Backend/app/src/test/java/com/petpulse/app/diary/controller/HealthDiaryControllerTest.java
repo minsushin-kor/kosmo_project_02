@@ -11,6 +11,8 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import static org.mockito.Mockito.mock;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 
 class HealthDiaryControllerTest {
 
@@ -31,10 +33,16 @@ class HealthDiaryControllerTest {
     void statusOtherThanGoodOrWatchReturnsBadRequest() throws Exception {
         mockMvc.perform(put("/api/pets/1/diary/2026-08-18")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
+                .content("""
                                 {"status":"BAD","note":""}
                                 """))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.error").value("INVALID_REQUEST"))
+                .andExpect(jsonPath("$.message").isNotEmpty())
+                .andExpect(jsonPath("$.trace").doesNotExist())
+                .andExpect(content().string(org.hamcrest.Matchers.not(
+                        org.hamcrest.Matchers.containsString("HttpMessageNotReadableException"))));
     }
 
     @Test
@@ -52,9 +60,16 @@ class HealthDiaryControllerTest {
         String note = "가".repeat(301);
 
         mockMvc.perform(put("/api/pets/1/diary/2026-08-18")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(requestJson("WATCH", note)))
-                .andExpect(status().isBadRequest());
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(requestJson("WATCH", note)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.error").value("INVALID_REQUEST"))
+                .andExpect(jsonPath("$.message").value(
+                        org.hamcrest.Matchers.containsString("note")))
+                .andExpect(jsonPath("$.trace").doesNotExist())
+                .andExpect(content().string(org.hamcrest.Matchers.not(
+                        org.hamcrest.Matchers.containsString("MethodArgumentNotValidException"))));
     }
 
     @Test

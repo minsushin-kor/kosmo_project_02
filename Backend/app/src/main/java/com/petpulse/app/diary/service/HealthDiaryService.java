@@ -64,7 +64,7 @@ public class HealthDiaryService {
                         note));
 
         return HealthDiaryEntryResponse.from(
-                healthDiaryEntryRepository.save(entry));
+                healthDiaryEntryRepository.saveAndFlush(entry));
     }
 
     @Transactional

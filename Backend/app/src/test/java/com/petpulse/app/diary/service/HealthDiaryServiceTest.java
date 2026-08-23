@@ -95,7 +95,7 @@ class HealthDiaryServiceTest {
         when(petRepository.findById(1L)).thenReturn(Optional.of(pet));
         when(healthDiaryEntryRepository.findByPetPetIdAndRecordDate(1L, date))
                 .thenAnswer(invocation -> Optional.ofNullable(storedEntry.get()));
-        when(healthDiaryEntryRepository.save(any(HealthDiaryEntry.class)))
+        when(healthDiaryEntryRepository.saveAndFlush(any(HealthDiaryEntry.class)))
                 .thenAnswer(invocation -> {
                     HealthDiaryEntry entry = invocation.getArgument(0);
                     storedEntry.set(entry);
@@ -118,7 +118,7 @@ class HealthDiaryServiceTest {
         assertThat(storedEntry.get().getNote()).isEqualTo("수정 메모");
         verify(healthDiaryEntryRepository, times(2))
                 .findByPetPetIdAndRecordDate(1L, date);
-        verify(healthDiaryEntryRepository, times(2)).save(firstStoredEntry);
+        verify(healthDiaryEntryRepository, times(2)).saveAndFlush(firstStoredEntry);
     }
 
     @Test
@@ -134,7 +134,7 @@ class HealthDiaryServiceTest {
                 .thenReturn(Optional.empty());
         when(healthDiaryEntryRepository.findByPetPetIdAndRecordDate(2L, date))
                 .thenReturn(Optional.empty());
-        when(healthDiaryEntryRepository.save(any(HealthDiaryEntry.class)))
+        when(healthDiaryEntryRepository.saveAndFlush(any(HealthDiaryEntry.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
         healthDiaryService.upsertEntry(
@@ -143,7 +143,7 @@ class HealthDiaryServiceTest {
                 2L, date, new HealthDiaryEntryRequest(GuardianStatus.WATCH, "보리"));
 
         var entryCaptor = org.mockito.ArgumentCaptor.forClass(HealthDiaryEntry.class);
-        verify(healthDiaryEntryRepository, times(2)).save(entryCaptor.capture());
+        verify(healthDiaryEntryRepository, times(2)).saveAndFlush(entryCaptor.capture());
         assertThat(entryCaptor.getAllValues())
                 .extracting(entry -> entry.getPet().getPetId())
                 .containsExactly(1L, 2L);
@@ -164,7 +164,7 @@ class HealthDiaryServiceTest {
         when(petRepository.findById(1L)).thenReturn(Optional.of(pet));
         when(healthDiaryEntryRepository.findByPetPetIdAndRecordDate(1L, date))
                 .thenReturn(Optional.of(existing));
-        when(healthDiaryEntryRepository.save(existing)).thenReturn(existing);
+        when(healthDiaryEntryRepository.saveAndFlush(existing)).thenReturn(existing);
 
         healthDiaryService.upsertEntry(
                 1L,
@@ -173,7 +173,7 @@ class HealthDiaryServiceTest {
 
         assertThat(existing.getGuardianStatus()).isEqualTo(GuardianStatus.WATCH);
         assertThat(existing.getNote()).isEmpty();
-        verify(healthDiaryEntryRepository).save(existing);
+        verify(healthDiaryEntryRepository).saveAndFlush(existing);
     }
 
     @Test
