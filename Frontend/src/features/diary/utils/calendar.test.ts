@@ -16,9 +16,9 @@ describe('health diary calendar', () => {
 
   it('counts only elapsed days in the current month', () => {
     const entries: DiaryEntries = {
-      '2026-08-01': { date: '2026-08-01', status: 'GOOD', note: '', updatedAt: '' },
-      '2026-08-02': { date: '2026-08-02', status: 'WATCH', note: '', updatedAt: '' },
-      '2026-08-20': { date: '2026-08-20', status: 'GOOD', note: '', updatedAt: '' },
+      '2026-08-01': { diaryEntryId: 1, petId: 1, date: '2026-08-01', status: 'GOOD', note: '', createdAt: '', updatedAt: '' },
+      '2026-08-02': { diaryEntryId: 2, petId: 1, date: '2026-08-02', status: 'WATCH', note: '', createdAt: '', updatedAt: '' },
+      '2026-08-20': { diaryEntryId: 3, petId: 1, date: '2026-08-20', status: 'GOOD', note: '', createdAt: '', updatedAt: '' },
     }
 
     expect(getMonthStatusCounts(entries, new Date(2026, 7, 1, 12), today)).toEqual({
