@@ -36,6 +36,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/auth/signup", "/api/auth/login",
                                 "/api/test/**", "/api/health/**", "/actuator/health").permitAll()
                         .requestMatchers("/api/auth/me").authenticated()
+                        .requestMatchers("/api/pets", "/api/pets/**").authenticated()
                         // Transitional policy until domain ownership checks are implemented.
                         .requestMatchers("/api/**").permitAll()
                         .anyRequest().permitAll())

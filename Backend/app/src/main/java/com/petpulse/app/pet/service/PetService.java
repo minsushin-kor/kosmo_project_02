@@ -4,6 +4,8 @@ import com.petpulse.app.pet.dto.PetRequest;
 import com.petpulse.app.pet.dto.PetResponse;
 import com.petpulse.app.pet.entity.Pet;
 import com.petpulse.app.pet.repository.PetRepository;
+import com.petpulse.app.global.exception.BusinessException;
+import com.petpulse.app.global.exception.ErrorCode;
 import com.petpulse.app.user.entity.User;
 import com.petpulse.app.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -21,11 +23,9 @@ public class PetService {
     private final UserRepository userRepository;
 
     @Transactional
-    public PetResponse createPet(PetRequest request) {
+    public PetResponse createPet(String loginId, PetRequest request) {
 
-        User user = userRepository.findById(request.userId())
-                .orElseThrow(() -> new IllegalArgumentException(
-                        "존재하지 않는 사용자입니다. userId=" + request.userId()));
+        User user = findUser(loginId);
 
         Pet pet = new Pet(
                 user,
@@ -44,38 +44,32 @@ public class PetService {
         return toResponse(savedPet);
     }
 
-    public List<PetResponse> getPets(Long userId) {
-
-        if (!userRepository.existsById(userId)) {
-            throw new IllegalArgumentException(
-                    "존재하지 않는 사용자입니다. userId=" + userId);
-        }
+    public List<PetResponse> getPets(String loginId) {
+        User user = findUser(loginId);
 
         return petRepository
-                .findByUserUserIdOrderByCreatedAtDesc(userId)
+                .findByUserUserIdOrderByCreatedAtDesc(user.getUserId())
                 .stream()
                 .map(this::toResponse)
                 .toList();
     }
 
-    public PetResponse getPet(Long petId) {
+    public PetResponse getPet(String loginId, Long petId) {
 
-        Pet pet = findPet(petId);
+        User user = findUser(loginId);
+        Pet pet = findOwnedPet(petId, user.getUserId());
 
         return toResponse(pet);
     }
 
     @Transactional
     public PetResponse updatePet(
+            String loginId,
             Long petId,
             PetRequest request) {
 
-        Pet pet = findPet(petId);
-
-        if (!pet.getUser().getUserId().equals(request.userId())) {
-            throw new IllegalArgumentException(
-                    "해당 사용자의 반려동물이 아닙니다.");
-        }
+        User user = findUser(loginId);
+        Pet pet = findOwnedPet(petId, user.getUserId());
 
         pet.update(
                 request.petName(),
@@ -92,17 +86,26 @@ public class PetService {
     }
 
     @Transactional
-    public void deletePet(Long petId) {
+    public void deletePet(String loginId, Long petId) {
 
-        Pet pet = findPet(petId);
+        User user = findUser(loginId);
+        Pet pet = findOwnedPet(petId, user.getUserId());
 
         petRepository.delete(pet);
     }
 
-    private Pet findPet(Long petId) {
-        return petRepository.findById(petId)
-                .orElseThrow(() -> new IllegalArgumentException(
-                        "존재하지 않는 반려동물입니다. petId=" + petId));
+    private User findUser(String loginId) {
+        return userRepository.findByLoginId(loginId)
+                .orElseThrow(() -> new BusinessException(
+                        ErrorCode.AUTHENTICATION_FAILED,
+                        "인증된 사용자를 찾을 수 없습니다."));
+    }
+
+    private Pet findOwnedPet(Long petId, Long userId) {
+        return petRepository.findByPetIdAndUserUserId(petId, userId)
+                .orElseThrow(() -> new BusinessException(
+                        ErrorCode.RESOURCE_NOT_FOUND,
+                        "반려동물을 찾을 수 없습니다."));
     }
 
     private PetResponse toResponse(Pet pet) {

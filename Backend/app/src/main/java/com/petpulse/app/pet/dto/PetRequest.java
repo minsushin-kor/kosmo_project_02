@@ -12,9 +12,6 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 
 public record PetRequest(
-
-        @NotNull Long userId,
-
         @NotBlank @Size(max = 50) String petName,
 
         @NotNull PetSpecies species,

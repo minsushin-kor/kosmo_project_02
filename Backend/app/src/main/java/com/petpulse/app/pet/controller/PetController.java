@@ -7,6 +7,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -20,8 +21,9 @@ public class PetController {
 
     @PostMapping
     public ResponseEntity<PetResponse> createPet(
+            Authentication authentication,
             @Valid @RequestBody PetRequest request) {
-        PetResponse response = petService.createPet(request);
+        PetResponse response = petService.createPet(authentication.getName(), request);
 
         return ResponseEntity
                 .status(HttpStatus.CREATED)
@@ -30,33 +32,36 @@ public class PetController {
 
     @GetMapping
     public ResponseEntity<List<PetResponse>> getPets(
-            @RequestParam Long userId) {
-        List<PetResponse> response = petService.getPets(userId);
+            Authentication authentication) {
+        List<PetResponse> response = petService.getPets(authentication.getName());
 
         return ResponseEntity.ok(response);
     }
 
     @GetMapping("/{petId}")
     public ResponseEntity<PetResponse> getPet(
+            Authentication authentication,
             @PathVariable Long petId) {
-        PetResponse response = petService.getPet(petId);
+        PetResponse response = petService.getPet(authentication.getName(), petId);
 
         return ResponseEntity.ok(response);
     }
 
     @PutMapping("/{petId}")
     public ResponseEntity<PetResponse> updatePet(
+            Authentication authentication,
             @PathVariable Long petId,
             @Valid @RequestBody PetRequest request) {
-        PetResponse response = petService.updatePet(petId, request);
+        PetResponse response = petService.updatePet(authentication.getName(), petId, request);
 
         return ResponseEntity.ok(response);
     }
 
     @DeleteMapping("/{petId}")
     public ResponseEntity<Void> deletePet(
+            Authentication authentication,
             @PathVariable Long petId) {
-        petService.deletePet(petId);
+        petService.deletePet(authentication.getName(), petId);
 
         return ResponseEntity.noContent().build();
     }
