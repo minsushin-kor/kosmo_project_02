@@ -1,7 +1,7 @@
 package com.petpulse.app.questionnaire.service;
 
 import com.petpulse.app.pet.entity.Pet;
-import com.petpulse.app.pet.repository.PetRepository;
+import com.petpulse.app.pet.service.PetAccessService;
 import com.petpulse.app.questionnaire.dto.QuestionnaireRequest;
 import com.petpulse.app.questionnaire.dto.QuestionnaireResponse;
 import com.petpulse.app.questionnaire.entity.Questionnaire;
@@ -18,16 +18,15 @@ import java.util.List;
 public class QuestionnaireService {
 
     private final QuestionnaireRepository questionnaireRepository;
-    private final PetRepository petRepository;
+    private final PetAccessService petAccessService;
 
     @Transactional
     public QuestionnaireResponse createQuestionnaire(
+            String loginId,
             Long petId,
             QuestionnaireRequest request) {
 
-        Pet pet = petRepository.findById(petId)
-                .orElseThrow(() -> new IllegalArgumentException(
-                        "존재하지 않는 반려동물입니다. petId=" + petId));
+        Pet pet = petAccessService.requireOwnedPet(loginId, petId);
 
         Questionnaire questionnaire = new Questionnaire(
                 pet,
@@ -50,12 +49,9 @@ public class QuestionnaireService {
         return QuestionnaireResponse.from(savedQuestionnaire);
     }
 
-    public List<QuestionnaireResponse> getQuestionnaires(Long petId) {
+    public List<QuestionnaireResponse> getQuestionnaires(String loginId, Long petId) {
 
-        if (!petRepository.existsById(petId)) {
-            throw new IllegalArgumentException(
-                    "존재하지 않는 반려동물입니다. petId=" + petId);
-        }
+        petAccessService.requireOwnedPet(loginId, petId);
 
         return questionnaireRepository
                 .findByPetPetIdOrderBySubmittedAtDesc(petId)
@@ -64,13 +60,11 @@ public class QuestionnaireService {
                 .toList();
     }
 
-    public QuestionnaireResponse getQuestionnaire(Long questionnaireId) {
+    public QuestionnaireResponse getQuestionnaire(String loginId, Long questionnaireId) {
 
         Questionnaire questionnaire = questionnaireRepository
-                .findById(questionnaireId)
-                .orElseThrow(() -> new IllegalArgumentException(
-                        "존재하지 않는 문진입니다. questionnaireId="
-                                + questionnaireId));
+                .findByQuestionnaireIdAndPetUserLoginId(questionnaireId, loginId)
+                .orElseThrow(() -> petAccessService.notFound("문진을 찾을 수 없습니다."));
 
         return QuestionnaireResponse.from(questionnaire);
     }

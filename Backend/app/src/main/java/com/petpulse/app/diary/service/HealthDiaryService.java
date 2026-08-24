@@ -7,7 +7,7 @@ import com.petpulse.app.diary.repository.HealthDiaryEntryRepository;
 import com.petpulse.app.global.exception.BusinessException;
 import com.petpulse.app.global.exception.ErrorCode;
 import com.petpulse.app.pet.entity.Pet;
-import com.petpulse.app.pet.repository.PetRepository;
+import com.petpulse.app.pet.service.PetAccessService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,13 +23,14 @@ import java.util.List;
 public class HealthDiaryService {
 
     private final HealthDiaryEntryRepository healthDiaryEntryRepository;
-    private final PetRepository petRepository;
+    private final PetAccessService petAccessService;
 
     public List<HealthDiaryEntryResponse> getMonthlyEntries(
+            String loginId,
             Long petId,
             int year,
             int month) {
-        requirePet(petId);
+        petAccessService.requireOwnedPet(loginId, petId);
         YearMonth yearMonth = requireYearMonth(year, month);
 
         return healthDiaryEntryRepository
@@ -44,10 +45,11 @@ public class HealthDiaryService {
 
     @Transactional
     public HealthDiaryEntryResponse upsertEntry(
+            String loginId,
             Long petId,
             LocalDate date,
             HealthDiaryEntryRequest request) {
-        Pet pet = requirePet(petId);
+        Pet pet = petAccessService.requireOwnedPet(loginId, petId);
         requireNotFuture(date);
         String note = request.note() == null ? "" : request.note();
 
@@ -68,18 +70,11 @@ public class HealthDiaryService {
     }
 
     @Transactional
-    public void deleteEntry(Long petId, LocalDate date) {
-        requirePet(petId);
+    public void deleteEntry(String loginId, Long petId, LocalDate date) {
+        petAccessService.requireOwnedPet(loginId, petId);
         healthDiaryEntryRepository
                 .findByPetPetIdAndRecordDate(petId, date)
                 .ifPresent(healthDiaryEntryRepository::delete);
-    }
-
-    private Pet requirePet(Long petId) {
-        return petRepository.findById(petId)
-                .orElseThrow(() -> new BusinessException(
-                        ErrorCode.RESOURCE_NOT_FOUND,
-                        "존재하지 않는 반려동물입니다. petId=" + petId));
     }
 
     private YearMonth requireYearMonth(int year, int month) {

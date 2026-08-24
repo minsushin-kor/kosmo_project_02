@@ -7,6 +7,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
@@ -21,27 +22,30 @@ public class HealthDiaryController {
 
     @GetMapping
     public ResponseEntity<List<HealthDiaryEntryResponse>> getMonthlyEntries(
+            Authentication authentication,
             @PathVariable Long petId,
             @RequestParam int year,
             @RequestParam int month) {
         return ResponseEntity.ok(
-                healthDiaryService.getMonthlyEntries(petId, year, month));
+                healthDiaryService.getMonthlyEntries(authentication.getName(), petId, year, month));
     }
 
     @PutMapping("/{date}")
     public ResponseEntity<HealthDiaryEntryResponse> upsertEntry(
+            Authentication authentication,
             @PathVariable Long petId,
             @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
             @Valid @RequestBody HealthDiaryEntryRequest request) {
         return ResponseEntity.ok(
-                healthDiaryService.upsertEntry(petId, date, request));
+                healthDiaryService.upsertEntry(authentication.getName(), petId, date, request));
     }
 
     @DeleteMapping("/{date}")
     public ResponseEntity<Void> deleteEntry(
+            Authentication authentication,
             @PathVariable Long petId,
             @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
-        healthDiaryService.deleteEntry(petId, date);
+        healthDiaryService.deleteEntry(authentication.getName(), petId, date);
         return ResponseEntity.noContent().build();
     }
 }

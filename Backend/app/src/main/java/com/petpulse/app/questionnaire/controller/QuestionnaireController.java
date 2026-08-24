@@ -6,6 +6,7 @@ import com.petpulse.app.questionnaire.service.QuestionnaireService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -18,10 +19,11 @@ public class QuestionnaireController {
 
     @PostMapping("/api/pets/{petId}/questionnaires")
     public ResponseEntity<QuestionnaireResponse> createQuestionnaire(
+            Authentication authentication,
             @PathVariable Long petId,
             @RequestBody QuestionnaireRequest request) {
 
-        QuestionnaireResponse response = questionnaireService.createQuestionnaire(petId, request);
+        QuestionnaireResponse response = questionnaireService.createQuestionnaire(authentication.getName(), petId, request);
 
         return ResponseEntity
                 .status(HttpStatus.CREATED)
@@ -30,17 +32,19 @@ public class QuestionnaireController {
 
     @GetMapping("/api/pets/{petId}/questionnaires")
     public ResponseEntity<List<QuestionnaireResponse>> getQuestionnaires(
+            Authentication authentication,
             @PathVariable Long petId) {
 
         return ResponseEntity.ok(
-                questionnaireService.getQuestionnaires(petId));
+                questionnaireService.getQuestionnaires(authentication.getName(), petId));
     }
 
     @GetMapping("/api/questionnaires/{questionnaireId}")
     public ResponseEntity<QuestionnaireResponse> getQuestionnaire(
+            Authentication authentication,
             @PathVariable Long questionnaireId) {
 
         return ResponseEntity.ok(
-                questionnaireService.getQuestionnaire(questionnaireId));
+                questionnaireService.getQuestionnaire(authentication.getName(), questionnaireId));
     }
 }

@@ -1,7 +1,7 @@
 package com.petpulse.app.vital.service;
 
 import com.petpulse.app.pet.entity.Pet;
-import com.petpulse.app.pet.repository.PetRepository;
+import com.petpulse.app.pet.service.PetAccessService;
 import com.petpulse.app.vital.dto.VitalRecordRequest;
 import com.petpulse.app.vital.dto.VitalRecordResponse;
 import com.petpulse.app.vital.entity.VitalRecord;
@@ -26,17 +26,16 @@ import com.petpulse.app.alert.repository.HealthAlertRepository;
 public class VitalRecordService {
 
         private final VitalRecordRepository vitalRecordRepository;
-        private final PetRepository petRepository;
+        private final PetAccessService petAccessService;
         private final HealthAlertRepository healthAlertRepository;
 
         @Transactional
         public VitalRecordResponse createVitalRecord(
+                        String loginId,
                         Long petId,
                         VitalRecordRequest request) {
 
-                Pet pet = petRepository.findById(petId)
-                                .orElseThrow(() -> new IllegalArgumentException(
-                                                "존재하지 않는 반려동물입니다. petId=" + petId));
+                Pet pet = petAccessService.requireOwnedPet(loginId, petId);
 
                 LocalDateTime measuredAt = request.measuredAt() != null
                                 ? request.measuredAt()
@@ -66,27 +65,20 @@ public class VitalRecordService {
                 return toResponse(savedVitalRecord);
         }
 
-        public VitalRecordResponse getLatestVitalRecord(Long petId) {
+        public VitalRecordResponse getLatestVitalRecord(String loginId, Long petId) {
 
-                if (!petRepository.existsById(petId)) {
-                        throw new IllegalArgumentException(
-                                        "존재하지 않는 반려동물입니다. petId=" + petId);
-                }
+                petAccessService.requireOwnedPet(loginId, petId);
 
                 VitalRecord vitalRecord = vitalRecordRepository
                                 .findFirstByPetPetIdOrderByMeasuredAtDesc(petId)
-                                .orElseThrow(() -> new IllegalArgumentException(
-                                                "등록된 생체정보가 없습니다. petId=" + petId));
+                                .orElseThrow(() -> petAccessService.notFound("등록된 생체정보가 없습니다."));
 
                 return toResponse(vitalRecord);
         }
 
-        public List<VitalRecordResponse> getVitalRecords(Long petId) {
+        public List<VitalRecordResponse> getVitalRecords(String loginId, Long petId) {
 
-                if (!petRepository.existsById(petId)) {
-                        throw new IllegalArgumentException(
-                                        "존재하지 않는 반려동물입니다. petId=" + petId);
-                }
+                petAccessService.requireOwnedPet(loginId, petId);
 
                 return vitalRecordRepository
                                 .findByPetPetIdOrderByMeasuredAtDesc(petId)

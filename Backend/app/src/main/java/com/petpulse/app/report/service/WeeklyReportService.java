@@ -4,7 +4,7 @@ import com.petpulse.app.alert.entity.AlertSeverity;
 import com.petpulse.app.alert.entity.HealthAlert;
 import com.petpulse.app.alert.repository.HealthAlertRepository;
 import com.petpulse.app.pet.entity.Pet;
-import com.petpulse.app.pet.repository.PetRepository;
+import com.petpulse.app.pet.service.PetAccessService;
 import com.petpulse.app.prediction.entity.HealthPrediction;
 import com.petpulse.app.prediction.repository.HealthPredictionRepository;
 import com.petpulse.app.questionnaire.entity.Questionnaire;
@@ -35,7 +35,7 @@ import java.util.stream.Collectors;
 public class WeeklyReportService {
 
         private final WeeklyReportRepository weeklyReportRepository;
-        private final PetRepository petRepository;
+        private final PetAccessService petAccessService;
         private final VitalRecordRepository vitalRecordRepository;
         private final QuestionnaireRepository questionnaireRepository;
         private final HealthPredictionRepository healthPredictionRepository;
@@ -43,11 +43,9 @@ public class WeeklyReportService {
         private final FastApiWeeklyReportClient fastApiWeeklyReportClient;
 
         @Transactional
-        public WeeklyReportResponse createWeeklyReport(Long petId) {
+        public WeeklyReportResponse createWeeklyReport(String loginId, Long petId) {
 
-                Pet pet = petRepository.findById(petId)
-                                .orElseThrow(() -> new IllegalArgumentException(
-                                                "존재하지 않는 반려동물입니다. petId=" + petId));
+                Pet pet = petAccessService.requireOwnedPet(loginId, petId);
 
                 LocalDate endDate = LocalDate.now();
                 LocalDate startDate = endDate.minusDays(6);
@@ -216,12 +214,10 @@ public class WeeklyReportService {
         }
 
         public List<WeeklyReportResponse> getWeeklyReports(
+                        String loginId,
                         Long petId) {
 
-                if (!petRepository.existsById(petId)) {
-                        throw new IllegalArgumentException(
-                                        "존재하지 않는 반려동물입니다. petId=" + petId);
-                }
+                petAccessService.requireOwnedPet(loginId, petId);
 
                 return weeklyReportRepository
                                 .findByPetPetIdOrderByCreatedAtDesc(petId)
@@ -231,13 +227,12 @@ public class WeeklyReportService {
         }
 
         public WeeklyReportResponse getWeeklyReport(
+                        String loginId,
                         Long reportId) {
 
                 WeeklyReport report = weeklyReportRepository
-                                .findById(reportId)
-                                .orElseThrow(() -> new IllegalArgumentException(
-                                                "존재하지 않는 주간 리포트입니다. reportId="
-                                                                + reportId));
+                                .findByReportIdAndPetUserLoginId(reportId, loginId)
+                                .orElseThrow(() -> petAccessService.notFound("주간 리포트를 찾을 수 없습니다."));
 
                 return WeeklyReportResponse.from(report);
         }

@@ -4,6 +4,7 @@ import com.petpulse.app.alert.dto.HealthAlertResponse;
 import com.petpulse.app.alert.service.HealthAlertService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -17,25 +18,28 @@ public class HealthAlertController {
 
     @GetMapping("/pets/{petId}/alerts")
     public ResponseEntity<List<HealthAlertResponse>> getAlerts(
+            Authentication authentication,
             @PathVariable Long petId) {
 
         return ResponseEntity.ok(
-                healthAlertService.getAlertsByPet(petId));
+                healthAlertService.getAlertsByPet(authentication.getName(), petId));
     }
 
     @PatchMapping("/alerts/{alertId}/read")
     public ResponseEntity<HealthAlertResponse> markAsRead(
+            Authentication authentication,
             @PathVariable Long alertId) {
 
         return ResponseEntity.ok(
-                healthAlertService.markAsRead(alertId));
+                healthAlertService.markAsRead(authentication.getName(), alertId));
     }
 
     @PatchMapping("/pets/{petId}/alerts/read-all")
     public ResponseEntity<Integer> markAllAsRead(
+            Authentication authentication,
             @PathVariable Long petId) {
 
         return ResponseEntity.ok(
-                healthAlertService.markAllAsRead(petId));
+                healthAlertService.markAllAsRead(authentication.getName(), petId));
     }
 }

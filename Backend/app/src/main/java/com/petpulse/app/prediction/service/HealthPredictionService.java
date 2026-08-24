@@ -5,7 +5,7 @@ import com.petpulse.app.alert.entity.HealthAlert;
 import com.petpulse.app.alert.entity.HealthAlertType;
 import com.petpulse.app.alert.repository.HealthAlertRepository;
 import com.petpulse.app.pet.entity.Pet;
-import com.petpulse.app.pet.repository.PetRepository;
+import com.petpulse.app.pet.service.PetAccessService;
 import com.petpulse.app.prediction.client.FastApiHealthPredictionClient;
 import com.petpulse.app.prediction.dto.HealthPredictionResponse;
 import com.petpulse.app.prediction.dto.ai.AiExplainPredictionRequest;
@@ -40,16 +40,14 @@ public class HealthPredictionService {
         private final QuestionnaireRepository questionnaireRepository;
         private final FastApiHealthPredictionClient fastApiHealthPredictionClient;
         private final HealthAlertRepository healthAlertRepository;
-        private final PetRepository petRepository;
+        private final PetAccessService petAccessService;
 
         @Transactional
-        public HealthPredictionResponse createPrediction(Long questionnaireId) {
+        public HealthPredictionResponse createPrediction(String loginId, Long questionnaireId) {
 
                 Questionnaire questionnaire = questionnaireRepository
-                                .findById(questionnaireId)
-                                .orElseThrow(() -> new IllegalArgumentException(
-                                                "존재하지 않는 문진입니다. questionnaireId="
-                                                                + questionnaireId));
+                                .findByQuestionnaireIdAndPetUserLoginId(questionnaireId, loginId)
+                                .orElseThrow(() -> petAccessService.notFound("문진을 찾을 수 없습니다."));
 
                 if (healthPredictionRepository
                                 .existsByQuestionnaireQuestionnaireId(questionnaireId)) {
@@ -121,38 +119,34 @@ public class HealthPredictionService {
                 return HealthPredictionResponse.from(saved);
         }
 
-        public HealthPredictionResponse getPrediction(Long predictionId) {
+        public HealthPredictionResponse getPrediction(String loginId, Long predictionId) {
 
-                HealthPrediction healthPrediction = healthPredictionRepository.findById(predictionId)
-                                .orElseThrow(() -> new IllegalArgumentException(
-                                                "존재하지 않는 예측 결과입니다. predictionId="
-                                                                + predictionId));
+                HealthPrediction healthPrediction = healthPredictionRepository
+                                .findByPredictionIdAndQuestionnairePetUserLoginId(predictionId, loginId)
+                                .orElseThrow(() -> petAccessService.notFound("예측 결과를 찾을 수 없습니다."));
 
                 return HealthPredictionResponse.from(healthPrediction);
         }
 
         public HealthPredictionResponse getPredictionByQuestionnaire(
+                        String loginId,
                         Long questionnaireId) {
 
                 HealthPrediction healthPrediction = healthPredictionRepository
-                                .findByQuestionnaireQuestionnaireId(questionnaireId)
-                                .orElseThrow(() -> new IllegalArgumentException(
-                                                "해당 문진의 예측 결과가 존재하지 않습니다. questionnaireId="
-                                                                + questionnaireId));
+                                .findByQuestionnaireQuestionnaireIdAndQuestionnairePetUserLoginId(
+                                                questionnaireId, loginId)
+                                .orElseThrow(() -> petAccessService.notFound("예측 결과를 찾을 수 없습니다."));
 
                 return HealthPredictionResponse.from(healthPrediction);
         }
 
         public List<HealthPredictionResponse> getMonthlyPredictions(
+                        String loginId,
                         Long petId,
                         int year,
                         int month) {
 
-                if (!petRepository.existsById(petId)) {
-                        throw new BusinessException(
-                                        ErrorCode.RESOURCE_NOT_FOUND,
-                                        "존재하지 않는 반려동물입니다. petId=" + petId);
-                }
+                petAccessService.requireOwnedPet(loginId, petId);
 
                 YearMonth yearMonth;
                 if (year < 1 || year > 9999 || month < 1 || month > 12) {

@@ -7,7 +7,7 @@ import com.petpulse.app.diary.repository.HealthDiaryEntryRepository;
 import com.petpulse.app.global.exception.BusinessException;
 import com.petpulse.app.global.exception.ErrorCode;
 import com.petpulse.app.pet.entity.Pet;
-import com.petpulse.app.pet.repository.PetRepository;
+import com.petpulse.app.pet.service.PetAccessService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -30,7 +30,7 @@ class HealthDiaryServiceTest {
     private HealthDiaryEntryRepository healthDiaryEntryRepository;
 
     @Mock
-    private PetRepository petRepository;
+    private PetAccessService petAccessService;
 
     private HealthDiaryService healthDiaryService;
     @Mock
@@ -40,7 +40,7 @@ class HealthDiaryServiceTest {
     void setUp() {
         healthDiaryService = new HealthDiaryService(
                 healthDiaryEntryRepository,
-                petRepository);
+                petAccessService);
     }
 
     @Test
@@ -53,7 +53,7 @@ class HealthDiaryServiceTest {
                 pet, lastDay, GuardianStatus.WATCH, "월 마지막");
 
         when(pet.getPetId()).thenReturn(1L);
-        when(petRepository.findById(1L)).thenReturn(Optional.of(pet));
+        when(petAccessService.requireOwnedPet("guardian", 1L)).thenReturn(pet);
         when(healthDiaryEntryRepository
                 .findByPetPetIdAndRecordDateBetweenOrderByRecordDateAsc(
                         1L,
@@ -61,7 +61,7 @@ class HealthDiaryServiceTest {
                         lastDay))
                 .thenReturn(List.of(firstEntry, lastEntry));
 
-        assertThat(healthDiaryService.getMonthlyEntries(1L, 2026, 8))
+        assertThat(healthDiaryService.getMonthlyEntries("guardian", 1L, 2026, 8))
                 .extracting(response -> response.date())
                 .containsExactly(firstDay, lastDay);
 
@@ -74,7 +74,7 @@ class HealthDiaryServiceTest {
 
     @Test
     void monthlyEntriesReturnEmptyListWhenMonthHasNoRecords() {
-        when(petRepository.findById(1L)).thenReturn(Optional.of(pet));
+        when(petAccessService.requireOwnedPet("guardian", 1L)).thenReturn(pet);
         when(healthDiaryEntryRepository
                 .findByPetPetIdAndRecordDateBetweenOrderByRecordDateAsc(
                         1L,
@@ -82,7 +82,7 @@ class HealthDiaryServiceTest {
                         LocalDate.of(2026, 9, 30)))
                 .thenReturn(List.of());
 
-        assertThat(healthDiaryService.getMonthlyEntries(1L, 2026, 9))
+        assertThat(healthDiaryService.getMonthlyEntries("guardian", 1L, 2026, 9))
                 .isEmpty();
     }
 
@@ -92,7 +92,7 @@ class HealthDiaryServiceTest {
         AtomicReference<HealthDiaryEntry> storedEntry = new AtomicReference<>();
 
         when(pet.getPetId()).thenReturn(1L);
-        when(petRepository.findById(1L)).thenReturn(Optional.of(pet));
+        when(petAccessService.requireOwnedPet("guardian", 1L)).thenReturn(pet);
         when(healthDiaryEntryRepository.findByPetPetIdAndRecordDate(1L, date))
                 .thenAnswer(invocation -> Optional.ofNullable(storedEntry.get()));
         when(healthDiaryEntryRepository.saveAndFlush(any(HealthDiaryEntry.class)))
@@ -103,13 +103,13 @@ class HealthDiaryServiceTest {
                 });
 
         healthDiaryService.upsertEntry(
-                1L,
+                "guardian", 1L,
                 date,
                 new HealthDiaryEntryRequest(GuardianStatus.GOOD, "첫 메모"));
         HealthDiaryEntry firstStoredEntry = storedEntry.get();
 
         healthDiaryService.upsertEntry(
-                1L,
+                "guardian", 1L,
                 date,
                 new HealthDiaryEntryRequest(GuardianStatus.WATCH, "수정 메모"));
 
@@ -128,8 +128,8 @@ class HealthDiaryServiceTest {
 
         when(pet.getPetId()).thenReturn(1L);
         when(otherPet.getPetId()).thenReturn(2L);
-        when(petRepository.findById(1L)).thenReturn(Optional.of(pet));
-        when(petRepository.findById(2L)).thenReturn(Optional.of(otherPet));
+        when(petAccessService.requireOwnedPet("guardian", 1L)).thenReturn(pet);
+        when(petAccessService.requireOwnedPet("guardian", 2L)).thenReturn(otherPet);
         when(healthDiaryEntryRepository.findByPetPetIdAndRecordDate(1L, date))
                 .thenReturn(Optional.empty());
         when(healthDiaryEntryRepository.findByPetPetIdAndRecordDate(2L, date))
@@ -138,9 +138,9 @@ class HealthDiaryServiceTest {
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
         healthDiaryService.upsertEntry(
-                1L, date, new HealthDiaryEntryRequest(GuardianStatus.GOOD, "초코"));
+                "guardian", 1L, date, new HealthDiaryEntryRequest(GuardianStatus.GOOD, "초코"));
         healthDiaryService.upsertEntry(
-                2L, date, new HealthDiaryEntryRequest(GuardianStatus.WATCH, "보리"));
+                "guardian", 2L, date, new HealthDiaryEntryRequest(GuardianStatus.WATCH, "보리"));
 
         var entryCaptor = org.mockito.ArgumentCaptor.forClass(HealthDiaryEntry.class);
         verify(healthDiaryEntryRepository, times(2)).saveAndFlush(entryCaptor.capture());
@@ -161,13 +161,13 @@ class HealthDiaryServiceTest {
                 GuardianStatus.GOOD,
                 "기존 메모");
 
-        when(petRepository.findById(1L)).thenReturn(Optional.of(pet));
+        when(petAccessService.requireOwnedPet("guardian", 1L)).thenReturn(pet);
         when(healthDiaryEntryRepository.findByPetPetIdAndRecordDate(1L, date))
                 .thenReturn(Optional.of(existing));
         when(healthDiaryEntryRepository.saveAndFlush(existing)).thenReturn(existing);
 
         healthDiaryService.upsertEntry(
-                1L,
+                "guardian", 1L,
                 date,
                 new HealthDiaryEntryRequest(GuardianStatus.WATCH, null));
 
@@ -185,24 +185,24 @@ class HealthDiaryServiceTest {
                 GuardianStatus.GOOD,
                 "삭제 대상");
 
-        when(petRepository.findById(1L)).thenReturn(Optional.of(pet));
+        when(petAccessService.requireOwnedPet("guardian", 1L)).thenReturn(pet);
         when(healthDiaryEntryRepository.findByPetPetIdAndRecordDate(1L, date))
                 .thenReturn(Optional.of(entry));
 
-        healthDiaryService.deleteEntry(1L, date);
+        healthDiaryService.deleteEntry("guardian", 1L, date);
 
         verify(healthDiaryEntryRepository).delete(entry);
         verifyNoMoreInteractions(healthDiaryEntryRepository);
-        verify(petRepository).findById(1L);
-        verifyNoMoreInteractions(petRepository);
+        verify(petAccessService).requireOwnedPet("guardian", 1L);
+        verifyNoMoreInteractions(petAccessService);
     }
 
     @Test
     void futureDateIsRejected() {
-        when(petRepository.findById(1L)).thenReturn(Optional.of(pet));
+        when(petAccessService.requireOwnedPet("guardian", 1L)).thenReturn(pet);
 
         assertThatThrownBy(() -> healthDiaryService.upsertEntry(
-                1L,
+                "guardian", 1L,
                 LocalDate.now().plusDays(1),
                 new HealthDiaryEntryRequest(GuardianStatus.GOOD, "")))
                 .isInstanceOfSatisfying(BusinessException.class, exception ->
@@ -214,9 +214,9 @@ class HealthDiaryServiceTest {
 
     @Test
     void invalidMonthIsRejected() {
-        when(petRepository.findById(1L)).thenReturn(Optional.of(pet));
+        when(petAccessService.requireOwnedPet("guardian", 1L)).thenReturn(pet);
 
-        assertThatThrownBy(() -> healthDiaryService.getMonthlyEntries(1L, 2026, 13))
+        assertThatThrownBy(() -> healthDiaryService.getMonthlyEntries("guardian", 1L, 2026, 13))
                 .isInstanceOfSatisfying(BusinessException.class, exception ->
                         assertThat(exception.getErrorCode())
                                 .isEqualTo(ErrorCode.INVALID_REQUEST));
@@ -226,12 +226,33 @@ class HealthDiaryServiceTest {
 
     @Test
     void missingPetIsRejectedBeforeDiaryLookup() {
-        when(petRepository.findById(99L)).thenReturn(Optional.empty());
+        when(petAccessService.requireOwnedPet("guardian", 99L))
+                .thenThrow(new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "반려동물을 찾을 수 없습니다."));
 
-        assertThatThrownBy(() -> healthDiaryService.getMonthlyEntries(99L, 2026, 8))
+        assertThatThrownBy(() -> healthDiaryService.getMonthlyEntries("guardian", 99L, 2026, 8))
                 .isInstanceOfSatisfying(BusinessException.class, exception ->
                         assertThat(exception.getErrorCode())
                                 .isEqualTo(ErrorCode.RESOURCE_NOT_FOUND));
+
+        verifyNoInteractions(healthDiaryEntryRepository);
+    }
+
+    @Test
+    void foreignPetDiaryReadUpdateAndDeleteAreAllHiddenAsNotFound() {
+        LocalDate date = LocalDate.now();
+        when(petAccessService.requireOwnedPet("other", 1L))
+                .thenThrow(new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "반려동물을 찾을 수 없습니다."));
+
+        assertThatThrownBy(() -> healthDiaryService.getMonthlyEntries("other", 1L, 2026, 8))
+                .isInstanceOfSatisfying(BusinessException.class, exception ->
+                        assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.RESOURCE_NOT_FOUND));
+        assertThatThrownBy(() -> healthDiaryService.upsertEntry(
+                "other", 1L, date, new HealthDiaryEntryRequest(GuardianStatus.GOOD, "메모")))
+                .isInstanceOfSatisfying(BusinessException.class, exception ->
+                        assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.RESOURCE_NOT_FOUND));
+        assertThatThrownBy(() -> healthDiaryService.deleteEntry("other", 1L, date))
+                .isInstanceOfSatisfying(BusinessException.class, exception ->
+                        assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.RESOURCE_NOT_FOUND));
 
         verifyNoInteractions(healthDiaryEntryRepository);
     }

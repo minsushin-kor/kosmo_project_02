@@ -5,6 +5,7 @@ import com.petpulse.app.global.exception.GlobalExceptionHandler;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
@@ -50,6 +51,7 @@ class HealthDiaryControllerTest {
         String note = "가".repeat(300);
 
         mockMvc.perform(put("/api/pets/1/diary/2026-08-18")
+                        .principal(new UsernamePasswordAuthenticationToken("guardian", null, java.util.List.of()))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestJson("GOOD", note)))
                 .andExpect(status().isOk());

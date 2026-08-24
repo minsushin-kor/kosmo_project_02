@@ -3,7 +3,7 @@ package com.petpulse.app.alert.service;
 import com.petpulse.app.alert.dto.HealthAlertResponse;
 import com.petpulse.app.alert.entity.HealthAlert;
 import com.petpulse.app.alert.repository.HealthAlertRepository;
-import com.petpulse.app.pet.repository.PetRepository;
+import com.petpulse.app.pet.service.PetAccessService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -16,14 +16,11 @@ import java.util.List;
 public class HealthAlertService {
 
     private final HealthAlertRepository healthAlertRepository;
-    private final PetRepository petRepository;
+    private final PetAccessService petAccessService;
 
-    public List<HealthAlertResponse> getAlertsByPet(Long petId) {
+    public List<HealthAlertResponse> getAlertsByPet(String loginId, Long petId) {
 
-        if (!petRepository.existsById(petId)) {
-            throw new IllegalArgumentException(
-                    "존재하지 않는 반려동물입니다. petId=" + petId);
-        }
+        petAccessService.requireOwnedPet(loginId, petId);
 
         return healthAlertRepository
                 .findByPetPetIdOrderByCreatedAtDesc(petId)
@@ -33,12 +30,11 @@ public class HealthAlertService {
     }
 
     @Transactional
-    public HealthAlertResponse markAsRead(Long alertId) {
+    public HealthAlertResponse markAsRead(String loginId, Long alertId) {
 
         HealthAlert alert = healthAlertRepository
-                .findById(alertId)
-                .orElseThrow(() -> new IllegalArgumentException(
-                        "존재하지 않는 알림입니다. alertId=" + alertId));
+                .findByAlertIdAndPetUserLoginId(alertId, loginId)
+                .orElseThrow(() -> petAccessService.notFound("알림을 찾을 수 없습니다."));
 
         alert.markAsRead();
 
@@ -46,12 +42,9 @@ public class HealthAlertService {
     }
 
     @Transactional
-    public int markAllAsRead(Long petId) {
+    public int markAllAsRead(String loginId, Long petId) {
 
-        if (!petRepository.existsById(petId)) {
-            throw new IllegalArgumentException(
-                    "존재하지 않는 반려동물입니다. petId=" + petId);
-        }
+        petAccessService.requireOwnedPet(loginId, petId);
 
         List<HealthAlert> alerts = healthAlertRepository
                 .findByPetPetIdOrderByCreatedAtDesc(petId);

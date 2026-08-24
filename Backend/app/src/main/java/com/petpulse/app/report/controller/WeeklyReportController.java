@@ -4,6 +4,7 @@ import com.petpulse.app.report.dto.WeeklyReportResponse;
 import com.petpulse.app.report.service.WeeklyReportService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -17,25 +18,28 @@ public class WeeklyReportController {
 
     @PostMapping("/pets/{petId}/reports/weekly")
     public ResponseEntity<WeeklyReportResponse> createWeeklyReport(
+            Authentication authentication,
             @PathVariable Long petId) {
 
         return ResponseEntity.ok(
-                weeklyReportService.createWeeklyReport(petId));
+                weeklyReportService.createWeeklyReport(authentication.getName(), petId));
     }
 
     @GetMapping("/pets/{petId}/reports/weekly")
     public ResponseEntity<List<WeeklyReportResponse>> getWeeklyReports(
+            Authentication authentication,
             @PathVariable Long petId) {
 
         return ResponseEntity.ok(
-                weeklyReportService.getWeeklyReports(petId));
+                weeklyReportService.getWeeklyReports(authentication.getName(), petId));
     }
 
     @GetMapping("/reports/{reportId}")
     public ResponseEntity<WeeklyReportResponse> getWeeklyReport(
+            Authentication authentication,
             @PathVariable Long reportId) {
 
         return ResponseEntity.ok(
-                weeklyReportService.getWeeklyReport(reportId));
+                weeklyReportService.getWeeklyReport(authentication.getName(), reportId));
     }
 }

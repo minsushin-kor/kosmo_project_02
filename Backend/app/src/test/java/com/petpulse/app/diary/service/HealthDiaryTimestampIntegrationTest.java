@@ -42,6 +42,7 @@ class HealthDiaryTimestampIntegrationTest {
         LocalDate recordDate = LocalDate.now().minusDays(1);
 
         HealthDiaryEntryResponse created = healthDiaryService.upsertEntry(
+                pet.getUser().getLoginId(),
                 pet.getPetId(),
                 recordDate,
                 new HealthDiaryEntryRequest(GuardianStatus.GOOD, "최초 기록"));
@@ -49,11 +50,13 @@ class HealthDiaryTimestampIntegrationTest {
         Thread.sleep(10);
 
         HealthDiaryEntryResponse updated = healthDiaryService.upsertEntry(
+                pet.getUser().getLoginId(),
                 pet.getPetId(),
                 recordDate,
                 new HealthDiaryEntryRequest(GuardianStatus.WATCH, "수정 기록"));
 
         HealthDiaryEntryResponse fetched = healthDiaryService.getMonthlyEntries(
+                        pet.getUser().getLoginId(),
                         pet.getPetId(),
                         recordDate.getYear(),
                         recordDate.getMonthValue())

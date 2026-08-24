@@ -13,6 +13,14 @@ public interface HealthPredictionRepository
     Optional<HealthPrediction> findByQuestionnaireQuestionnaireId(
             Long questionnaireId);
 
+    Optional<HealthPrediction> findByPredictionIdAndQuestionnairePetUserLoginId(
+            Long predictionId,
+            String loginId);
+
+    Optional<HealthPrediction> findByQuestionnaireQuestionnaireIdAndQuestionnairePetUserLoginId(
+            Long questionnaireId,
+            String loginId);
+
     boolean existsByQuestionnaireQuestionnaireId(
             Long questionnaireId);
 
