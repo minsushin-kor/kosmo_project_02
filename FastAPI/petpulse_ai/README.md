@@ -41,7 +41,8 @@ pip install -r requirements.txt
 ```bash
 # .env.example을 복사하여 .env 파일 생성
 copy .env.example .env
-# .env 파일을 열어 OPENAI_API_KEY 값 입력 (없으면 템플릿 Fallback 자동 사용)
+# .env 파일을 열어 GEMINI_API_KEY와 GEMINI_MODEL 설정
+# GEMINI_API_KEY가 없으면 템플릿 Fallback을 사용합니다.
 ```
 
 ### 3. 데이터 생성 및 모델 학습 (petpulse_ai/ 루트에서 실행)
@@ -51,13 +52,23 @@ python scripts/generate_data.py  # 합성 데이터 3,000건 생성
 python scripts/train_model.py    # 4개 모델 비교 → 최고 모델 + SHAP 저장
 ```
 
-### 4. FastAPI 서버 실행
+### 4. 개발 서버 실행
 
 ```bash
-uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
+python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
 ```
 
 Swagger UI: http://127.0.0.1:8000/docs
+
+### 5. 운영 서버 실행
+
+프로젝트 루트(`FastAPI/petpulse_ai`)에서 실행하며 `--reload`를 사용하지 않습니다.
+
+```bash
+python -m uvicorn app.main:app --host 127.0.0.1 --port 8000
+```
+
+외부 요청은 Nginx를 통하고, FastAPI는 loopback 주소에서만 수신합니다.
 
 ---
 
@@ -84,7 +95,7 @@ Swagger UI: http://127.0.0.1:8000/docs
        ↓
 [3. RAG 매칭] primaryRiskFactor → 수의학 지식베이스 체크포인트/조언
        ↓
-[4. LLM 설명] OpenAI API → 보호자 친화적 자연어 설명 (없으면 템플릿 사용)
+[4. LLM 설명] Gemini API → 보호자 친화적 자연어 설명 (없으면 템플릿 사용)
 ```
 
 ### ⚠️ 의료 가드레일

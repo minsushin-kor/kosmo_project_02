@@ -39,6 +39,11 @@ class HealthDomainSecurityIntegrationTest {
         assertUnauthorized(post("/api/ai/food-recommendations"));
     }
 
+    @Test
+    void unspecifiedApiIsProtectedByDefault() throws Exception {
+        assertUnauthorized(get("/api/future-endpoint"));
+    }
+
     private void assertUnauthorized(org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder request)
             throws Exception {
         mockMvc.perform(request)

@@ -35,23 +35,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/signup", "/api/auth/login",
                                 "/api/test/**", "/api/health/**", "/actuator/health").permitAll()
-                        .requestMatchers("/api/auth/me").authenticated()
-                        .requestMatchers("/api/ai/quick-predictions",
-                                "/api/ai/food-recommendations").authenticated()
-                        .requestMatchers(
-                                "/api/pets/*/vitals/**",
-                                "/api/pets/*/questionnaires/**",
-                                "/api/pets/*/predictions/**",
-                                "/api/pets/*/alerts/**",
-                                "/api/pets/*/reports/**",
-                                "/api/pets/*/diary/**",
-                                "/api/questionnaires/**",
-                                "/api/predictions/**",
-                                "/api/reports/**",
-                                "/api/alerts/**").authenticated()
-                        .requestMatchers("/api/pets", "/api/pets/**").authenticated()
-                        // Transitional policy until domain ownership checks are implemented.
-                        .requestMatchers("/api/**").permitAll()
+                        .requestMatchers("/api/**").authenticated()
                         .anyRequest().permitAll())
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();

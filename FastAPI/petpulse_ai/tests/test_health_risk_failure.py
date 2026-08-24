@@ -5,6 +5,23 @@ from app import main
 client = TestClient(main.app)
 
 
+def test_default_cors_origins_are_local_and_never_wildcard():
+    assert main.CORS_ALLOWED_ORIGINS == [
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+    ]
+    assert "*" not in main.CORS_ALLOWED_ORIGINS
+
+
+def test_cors_origin_parser_rejects_wildcard():
+    try:
+        main.parse_cors_allowed_origins("*")
+    except ValueError as error:
+        assert "wildcard" in str(error)
+    else:
+        raise AssertionError("wildcard CORS origin must be rejected")
+
+
 def request():
     return main.HealthRiskPredictRequest(
         species="DOG",

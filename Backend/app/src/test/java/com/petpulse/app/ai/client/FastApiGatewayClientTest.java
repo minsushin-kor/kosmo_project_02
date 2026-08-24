@@ -28,7 +28,7 @@ class FastApiGatewayClientTest {
         server = HttpServer.create(new InetSocketAddress(0), 0);
         server.start();
         FastApiRestClientFactory factory = new FastApiRestClientFactory(
-                "http://127.0.0.1:" + server.getAddress().getPort());
+                "http://127.0.0.1:" + server.getAddress().getPort(), 3, 30);
         predictionClient = new FastApiHealthPredictionClient(factory);
         foodClient = new FastApiFoodRecommendationClient(factory);
     }

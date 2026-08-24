@@ -63,6 +63,20 @@ EMBEDDING_MODEL = None
 # 환경변수에서 LLM 모델명 로드 (기본값: gemini-3.6-flash)
 LLM_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.6-flash")
 
+DEFAULT_CORS_ALLOWED_ORIGINS = "http://localhost:5173,http://127.0.0.1:5173"
+
+
+def parse_cors_allowed_origins(value: str) -> List[str]:
+    origins = [origin.strip() for origin in value.split(",") if origin.strip()]
+    if "*" in origins:
+        raise ValueError("CORS_ALLOWED_ORIGINS must not contain wildcard")
+    return origins
+
+
+CORS_ALLOWED_ORIGINS = parse_cors_allowed_origins(
+    os.getenv("CORS_ALLOWED_ORIGINS", DEFAULT_CORS_ALLOWED_ORIGINS)
+)
+
 # 종별(Species) 생체 임계값 상수
 # 수의학 일반 기준: 강아지와 고양이의 정상 생체 범위가 다름
 # - 강아지 정상 체온: 37.5~39.2°C  / 고양이 정상 체온: 38.0~39.5°C
@@ -179,8 +193,8 @@ app = FastAPI(
 # 백엔드(Spring Boot) 및 프론트엔드(React) 교차 출처(CORS) 허용
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # 실무 개발용 전체 허용
-    allow_credentials=True,
+    allow_origins=CORS_ALLOWED_ORIGINS,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -1033,7 +1047,7 @@ async def chat_stream(req: ChatStreamRequest):
 
 
 # =====================================================================
-# 6. 로컈 직접 실행 가이드 (uvicorn 가동)
+# 6. 개발용 직접 실행 (운영은 README의 reload 없는 CLI 명령 사용)
 # =====================================================================
 if __name__ == "__main__":
     import uvicorn
