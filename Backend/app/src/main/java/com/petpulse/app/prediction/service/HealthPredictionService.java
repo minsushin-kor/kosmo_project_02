@@ -179,6 +179,15 @@ public class HealthPredictionService {
                                 .toList();
         }
 
+        public List<HealthPredictionResponse> getPredictions(String loginId, Long petId) {
+                petAccessService.requireOwnedPet(loginId, petId);
+                return healthPredictionRepository
+                                .findByQuestionnairePetPetIdOrderByPredictedAtDesc(petId)
+                                .stream()
+                                .map(HealthPredictionResponse::from)
+                                .toList();
+        }
+
         private void createPredictionAlertIfNeeded(
                         Pet pet,
                         HealthPrediction prediction,

@@ -2,6 +2,7 @@ import os
 import json
 import joblib
 import asyncio
+import logging
 import numpy as np
 import pandas as pd
 from typing import List, Optional, AsyncGenerator
@@ -10,6 +11,8 @@ from dotenv import load_dotenv
 
 # .env 파일 자동 로드
 load_dotenv()
+
+logger = logging.getLogger(__name__)
 
 from fastapi import FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
@@ -596,13 +599,11 @@ def predict_health_risk(req: HealthRiskPredictRequest):
             primaryRiskFactor=primary_factor
         )
 
-    except Exception as e:
-        print(f"❌ 추론 도중 에러 발생: {e}")
-        # 에러 발생 시에도 500 에러 대신 안전한 기본값 반환
-        return HealthRiskPredictResponse(
-            abnormalProbability=0.0,
-            riskGrade="NORMAL",
-            primaryRiskFactor="이상 없음(정상)"
+    except Exception:
+        logger.exception("Health risk model inference failed")
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="건강 위험도 예측 서비스를 일시적으로 사용할 수 없습니다."
         )
 
 

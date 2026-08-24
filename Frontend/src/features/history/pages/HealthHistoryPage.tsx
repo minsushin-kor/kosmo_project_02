@@ -5,8 +5,7 @@ import { LoadingButton } from '../../../components/common/LoadingButton'
 import { getApiErrorMessage } from '../../../shared/api/apiClient'
 import { PetSectionNav } from '../../pets/components/PetSectionNav'
 import { useRoutePet } from '../../pets/hooks/useRoutePet'
-import { getPredictionByQuestionnaire, type HealthPrediction, type RiskGrade } from '../../predictions/api/predictionApi'
-import { getQuestionnaires } from '../../questionnaire/api/questionnaireApi'
+import { getPredictions, type HealthPrediction, type RiskGrade } from '../../predictions/api/predictionApi'
 import { getHealthAlerts, markAllHealthAlertsRead, markHealthAlertRead, type HealthAlert } from '../api/healthHistoryApi'
 import common from '../../../styles/featurePage.module.css'
 import styles from './HealthHistoryPage.module.css'
@@ -63,17 +62,11 @@ export function HealthHistoryPage() {
 
     Promise.all([
       getHealthAlerts(selectedPet.id, controller.signal),
-      getQuestionnaires(selectedPet.id, controller.signal),
+      getPredictions(selectedPet.id, controller.signal),
     ])
-      .then(async ([loadedAlerts, questionnaires]) => {
+      .then(([loadedAlerts, predictions]) => {
         setAlerts(loadedAlerts)
-        const results = await Promise.allSettled(
-          questionnaires.map((questionnaire) => getPredictionByQuestionnaire(questionnaire.questionnaireId, controller.signal)),
-        )
-        setHistory(results
-          .filter((result): result is PromiseFulfilledResult<HealthPrediction> => result.status === 'fulfilled')
-          .map((result) => result.value)
-          .sort((a, b) => Date.parse(b.predictedAt) - Date.parse(a.predictedAt)))
+        setHistory(predictions)
       })
       .catch((loadError) => {
         if (!(loadError instanceof DOMException && loadError.name === 'AbortError')) {

@@ -6,6 +6,7 @@ import {
 import { Link } from 'react-router-dom'
 
 import { DataState } from '../../../components/common/DataState'
+import { ApiError } from '../../../shared/api/apiClient'
 import {
   getHealthAlerts,
   type HealthAlert,
@@ -13,10 +14,9 @@ import {
 import { PetSelector } from '../../pets/components/PetSelector'
 import { usePets } from '../../pets/hooks/usePets'
 import {
-  getPredictionByQuestionnaire,
+  getPredictions,
   type HealthPrediction,
 } from '../../predictions/api/predictionApi'
-import { getQuestionnaires } from '../../questionnaire/api/questionnaireApi'
 import {
   getWeeklyReports,
   type WeeklyReport,
@@ -141,6 +141,8 @@ export function DashboardPage() {
       null,
     )
 
+  const [dashboardError, setDashboardError] = useState('')
+
   useEffect(() => {
     if (
       !selectedPet ||
@@ -150,6 +152,7 @@ export function DashboardPage() {
       setAlerts([])
       setLatestPrediction(null)
       setLatestReport(null)
+      setDashboardError('')
       return
     }
 
@@ -158,31 +161,11 @@ export function DashboardPage() {
     const petId = selectedPet.id
 
     async function loadDashboard() {
-      const [
-        vital,
-        healthAlerts,
-        questionnaires,
-        reports,
-      ] = await Promise.all([
-        getLatestVital(
-          petId,
-          controller.signal,
-        ).catch(() => null),
-
-        getHealthAlerts(
-          petId,
-          controller.signal,
-        ).catch(() => []),
-
-        getQuestionnaires(
-          petId,
-          controller.signal,
-        ).catch(() => []),
-
-        getWeeklyReports(
-          petId,
-          controller.signal,
-        ).catch(() => []),
+      const results = await Promise.allSettled([
+        getLatestVital(petId, controller.signal),
+        getHealthAlerts(petId, controller.signal),
+        getPredictions(petId, controller.signal),
+        getWeeklyReports(petId, controller.signal),
       ])
 
       if (
@@ -191,33 +174,24 @@ export function DashboardPage() {
         return
       }
 
-      setLatestVital(vital)
-      setAlerts(healthAlerts)
-      setLatestReport(
-        reports[0] ?? null,
-      )
+      const [vitalResult, alertResult, predictionResult, reportResult] = results
+      const vitalRecordMissing = vitalResult.status === 'rejected'
+        && vitalResult.reason instanceof ApiError
+        && vitalResult.reason.status === 404
+      setLatestVital(vitalResult.status === 'fulfilled' ? vitalResult.value : null)
+      setAlerts(alertResult.status === 'fulfilled' ? alertResult.value : [])
+      setLatestPrediction(predictionResult.status === 'fulfilled' ? predictionResult.value[0] ?? null : null)
+      setLatestReport(reportResult.status === 'fulfilled' ? reportResult.value[0] ?? null : null)
 
-      if (
-        questionnaires.length === 0
-      ) {
-        setLatestPrediction(null)
-        return
-      }
-
-      const prediction =
-        await getPredictionByQuestionnaire(
-          questionnaires[0]
-            .questionnaireId,
-          controller.signal,
-        ).catch(() => null)
-
-      if (
-        !controller.signal.aborted
-      ) {
-        setLatestPrediction(
-          prediction,
-        )
-      }
+      const failedSections = [
+        vitalResult.status === 'rejected' && !vitalRecordMissing ? '생체정보' : null,
+        alertResult.status === 'rejected' ? '건강 알림' : null,
+        predictionResult.status === 'rejected' ? 'AI 예측' : null,
+        reportResult.status === 'rejected' ? '주간 리포트' : null,
+      ].filter(Boolean)
+      setDashboardError(failedSections.length > 0
+        ? `${failedSections.join(', ')} 데이터를 불러오지 못했습니다. 다른 정보는 정상적으로 표시됩니다.`
+        : '')
     }
 
     void loadDashboard()
@@ -402,6 +376,11 @@ export function DashboardPage() {
 
   return (
     <div className={styles.page}>
+      {dashboardError && (
+        <DataState title="일부 대시보드 정보를 불러오지 못했습니다." tone="error">
+          {dashboardError}
+        </DataState>
+      )}
       <section
         className={
           styles.welcome

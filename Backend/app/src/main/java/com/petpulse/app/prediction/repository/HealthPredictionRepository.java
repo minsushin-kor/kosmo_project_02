@@ -28,4 +28,6 @@ public interface HealthPredictionRepository
             Long petId,
             LocalDateTime start,
             LocalDateTime end);
+
+    List<HealthPrediction> findByQuestionnairePetPetIdOrderByPredictedAtDesc(Long petId);
 }

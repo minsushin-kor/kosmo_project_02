@@ -69,3 +69,13 @@ export function getMonthlyPredictions(
         { signal },
     )
 }
+
+export function getPredictions(
+    petId: number,
+    signal?: AbortSignal,
+) {
+    return apiRequest<HealthPrediction[]>(
+        `/pets/${petId}/predictions`,
+        { signal },
+    )
+}

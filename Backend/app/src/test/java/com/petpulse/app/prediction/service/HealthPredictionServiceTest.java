@@ -180,4 +180,27 @@ class HealthPredictionServiceTest {
 
         verifyNoInteractions(healthPredictionRepository);
     }
+
+    @Test
+    void allPredictionsUseOwnerAndRepositoryDescendingOrder() {
+        when(petAccessService.requireOwnedPet("guardian", 1L)).thenReturn(pet);
+        when(healthPredictionRepository.findByQuestionnairePetPetIdOrderByPredictedAtDesc(1L))
+                .thenReturn(List.of());
+
+        assertThat(healthPredictionService.getPredictions("guardian", 1L)).isEmpty();
+
+        verify(healthPredictionRepository).findByQuestionnairePetPetIdOrderByPredictedAtDesc(1L);
+    }
+
+    @Test
+    void allPredictionsRejectForeignPetBeforeQuery() {
+        when(petAccessService.requireOwnedPet("other", 1L))
+                .thenThrow(new BusinessException(ErrorCode.RESOURCE_NOT_FOUND, "반려동물을 찾을 수 없습니다."));
+
+        assertThatThrownBy(() -> healthPredictionService.getPredictions("other", 1L))
+                .isInstanceOfSatisfying(BusinessException.class, exception ->
+                        assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.RESOURCE_NOT_FOUND));
+
+        verifyNoInteractions(healthPredictionRepository);
+    }
 }

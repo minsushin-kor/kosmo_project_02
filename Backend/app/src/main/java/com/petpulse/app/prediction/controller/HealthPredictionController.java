@@ -48,8 +48,20 @@ public class HealthPredictionController {
         public ResponseEntity<List<HealthPredictionResponse>> getMonthlyPredictions(
                         Authentication authentication,
                         @PathVariable Long petId,
-                        @RequestParam int year,
-                        @RequestParam int month) {
+                        @RequestParam(required = false) Integer year,
+                        @RequestParam(required = false) Integer month) {
+
+                if (year == null && month == null) {
+                        return ResponseEntity.ok(
+                                        healthPredictionService.getPredictions(
+                                                        authentication.getName(), petId));
+                }
+
+                if (year == null || month == null) {
+                        throw new com.petpulse.app.global.exception.BusinessException(
+                                        com.petpulse.app.global.exception.ErrorCode.INVALID_REQUEST,
+                                        "year와 month는 함께 입력해야 합니다.");
+                }
 
                 return ResponseEntity.ok(
                                 healthPredictionService.getMonthlyPredictions(
