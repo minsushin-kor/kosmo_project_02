@@ -36,6 +36,8 @@ public class SecurityConfig {
                         .requestMatchers("/api/auth/signup", "/api/auth/login",
                                 "/api/test/**", "/api/health/**", "/actuator/health").permitAll()
                         .requestMatchers("/api/auth/me").authenticated()
+                        .requestMatchers("/api/ai/quick-predictions",
+                                "/api/ai/food-recommendations").authenticated()
                         .requestMatchers(
                                 "/api/pets/*/vitals/**",
                                 "/api/pets/*/questionnaires/**",

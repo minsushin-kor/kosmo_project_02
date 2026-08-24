@@ -35,6 +35,8 @@ class HealthDomainSecurityIntegrationTest {
         assertUnauthorized(get("/api/predictions/1"));
         assertUnauthorized(get("/api/reports/1"));
         assertUnauthorized(patch("/api/alerts/1/read"));
+        assertUnauthorized(post("/api/ai/quick-predictions"));
+        assertUnauthorized(post("/api/ai/food-recommendations"));
     }
 
     private void assertUnauthorized(org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder request)

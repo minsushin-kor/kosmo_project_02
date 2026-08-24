@@ -29,6 +29,11 @@ public enum ErrorCode {
             "ACCESS_DENIED",
             "접근 권한이 없습니다."),
 
+    EXTERNAL_SERVICE_ERROR(
+            HttpStatus.BAD_GATEWAY,
+            "EXTERNAL_SERVICE_ERROR",
+            "외부 서비스를 일시적으로 사용할 수 없습니다."),
+
     INTERNAL_SERVER_ERROR(
             HttpStatus.INTERNAL_SERVER_ERROR,
             "INTERNAL_SERVER_ERROR",

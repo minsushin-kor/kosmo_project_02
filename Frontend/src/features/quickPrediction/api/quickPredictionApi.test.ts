@@ -24,7 +24,7 @@ describe('predictHealthRisk', () => {
     vi.unstubAllGlobals()
   })
 
-  it('현재 상태를 FastAPI 예측 엔드포인트로 전달한다', async () => {
+  it('현재 상태를 Spring Quick Prediction 엔드포인트로 전달한다', async () => {
     const result = {
       abnormalProbability: 0.18,
       riskGrade: 'NORMAL',
@@ -38,7 +38,7 @@ describe('predictHealthRisk', () => {
 
     await expect(predictHealthRisk(request)).resolves.toEqual(result)
     expect(fetchMock).toHaveBeenCalledWith(
-      'http://localhost:8000/ai/predict-health-risk',
+      '/api/ai/quick-predictions',
       expect.objectContaining({
         method: 'POST',
         body: JSON.stringify(request),
@@ -46,15 +46,17 @@ describe('predictHealthRisk', () => {
     )
   })
 
-  it('FastAPI 입력 검증 오류를 읽을 수 있는 메시지로 전달한다', async () => {
+  it('Spring Gateway 오류 메시지를 전달한다', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify({
-      detail: [{ msg: 'Input should be less than or equal to 45' }],
+      success: false,
+      message: 'AI 건강 예측 서비스를 일시적으로 사용할 수 없습니다.',
+      error: 'EXTERNAL_SERVICE_ERROR',
     }), {
-      status: 422,
+      status: 502,
       headers: { 'Content-Type': 'application/json' },
     })))
 
     await expect(predictHealthRisk(request))
-      .rejects.toThrow('Input should be less than or equal to 45')
+      .rejects.toThrow('AI 건강 예측 서비스를 일시적으로 사용할 수 없습니다.')
   })
 })

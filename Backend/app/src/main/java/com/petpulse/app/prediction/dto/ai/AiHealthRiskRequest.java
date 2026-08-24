@@ -1,18 +1,20 @@
 package com.petpulse.app.prediction.dto.ai;
 
+import jakarta.validation.constraints.*;
+
 public record AiHealthRiskRequest(
 
-        String species,
+        @NotBlank String species,
 
-        Integer age,
+        @NotNull @Min(0) @Max(30) Integer age,
 
-        Double weight,
+        @NotNull @DecimalMin("0.1") @DecimalMax("100.0") Double weight,
 
-        Double temperature,
+        @NotNull @DecimalMin("30.0") @DecimalMax("45.0") Double temperature,
 
-        Integer heartRate,
+        @NotNull @Min(30) @Max(300) Integer heartRate,
 
-        Integer respiratoryRate,
+        @NotNull @Min(5) @Max(100) Integer respiratoryRate,
 
         Boolean skinRedness,
 
@@ -24,11 +26,11 @@ public record AiHealthRiskRequest(
 
         Boolean diarrhea,
 
-        String appetiteLevel,
+        @NotBlank String appetiteLevel,
 
-        String waterIntakeLevel,
+        @NotBlank String waterIntakeLevel,
 
-        String activityLevel,
+        @NotBlank String activityLevel,
 
-        Integer symptomDurationDays) {
+        @NotNull @Min(0) Integer symptomDurationDays) {
 }

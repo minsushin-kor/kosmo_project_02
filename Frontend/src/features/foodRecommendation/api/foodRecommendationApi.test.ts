@@ -20,7 +20,7 @@ describe('recommendFood', () => {
     vi.unstubAllGlobals()
   })
 
-  it('반려동물 정보를 FastAPI 사료 추천 엔드포인트로 전달한다', async () => {
+  it('반려동물 정보를 Spring Food Recommendation 엔드포인트로 전달한다', async () => {
     const result: FoodRecommendationResponse = {
       petSummary: '초코(강아지, 3세, 체중 5.5kg)',
       recommendedIngredients: [{ name: '오메가-3 지방산', reason: '피부 건강에 도움을 줍니다.' }],
@@ -36,7 +36,7 @@ describe('recommendFood', () => {
 
     await expect(recommendFood(request)).resolves.toEqual(result)
     expect(fetchMock).toHaveBeenCalledWith(
-      'http://localhost:8000/ai/recommend-food',
+      '/api/ai/food-recommendations',
       expect.objectContaining({
         method: 'POST',
         body: JSON.stringify(request),
@@ -44,14 +44,17 @@ describe('recommendFood', () => {
     )
   })
 
-  it('FastAPI 입력 검증 오류를 읽을 수 있는 메시지로 전달한다', async () => {
+  it('Spring Gateway 오류 메시지를 전달한다', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify({
-      detail: [{ msg: '나이는 0 이상이어야 합니다.' }],
+      success: false,
+      message: 'AI 사료 추천 서비스를 일시적으로 사용할 수 없습니다.',
+      error: 'EXTERNAL_SERVICE_ERROR',
     }), {
-      status: 422,
+      status: 502,
       headers: { 'Content-Type': 'application/json' },
     })))
 
-    await expect(recommendFood(request)).rejects.toThrow('나이는 0 이상이어야 합니다.')
+    await expect(recommendFood(request))
+      .rejects.toThrow('AI 사료 추천 서비스를 일시적으로 사용할 수 없습니다.')
   })
 })
