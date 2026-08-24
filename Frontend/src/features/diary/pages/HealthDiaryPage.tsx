@@ -2,13 +2,15 @@ import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { ConfirmModal } from '../../../components/common/ConfirmModal'
 import { DataState } from '../../../components/common/DataState'
+import { getApiErrorMessage } from '../../../shared/api/apiClient'
 import { PetSectionNav } from '../../pets/components/PetSectionNav'
 import { useRoutePet } from '../../pets/hooks/useRoutePet'
 import { getHealthAlerts, type HealthAlert } from '../../history/api/healthHistoryApi'
+import { getMonthlyPredictions, type HealthPrediction, type RiskGrade } from '../../predictions/api/predictionApi'
 import { getQuestionnaires, type QuestionnaireResponse } from '../../questionnaire/api/questionnaireApi'
 import { getWeeklyReports, type WeeklyReport } from '../../reports/api/reportApi'
 import { getVitalRecords, type VitalRecord } from '../../vitals/api/vitalApi'
-import { readDiaryEntries, removeDiaryEntry, saveDiaryEntry } from '../storage/healthDiaryStorage'
+import { deleteDiaryEntry, getDiaryEntries, upsertDiaryEntry } from '../api/healthDiaryApi'
 import type { DiaryEntries, DiaryStatus } from '../types'
 import {
   buildCalendarDays,
@@ -21,6 +23,7 @@ import {
   shiftMonth,
   toDateKey,
 } from '../utils/calendar'
+import { getLatestPredictionsByDate } from '../utils/monthlyPredictions'
 import common from '../../../styles/featurePage.module.css'
 import styles from './HealthDiaryPage.module.css'
 
@@ -29,6 +32,13 @@ const weekDays = ['일', '월', '화', '수', '목', '금', '토']
 const statusLabels: Record<DiaryStatus, string> = {
   GOOD: '좋음',
   WATCH: '관찰 필요',
+}
+
+const riskLabels: Record<RiskGrade, string> = {
+  NORMAL: '정상',
+  WATCH: '관찰',
+  CAUTION: '주의',
+  DANGER: '위험',
 }
 
 function dateWithOffset(today: Date, amount: number, time: string) {
@@ -45,21 +55,30 @@ function createDemoEntries(today: Date): DiaryEntries {
 
   return {
     [toDateKey(today)]: {
+      diaryEntryId: 1,
+      petId: 0,
       date: toDateKey(today),
       status: 'GOOD',
       note: '식사와 산책을 평소처럼 잘 마쳤어요.',
+      createdAt: today.toISOString(),
       updatedAt: today.toISOString(),
     },
     [toDateKey(goodDate)]: {
+      diaryEntryId: 2,
+      petId: 0,
       date: toDateKey(goodDate),
       status: 'GOOD',
       note: '특별한 변화 없이 편안하게 쉬었어요.',
+      createdAt: goodDate.toISOString(),
       updatedAt: goodDate.toISOString(),
     },
     [toDateKey(watchDate)]: {
+      diaryEntryId: 3,
+      petId: 0,
       date: toDateKey(watchDate),
       status: 'WATCH',
       note: '저녁 활동량이 평소보다 적어 조금 더 살펴봤어요.',
+      createdAt: watchDate.toISOString(),
       updatedAt: watchDate.toISOString(),
     },
   }
@@ -105,11 +124,16 @@ export function HealthDiaryPage() {
   const todayKey = toDateKey(today)
   const [displayMonth, setDisplayMonth] = useState(() => new Date(today.getFullYear(), today.getMonth(), 1, 12))
   const [selectedDate, setSelectedDate] = useState(todayKey)
-  const [storedEntries, setStoredEntries] = useState<DiaryEntries>({})
+  const [diaryEntries, setDiaryEntries] = useState<DiaryEntries>({})
+  const [monthlyPredictions, setMonthlyPredictions] = useState<HealthPrediction[]>([])
   const [draftStatus, setDraftStatus] = useState<DiaryStatus | ''>('')
   const [draftNote, setDraftNote] = useState('')
   const [saveMessage, setSaveMessage] = useState('')
   const [isDeleteOpen, setIsDeleteOpen] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [isDiaryLoading, setIsDiaryLoading] = useState(false)
+  const [diaryNotice, setDiaryNotice] = useState('')
   const [vitals, setVitals] = useState<VitalRecord[]>([])
   const [questionnaires, setQuestionnaires] = useState<QuestionnaireResponse[]>([])
   const [alerts, setAlerts] = useState<HealthAlert[]>([])
@@ -119,17 +143,65 @@ export function HealthDiaryPage() {
 
   const demoEntries = useMemo(() => createDemoEntries(today), [today])
   const entries = useMemo(() => (
-    isDemoMode ? { ...demoEntries, ...storedEntries } : storedEntries
-  ), [demoEntries, isDemoMode, storedEntries])
+    isDemoMode ? { ...demoEntries, ...diaryEntries } : diaryEntries
+  ), [demoEntries, diaryEntries, isDemoMode])
+  const predictionsByDate = useMemo(
+    () => getLatestPredictionsByDate(monthlyPredictions),
+    [monthlyPredictions],
+  )
   const calendarDays = useMemo(() => buildCalendarDays(displayMonth, today), [displayMonth, today])
   const monthCounts = useMemo(() => getMonthStatusCounts(entries, displayMonth, today), [displayMonth, entries, today])
   const selectedEntry = entries[selectedDate]
-  const storedSelectedEntry = storedEntries[selectedDate]
+  const persistedSelectedEntry = diaryEntries[selectedDate]
 
   useEffect(() => {
     if (!selectedPet) return
-    setStoredEntries(readDiaryEntries(selectedPet.id))
-  }, [selectedPet])
+
+    if (isDemoMode) {
+      setDiaryEntries({})
+      setMonthlyPredictions([])
+      setDiaryNotice('')
+      return
+    }
+
+    const controller = new AbortController()
+    const year = displayMonth.getFullYear()
+    const month = displayMonth.getMonth() + 1
+    setIsDiaryLoading(true)
+    setDiaryNotice('')
+    setDiaryEntries({})
+    setMonthlyPredictions([])
+
+    Promise.allSettled([
+      getDiaryEntries(selectedPet.id, year, month, controller.signal),
+      getMonthlyPredictions(selectedPet.id, year, month, controller.signal),
+    ]).then(([diaryResult, predictionResult]) => {
+      if (controller.signal.aborted) return
+
+      if (diaryResult.status === 'fulfilled') {
+        setDiaryEntries(Object.fromEntries(
+          diaryResult.value.map((entry) => [entry.date, entry]),
+        ))
+      }
+
+      if (predictionResult.status === 'fulfilled') {
+        setMonthlyPredictions(predictionResult.value)
+      }
+
+      if (diaryResult.status === 'rejected' || predictionResult.status === 'rejected') {
+        const rejected = diaryResult.status === 'rejected'
+          ? diaryResult.reason
+          : predictionResult.status === 'rejected'
+            ? predictionResult.reason
+            : null
+        setDiaryNotice(getApiErrorMessage(rejected, '월별 다이어리 정보를 불러오지 못했습니다.'))
+      }
+    }).finally(() => {
+      if (!controller.signal.aborted) setIsDiaryLoading(false)
+    })
+
+    return () => controller.abort()
+  }, [displayMonth, isDemoMode, selectedPet])
 
   useEffect(() => {
     setDraftStatus(selectedEntry?.status ?? '')
@@ -181,7 +253,8 @@ export function HealthDiaryPage() {
     ...questionnaires.map((item) => dateValueToKey(item.submittedAt)),
     ...alerts.map((item) => dateValueToKey(item.createdAt)),
     ...reports.map((item) => item.endDate.slice(0, 10)),
-  ]), [alerts, questionnaires, reports, vitals])
+    ...Object.keys(predictionsByDate),
+  ]), [alerts, predictionsByDate, questionnaires, reports, vitals])
 
   const selectedVitals = useMemo(() => vitals
     .filter((item) => dateValueToKey(item.measuredAt) === selectedDate)
@@ -189,6 +262,7 @@ export function HealthDiaryPage() {
   const selectedQuestionnaires = questionnaires.filter((item) => dateValueToKey(item.submittedAt) === selectedDate)
   const selectedAlerts = alerts.filter((item) => dateValueToKey(item.createdAt) === selectedDate)
   const selectedReport = reports.find((item) => item.startDate.slice(0, 10) <= selectedDate && item.endDate.slice(0, 10) >= selectedDate)
+  const selectedPrediction = predictionsByDate[selectedDate]
   const latestVital = selectedVitals[0]
   const monthPrefix = `${displayMonth.getFullYear()}-${String(displayMonth.getMonth() + 1).padStart(2, '0')}`
   const monthVitals = vitals.filter((item) => dateValueToKey(item.measuredAt).startsWith(monthPrefix))
@@ -216,31 +290,64 @@ export function HealthDiaryPage() {
     setSelectedDate(todayKey)
   }
 
-  const handleSave = (event: FormEvent<HTMLFormElement>) => {
+  const handleSave = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     if (!draftStatus) {
       setSaveMessage('오늘 상태를 선택해 주세요.')
       return
     }
 
-    const savedEntry = saveDiaryEntry(selectedPet.id, {
-      date: selectedDate,
-      status: draftStatus,
-      note: draftNote.trim(),
-    })
-    setStoredEntries((current) => ({ ...current, [selectedDate]: savedEntry }))
-    setSaveMessage(`${formatSelectedDate(selectedDate)} 기록을 저장했습니다.`)
+    setIsSaving(true)
+    setSaveMessage('')
+
+    try {
+      const savedEntry = isDemoMode
+        ? {
+          diaryEntryId: persistedSelectedEntry?.diaryEntryId ?? Date.now(),
+          petId: selectedPet.id,
+          date: selectedDate,
+          status: draftStatus,
+          note: draftNote.trim(),
+          createdAt: persistedSelectedEntry?.createdAt ?? new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        }
+        : await upsertDiaryEntry(selectedPet.id, selectedDate, {
+          status: draftStatus,
+          note: draftNote.trim(),
+        })
+
+      setDiaryEntries((current) => ({ ...current, [selectedDate]: savedEntry }))
+      setSaveMessage(`${formatSelectedDate(selectedDate)} 기록을 저장했습니다.`)
+    } catch (error) {
+      setSaveMessage(getApiErrorMessage(error, '다이어리 기록을 저장하지 못했습니다.'))
+    } finally {
+      setIsSaving(false)
+    }
   }
 
-  const handleDelete = () => {
-    removeDiaryEntry(selectedPet.id, selectedDate)
-    setStoredEntries((current) => {
-      const next = { ...current }
-      delete next[selectedDate]
-      return next
-    })
-    setIsDeleteOpen(false)
-    setSaveMessage('작성한 다이어리 기록을 삭제했습니다.')
+  const handleDelete = async () => {
+    if (isDeleting) return
+    setIsDeleting(true)
+    setSaveMessage('')
+
+    try {
+      if (!isDemoMode) {
+        await deleteDiaryEntry(selectedPet.id, selectedDate)
+      }
+
+      setDiaryEntries((current) => {
+        const next = { ...current }
+        delete next[selectedDate]
+        return next
+      })
+      setIsDeleteOpen(false)
+      setSaveMessage('작성한 다이어리 기록을 삭제했습니다.')
+    } catch (error) {
+      setIsDeleteOpen(false)
+      setSaveMessage(getApiErrorMessage(error, '다이어리 기록을 삭제하지 못했습니다.'))
+    } finally {
+      setIsDeleting(false)
+    }
   }
 
   return (
@@ -257,6 +364,8 @@ export function HealthDiaryPage() {
 
       {isLoading && <DataState title="다이어리에 표시할 건강 기록을 불러오는 중입니다." isLoading />}
       {loadNotice && <DataState title="일부 기록만 표시하고 있습니다." tone="error">{loadNotice}</DataState>}
+      {isDiaryLoading && <DataState title="월별 다이어리와 AI 예측을 불러오는 중입니다." isLoading />}
+      {diaryNotice && <DataState title="월별 다이어리 정보를 불러오지 못했습니다." tone="error">{diaryNotice}</DataState>}
 
       <section className={styles.diaryLayout}>
         <div className={styles.calendarCard}>
@@ -346,13 +455,13 @@ export function HealthDiaryPage() {
             </label>
             {saveMessage && <p className={styles.saveMessage} role="status">{saveMessage}</p>}
             <div className={styles.formActions}>
-              <button className={styles.saveButton} type="submit">{storedSelectedEntry ? '기록 수정' : '기록 저장'}</button>
-              {storedSelectedEntry && <button className={styles.deleteButton} type="button" onClick={() => setIsDeleteOpen(true)}>기록 삭제</button>}
+              <button className={styles.saveButton} type="submit" disabled={isSaving || isDeleting}>{isSaving ? '저장 중…' : selectedEntry ? '기록 수정' : '기록 저장'}</button>
+              {selectedEntry && <button className={styles.deleteButton} type="button" disabled={isSaving || isDeleting} onClick={() => setIsDeleteOpen(true)}>기록 삭제</button>}
             </div>
           </form>
 
           <div className={styles.connectedRecords}>
-            <div className={styles.connectedHeading}><h3>연결된 건강 기록</h3><span>{selectedVitals.length + selectedQuestionnaires.length + selectedAlerts.length + (selectedReport ? 1 : 0)}건</span></div>
+            <div className={styles.connectedHeading}><h3>연결된 건강 기록</h3><span>{selectedVitals.length + selectedQuestionnaires.length + selectedAlerts.length + (selectedReport ? 1 : 0) + (selectedPrediction ? 1 : 0)}건</span></div>
             {latestVital && (
               <div className={styles.recordItem}>
                 <span aria-hidden="true">♥</span>
@@ -381,11 +490,18 @@ export function HealthDiaryPage() {
                 <Link to={`/reports/${selectedReport.reportId}`} aria-label="주간 리포트 보기">→</Link>
               </div>
             )}
-            {!latestVital && selectedQuestionnaires.length === 0 && selectedAlerts.length === 0 && !selectedReport && (
+            {selectedPrediction && (
+              <div className={styles.recordItem}>
+                <span aria-hidden="true">AI</span>
+                <div><strong>AI 예측: {riskLabels[selectedPrediction.riskGrade]}</strong><small>{selectedPrediction.aiSummary || selectedPrediction.primaryRiskFactor || 'AI 건강 예측 결과가 있어요.'}</small></div>
+                <Link to={`/predictions/${selectedPrediction.predictionId}`} aria-label="AI 예측 결과 보기">→</Link>
+              </div>
+            )}
+            {!latestVital && selectedQuestionnaires.length === 0 && selectedAlerts.length === 0 && !selectedReport && !selectedPrediction && (
               <p className={styles.emptyRecords}>이 날짜에 연결된 생체정보·문진·알림 기록이 없습니다.</p>
             )}
           </div>
-          <p className={styles.localNotice}>상태와 관찰 메모는 현재 이 브라우저에만 임시 저장됩니다.</p>
+          <p className={styles.localNotice}>{isDemoMode ? '데모 기록은 현재 화면에서만 유지됩니다.' : '보호자가 작성한 상태와 관찰 메모는 계정의 반려동물 기록으로 저장됩니다.'}</p>
         </aside>
       </section>
 
@@ -436,7 +552,7 @@ export function HealthDiaryPage() {
           closeLabel="다이어리 기록 삭제 확인창 닫기"
           title={`${formatSelectedDate(selectedDate)} 기록을 삭제할까요?`}
           description="보호자가 작성한 상태와 관찰 메모만 삭제되며, 생체정보·문진·알림 기록은 유지됩니다."
-          confirmText="기록 삭제"
+          confirmText={isDeleting ? '삭제 중…' : '기록 삭제'}
           onConfirm={handleDelete}
           onCancel={() => setIsDeleteOpen(false)}
         />

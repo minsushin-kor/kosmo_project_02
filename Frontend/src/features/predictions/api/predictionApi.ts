@@ -57,3 +57,15 @@ export function getPredictionByQuestionnaire(
         },
     )
 }
+
+export function getMonthlyPredictions(
+    petId: number,
+    year: number,
+    month: number,
+    signal?: AbortSignal,
+) {
+    return apiRequest<HealthPrediction[]>(
+        `/pets/${petId}/predictions?year=${year}&month=${month}`,
+        { signal },
+    )
+}

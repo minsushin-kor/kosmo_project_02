@@ -5,6 +5,7 @@ import com.petpulse.app.alert.entity.HealthAlert;
 import com.petpulse.app.alert.entity.HealthAlertType;
 import com.petpulse.app.alert.repository.HealthAlertRepository;
 import com.petpulse.app.pet.entity.Pet;
+import com.petpulse.app.pet.repository.PetRepository;
 import com.petpulse.app.prediction.client.FastApiHealthPredictionClient;
 import com.petpulse.app.prediction.dto.HealthPredictionResponse;
 import com.petpulse.app.prediction.dto.ai.AiExplainPredictionRequest;
@@ -22,7 +23,13 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.DateTimeException;
+import java.time.LocalDateTime;
 import java.time.Period;
+import java.time.YearMonth;
+import java.util.List;
+import com.petpulse.app.global.exception.BusinessException;
+import com.petpulse.app.global.exception.ErrorCode;
 
 @Service
 @RequiredArgsConstructor
@@ -33,6 +40,7 @@ public class HealthPredictionService {
         private final QuestionnaireRepository questionnaireRepository;
         private final FastApiHealthPredictionClient fastApiHealthPredictionClient;
         private final HealthAlertRepository healthAlertRepository;
+        private final PetRepository petRepository;
 
         @Transactional
         public HealthPredictionResponse createPrediction(Long questionnaireId) {
@@ -133,6 +141,48 @@ public class HealthPredictionService {
                                                                 + questionnaireId));
 
                 return HealthPredictionResponse.from(healthPrediction);
+        }
+
+        public List<HealthPredictionResponse> getMonthlyPredictions(
+                        Long petId,
+                        int year,
+                        int month) {
+
+                if (!petRepository.existsById(petId)) {
+                        throw new BusinessException(
+                                        ErrorCode.RESOURCE_NOT_FOUND,
+                                        "존재하지 않는 반려동물입니다. petId=" + petId);
+                }
+
+                YearMonth yearMonth;
+                if (year < 1 || year > 9999 || month < 1 || month > 12) {
+                        throw new BusinessException(
+                                        ErrorCode.INVALID_REQUEST,
+                                        "유효하지 않은 연월입니다. year=" + year + ", month=" + month);
+                }
+
+                try {
+                        yearMonth = YearMonth.of(year, month);
+                } catch (DateTimeException exception) {
+                        throw new BusinessException(
+                                        ErrorCode.INVALID_REQUEST,
+                                        "유효하지 않은 연월입니다. year=" + year + ", month=" + month);
+                }
+
+                LocalDateTime start = yearMonth.atDay(1).atStartOfDay();
+                LocalDateTime end = yearMonth.plusMonths(1)
+                                .atDay(1)
+                                .atStartOfDay()
+                                .minusNanos(1);
+
+                return healthPredictionRepository
+                                .findByQuestionnairePetPetIdAndPredictedAtBetweenOrderByPredictedAtAsc(
+                                                petId,
+                                                start,
+                                                end)
+                                .stream()
+                                .map(HealthPredictionResponse::from)
+                                .toList();
         }
 
         private void createPredictionAlertIfNeeded(
