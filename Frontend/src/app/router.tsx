@@ -7,6 +7,7 @@ import { HealthHistoryPage } from '../features/history/pages/HealthHistoryPage'
 import { LandingPage } from '../features/landing/pages/LandingPage'
 import { LoginPage } from '../features/auth/pages/LoginPage'
 import { SignupPage } from '../features/auth/pages/SignupPage'
+import { ProtectedRoute } from '../features/auth/components/ProtectedRoute'
 import { MyPage } from '../features/profile/pages/MyPage'
 import { PredictionResultPage } from '../features/predictions/pages/PredictionResultPage'
 import { PetListPage } from '../features/pets/pages/PetListPage'
@@ -24,23 +25,28 @@ export const router = createBrowserRouter([
     element: <MainLayout />,
     children: [
       { path: '/', element: <LandingPage /> },
-      { path: '/dashboard', element: <DashboardPage /> },
       { path: '/login', element: <LoginPage /> },
       { path: '/signup', element: <SignupPage /> },
-      { path: '/mypage', element: <MyPage /> },
       { path: '/quick-prediction', element: <QuickPredictionPage /> },
       { path: '/food-recommendation', element: <FoodRecommendationPage /> },
-      { path: '/pets', element: <PetListPage /> },
-      { path: '/pets/new', element: <PetRegisterPage /> },
-      { path: '/pets/:petId/edit', element: <PetEditPage /> },
-      { path: '/pets/:petId/vitals', element: <VitalMonitoringPage /> },
-      { path: '/pets/:petId/questionnaire', element: <QuestionnairePage /> },
-      { path: '/pets/:petId/history', element: <HealthHistoryPage /> },
-      { path: '/pets/:petId/alerts', element: <HealthHistoryPage /> },
-      { path: '/pets/:petId/reports', element: <ReportsListPage /> },
-      { path: '/pets/:petId/diary', element: <HealthDiaryPage /> },
-      { path: '/predictions/:predictionId', element: <PredictionResultPage /> },
-      { path: '/reports/:reportId', element: <ReportDetailPage /> },
+      {
+        element: <ProtectedRoute />,
+        children: [
+          { path: '/dashboard', element: <DashboardPage /> },
+          { path: '/mypage', element: <MyPage /> },
+          { path: '/pets', element: <PetListPage /> },
+          { path: '/pets/new', element: <PetRegisterPage /> },
+          { path: '/pets/:petId/edit', element: <PetEditPage /> },
+          { path: '/pets/:petId/vitals', element: <VitalMonitoringPage /> },
+          { path: '/pets/:petId/questionnaire', element: <QuestionnairePage /> },
+          { path: '/pets/:petId/history', element: <HealthHistoryPage /> },
+          { path: '/pets/:petId/alerts', element: <HealthHistoryPage /> },
+          { path: '/pets/:petId/reports', element: <ReportsListPage /> },
+          { path: '/pets/:petId/diary', element: <HealthDiaryPage /> },
+          { path: '/predictions/:predictionId', element: <PredictionResultPage /> },
+          { path: '/reports/:reportId', element: <ReportDetailPage /> },
+        ],
+      },
       { path: '*', element: <NotFoundPage /> },
     ],
   },

@@ -17,7 +17,6 @@ type PetResponse = {
 }
 
 type PetRequest = {
-  userId: number
   petName: string
   species: Pet['species']
   breed: string
@@ -30,12 +29,6 @@ type PetRequest = {
 }
 
 const accents: PetAccent[] = ['sage', 'sand', 'peach']
-
-export function getConfiguredUserId() {
-  const parsed = Number(import.meta.env.VITE_DEMO_USER_ID ?? '1')
-
-  return Number.isInteger(parsed) && parsed > 0 ? parsed : 1
-}
 
 function toPet(response: PetResponse): Pet {
   return {
@@ -56,7 +49,6 @@ function toPet(response: PetResponse): Pet {
 
 function toRequest(
   input: CreatePetInput,
-  userId: number,
 ): PetRequest {
   const persistableImage =
     input.imageUrl && input.imageUrl.length <= 500
@@ -64,7 +56,6 @@ function toRequest(
       : null
 
   return {
-    userId,
     petName: input.name,
     species: input.species,
     breed: input.breed,
@@ -77,11 +68,9 @@ function toRequest(
   }
 }
 
-export async function getPets(
-  userId = getConfiguredUserId(),
-) {
+export async function getPets() {
   const response = await apiRequest<PetResponse[]>(
-    `/pets?userId=${userId}`,
+    '/pets',
   )
 
   return response.map(toPet)
@@ -97,13 +86,12 @@ export async function getPet(petId: number) {
 
 export async function createPet(
   input: CreatePetInput,
-  userId = getConfiguredUserId(),
 ) {
   const response = await apiRequest<PetResponse>(
     '/pets',
     {
       method: 'POST',
-      body: JSON.stringify(toRequest(input, userId)),
+      body: JSON.stringify(toRequest(input)),
     },
   )
 
@@ -112,13 +100,12 @@ export async function createPet(
 
 export async function updatePet(
   pet: Pet,
-  userId = getConfiguredUserId(),
 ) {
   const response = await apiRequest<PetResponse>(
     `/pets/${pet.id}`,
     {
       method: 'PUT',
-      body: JSON.stringify(toRequest(pet, userId)),
+      body: JSON.stringify(toRequest(pet)),
     },
   )
 

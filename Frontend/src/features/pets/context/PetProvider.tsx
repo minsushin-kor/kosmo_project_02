@@ -1,200 +1,87 @@
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-  type ReactNode,
-} from 'react'
-
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { getApiErrorMessage } from '../../../shared/api/apiClient'
-import {
-  createPet,
-  deletePet,
-  getPets,
-  updatePet as updatePetRequest,
-} from '../api/petApi'
-import { mockPets } from '../data/mockPets'
-import type { Pet, PetAccent } from '../types'
-import {
-  PetContext,
-  type PetContextValue,
-} from './PetContext'
+import { useAuth } from '../../auth/hooks/useAuth'
+import { createPet, deletePet, getPets, updatePet as updatePetRequest } from '../api/petApi'
+import type { Pet } from '../types'
+import { PetContext, type PetContextValue } from './PetContext'
 
-const accents: PetAccent[] = ['sage', 'sand', 'peach']
+type PetProviderProps = { children: ReactNode }
 
-type PetProviderProps = {
-  children: ReactNode
-}
-
-export function PetProvider({
-  children,
-}: PetProviderProps) {
+export function PetProvider({ children }: PetProviderProps) {
+  const { currentUser, isAuthLoading } = useAuth()
   const [pets, setPets] = useState<Pet[]>([])
-  const [selectedPetId, setSelectedPetId] =
-    useState<number | null>(null)
-
+  const [selectedPetId, setSelectedPetId] = useState<number | null>(null)
   const [isLoading, setIsLoading] = useState(true)
-  const [isDemoMode, setIsDemoMode] = useState(false)
   const [error, setError] = useState('')
 
-  const selectedPet =
-    pets.find((pet) => pet.id === selectedPetId) ??
-    pets[0] ??
-    null
+  const selectedPet = pets.find((pet) => pet.id === selectedPetId) ?? pets[0] ?? null
+
+  const clearPets = useCallback(() => {
+    setPets([])
+    setSelectedPetId(null)
+    setError('')
+  }, [])
 
   const reloadPets = useCallback(async () => {
-    setIsLoading(true)
+    if (isAuthLoading) {
+      setIsLoading(true)
+      return
+    }
+    if (!currentUser) {
+      clearPets()
+      setIsLoading(false)
+      return
+    }
 
+    setIsLoading(true)
     try {
       const loadedPets = await getPets()
-
       setPets(loadedPets)
-
-      setSelectedPetId((currentId) => {
-        const currentPetExists = loadedPets.some(
-          (pet) => pet.id === currentId,
-        )
-
-        if (currentPetExists) {
-          return currentId
-        }
-
-        return loadedPets[0]?.id ?? null
-      })
-
-      setIsDemoMode(false)
+      setSelectedPetId((currentId) => (
+        loadedPets.some((pet) => pet.id === currentId)
+          ? currentId
+          : loadedPets[0]?.id ?? null
+      ))
       setError('')
     } catch (loadError) {
-      console.error(
-        '반려동물 정보를 불러오지 못했습니다.',
-        loadError,
-      )
-
-      setPets(mockPets)
-      setSelectedPetId(mockPets[0]?.id ?? null)
-      setIsDemoMode(true)
-
-      setError(
-        getApiErrorMessage(
-          loadError,
-          '반려동물 정보를 불러오지 못했습니다.',
-        ),
-      )
+      setPets([])
+      setSelectedPetId(null)
+      setError(getApiErrorMessage(loadError, '반려동물 정보를 불러오지 못했습니다.'))
     } finally {
       setIsLoading(false)
     }
-  }, [])
+  }, [clearPets, currentUser, isAuthLoading])
 
-  useEffect(() => {
-    void reloadPets()
-  }, [reloadPets])
+  useEffect(() => { void reloadPets() }, [reloadPets])
 
-  const value = useMemo<PetContextValue>(
-    () => ({
-      pets,
-      selectedPet,
-      isLoading,
-      isDemoMode,
-      error,
+  const value = useMemo<PetContextValue>(() => ({
+    pets,
+    selectedPet,
+    isLoading,
+    isDemoMode: false,
+    error,
+    selectPet: setSelectedPetId,
+    addPet: async (input) => {
+      const newPet = await createPet(input)
+      setPets((current) => [...current, newPet])
+      setSelectedPetId(newPet.id)
+      return newPet
+    },
+    updatePet: async (pet) => {
+      const savedPet = await updatePetRequest(pet)
+      setPets((current) => current.map((item) => item.id === savedPet.id ? savedPet : item))
+      return savedPet
+    },
+    removePet: async (petId) => {
+      if (pets.length <= 1 || !pets.some((pet) => pet.id === petId)) return false
+      await deletePet(petId)
+      const nextPets = pets.filter((pet) => pet.id !== petId)
+      setPets(nextPets)
+      if (selectedPet?.id === petId) setSelectedPetId(nextPets[0]?.id ?? null)
+      return true
+    },
+    reloadPets,
+  }), [error, isLoading, pets, reloadPets, selectedPet])
 
-      selectPet: (petId) => {
-        setSelectedPetId(petId)
-      },
-
-      addPet: async (input) => {
-        if (!isDemoMode) {
-          const newPet = await createPet(input)
-
-          setPets((currentPets) => [
-            ...currentPets,
-            newPet,
-          ])
-
-          setSelectedPetId(newPet.id)
-
-          return newPet
-        }
-
-        const newPet: Pet = {
-          ...input,
-          id: Date.now(),
-          accent:
-            accents[pets.length % accents.length],
-        }
-
-        setPets((currentPets) => [
-          ...currentPets,
-          newPet,
-        ])
-
-        setSelectedPetId(newPet.id)
-
-        return newPet
-      },
-
-      updatePet: async (petToUpdate) => {
-        const savedPet = isDemoMode
-          ? petToUpdate
-          : await updatePetRequest(petToUpdate)
-
-        setPets((currentPets) =>
-          currentPets.map((pet) =>
-            pet.id === savedPet.id
-              ? savedPet
-              : pet,
-          ),
-        )
-
-        return savedPet
-      },
-
-      removePet: async (petId) => {
-        if (pets.length <= 1) {
-          return false
-        }
-
-        const targetExists = pets.some(
-          (pet) => pet.id === petId,
-        )
-
-        if (!targetExists) {
-          return false
-        }
-
-        if (!isDemoMode) {
-          await deletePet(petId)
-        }
-
-        const nextPets = pets.filter(
-          (pet) => pet.id !== petId,
-        )
-
-        setPets(nextPets)
-
-        if (selectedPet?.id === petId) {
-          setSelectedPetId(
-            nextPets[0]?.id ?? null,
-          )
-        }
-
-        return true
-      },
-
-      reloadPets,
-    }),
-    [
-      error,
-      isDemoMode,
-      isLoading,
-      pets,
-      reloadPets,
-      selectedPet,
-    ],
-  )
-
-  return (
-    <PetContext.Provider value={value}>
-      {children}
-    </PetContext.Provider>
-  )
+  return <PetContext.Provider value={value}>{children}</PetContext.Provider>
 }

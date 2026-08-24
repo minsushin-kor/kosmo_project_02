@@ -1,7 +1,11 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { apiRequest, getApiErrorMessage } from './apiClient'
 
 describe('apiRequest', () => {
+  beforeEach(() => {
+    window.localStorage.clear()
+    window.sessionStorage.clear()
+  })
   afterEach(() => {
     vi.unstubAllGlobals()
   })
@@ -25,6 +29,15 @@ describe('apiRequest', () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(null, { status: 204 })))
 
     await expect(apiRequest('/pets/1', { method: 'DELETE' })).resolves.toBeUndefined()
+  })
+
+  it('저장된 access token을 Authorization Bearer 헤더에 추가한다', async () => {
+    window.sessionStorage.setItem('petpulse-access-token', 'signed-token')
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify([])))
+    vi.stubGlobal('fetch', fetchMock)
+    await apiRequest('/pets')
+    const [, init] = fetchMock.mock.calls[0]
+    expect((init.headers as Headers).get('Authorization')).toBe('Bearer signed-token')
   })
 
   it('백엔드 오류 메시지와 상태 코드를 ApiError로 전달한다', async () => {

@@ -35,6 +35,7 @@ const petContext: PetContextValue = {
 function renderPage(currentUser: AuthContextValue['currentUser']) {
   const authContext: AuthContextValue = {
     currentUser,
+    isAuthLoading: false,
     register: vi.fn(),
     login: vi.fn(),
     logout: vi.fn(),
@@ -65,13 +66,12 @@ describe('FoodRecommendationPage 로그인별 초기값', () => {
 
   it('로그인 상태에서는 선택된 반려동물의 기본 정보를 채운다', () => {
     renderPage({
+      userId: 1,
       name: '홍길동',
       username: 'tester',
       email: 'tester@example.com',
       phone: '010-0000-0000',
-      postalCode: '00000',
-      address: '서울시',
-      detailAddress: '1층',
+      role: 'USER',
     })
 
     expect(screen.getByLabelText('이름')).toHaveValue('코코')

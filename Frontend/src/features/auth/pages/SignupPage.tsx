@@ -4,6 +4,7 @@ import { BrandMark } from '../../../components/common/BrandMark'
 import { LoadingButton } from '../../../components/common/LoadingButton'
 import { TextField } from '../../../components/common/TextField'
 import { useAuth } from '../hooks/useAuth'
+import { getApiErrorMessage } from '../../../shared/api/apiClient'
 import styles from './AuthPages.module.css'
 
 export function SignupPage() {
@@ -13,6 +14,7 @@ export function SignupPage() {
   const [postalCode, setPostalCode] = useState('')
   const [address, setAddress] = useState('')
   const [detailAddress, setDetailAddress] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const detailAddressRef = useRef<HTMLInputElement>(null)
 
   const handleOpenPostcode = () => {
@@ -36,8 +38,9 @@ export function SignupPage() {
     }).open()
   }
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
+    if (isSubmitting) return
     const data = new FormData(event.currentTarget)
 
     if (data.get('password') !== data.get('passwordConfirm')) {
@@ -48,26 +51,24 @@ export function SignupPage() {
     const phone = [data.get('phonePrefix'), data.get('phoneMiddle'), data.get('phoneLast')]
       .map(String)
       .join('-')
-    const result = register({
-      name: String(data.get('name')),
-      username: String(data.get('username')),
-      email: String(data.get('email')),
-      phone,
-      postalCode: String(data.get('postalCode')),
-      address: String(data.get('address')),
-      detailAddress: String(data.get('detailAddress')),
-      password: String(data.get('password')),
-    })
-
-    if (!result.success) {
-      setError(result.message ?? '회원가입 정보를 저장하지 못했습니다.')
-      return
+    setIsSubmitting(true)
+    try {
+      await register({
+        loginId: String(data.get('username')),
+        password: String(data.get('password')),
+        email: String(data.get('email')),
+        userName: String(data.get('name')),
+        phone,
+      })
+      navigate('/login', {
+        replace: true,
+        state: { signedUp: true, username: String(data.get('username')) },
+      })
+    } catch (signupError) {
+      setError(getApiErrorMessage(signupError, '회원가입 정보를 저장하지 못했습니다.'))
+    } finally {
+      setIsSubmitting(false)
     }
-
-    navigate('/login', {
-      replace: true,
-      state: { signedUp: true, username: String(data.get('username')) },
-    })
   }
 
   return (
@@ -79,7 +80,7 @@ export function SignupPage() {
           <h1>함께하는 오늘부터<br />건강한 기록을 시작해요.</h1>
           <span>생체정보와 문진을 한곳에 모아 건강 변화를 꾸준히 확인할 수 있어요.</span>
         </div>
-        <small>개인정보는 실제 API 연결 단계에서 암호화하여 처리합니다.</small>
+        <small>비밀번호는 서버에서 암호화하여 저장합니다.</small>
       </section>
 
       <section className={styles.formPanel}>
@@ -167,10 +168,11 @@ export function SignupPage() {
               onChange={(event) => setDetailAddress(event.target.value)}
               placeholder="동·호수 등 상세 주소를 입력해 주세요"
             />
+            <p className={styles.description}>주소는 현재 회원 계정에 저장되지 않으며 추후 주소 기능 연동 시 사용됩니다.</p>
             <TextField containerClassName={styles.field} label="비밀번호" name="password" type="password" required autoComplete="new-password" placeholder="비밀번호를 입력해 주세요" />
             <TextField containerClassName={styles.field} label="비밀번호 확인" name="passwordConfirm" type="password" required autoComplete="new-password" placeholder="비밀번호를 다시 입력해 주세요" />
             {error && <div className={styles.errorMessage} role="alert">{error}</div>}
-            <LoadingButton className={styles.submitButton} type="submit">회원가입</LoadingButton>
+            <LoadingButton className={styles.submitButton} type="submit" isLoading={isSubmitting}>회원가입</LoadingButton>
           </form>
 
           <p className={styles.switchText}>이미 계정이 있나요? <Link to="/login">로그인</Link></p>

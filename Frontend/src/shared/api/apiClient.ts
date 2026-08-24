@@ -1,3 +1,5 @@
+import { getAuthToken, notifyUnauthorized } from '../auth/authTokenStorage'
+
 type ErrorPayload = {
   detail?: string
   message?: string
@@ -20,11 +22,22 @@ export class ApiError extends Error {
   }
 }
 
-export async function apiRequest<T>(path: string, init: RequestInit = {}): Promise<T> {
+export type ApiRequestOptions = RequestInit & {
+  skipAuth?: boolean
+  suppressAuthFailure?: boolean
+}
+
+export async function apiRequest<T>(path: string, options: ApiRequestOptions = {}): Promise<T> {
+  const { skipAuth = false, suppressAuthFailure = false, ...init } = options
   const headers = new Headers(init.headers)
 
   if (init.body && !headers.has('Content-Type')) {
     headers.set('Content-Type', 'application/json')
+  }
+
+  const token = skipAuth ? null : getAuthToken()
+  if (token && !headers.has('Authorization')) {
+    headers.set('Authorization', `Bearer ${token}`)
   }
 
   const response = await fetch(`${getApiBaseUrl()}${path}`, {
@@ -40,6 +53,10 @@ export async function apiRequest<T>(path: string, init: RequestInit = {}): Promi
       message = payload.detail ?? payload.message ?? payload.error ?? message
     } catch {
       // JSON 오류 응답이 아니면 상태 코드 기반 기본 문구를 사용합니다.
+    }
+
+    if (response.status === 401 && token && !suppressAuthFailure) {
+      notifyUnauthorized()
     }
 
     throw new ApiError(message, response.status)

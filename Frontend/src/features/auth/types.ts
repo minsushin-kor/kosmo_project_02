@@ -1,17 +1,16 @@
-export type DemoAccount = {
+export type AuthUser = {
+  userId: number
   name: string
   username: string
   email: string
   phone: string
-  postalCode: string
-  address: string
-  detailAddress: string
-  password: string
+  role: 'USER' | 'ADMIN'
 }
 
-export type AuthUser = Omit<DemoAccount, 'password'>
-
-export type AuthResult = {
-  success: boolean
-  message?: string
+export type SignupInput = {
+  loginId: string
+  password: string
+  email: string
+  userName: string
+  phone: string
 }

@@ -4,6 +4,7 @@ import { BrandMark } from '../../../components/common/BrandMark'
 import { LoadingButton } from '../../../components/common/LoadingButton'
 import { TextField } from '../../../components/common/TextField'
 import { useAuth } from '../hooks/useAuth'
+import { getApiErrorMessage } from '../../../shared/api/apiClient'
 import styles from './AuthPages.module.css'
 
 type LoginLocationState = {
@@ -18,23 +19,26 @@ export function LoginPage() {
   const state = location.state as LoginLocationState | null
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
+    if (isSubmitting) return
     setError('')
+    setIsSubmitting(true)
     const data = new FormData(event.currentTarget)
-    const result = login(
-      String(data.get('username')),
-      String(data.get('password')),
-      data.get('remember') === 'on',
-    )
-
-    if (!result.success) {
-      setError(result.message ?? '로그인하지 못했습니다.')
-      return
+    try {
+      await login(
+        String(data.get('username')),
+        String(data.get('password')),
+        data.get('remember') === 'on',
+      )
+      navigate('/dashboard')
+    } catch (loginError) {
+      setError(getApiErrorMessage(loginError, '로그인하지 못했습니다.'))
+    } finally {
+      setIsSubmitting(false)
     }
-
-    navigate('/dashboard')
   }
 
   return (
@@ -58,10 +62,7 @@ export function LoginPage() {
           {state?.signedUp && (
             <div className={styles.successMessage} role="status">
               <strong>회원가입이 완료되었습니다.</strong>
-              <span>로그인하거나 반려동물 정보를 먼저 등록할 수 있어요.</span>
-              <Link className={styles.petRegisterLink} to="/pets/new">
-                반려동물이 있으신가요? <b>반려동물 정보 입력하기 →</b>
-              </Link>
+              <span>로그인한 뒤 반려동물 정보를 등록해 주세요.</span>
             </div>
           )}
 
@@ -95,11 +96,11 @@ export function LoginPage() {
               <label><input name="remember" type="checkbox" /> 로그인 유지</label>
             </div>
             {error && <div className={styles.errorMessage} role="alert">{error}</div>}
-            <LoadingButton className={styles.submitButton} type="submit">로그인</LoadingButton>
+            <LoadingButton className={styles.submitButton} type="submit" isLoading={isSubmitting}>로그인</LoadingButton>
           </form>
 
           <p className={styles.switchText}>아직 계정이 없나요? <Link to="/signup">회원가입</Link></p>
-          <div className={styles.mockNotice}>현재는 화면 시연 단계로 회원정보와 로그인 상태를 이 브라우저에만 저장합니다.</div>
+          <div className={styles.mockNotice}>로그인 정보는 PetPulse 서버에서 안전하게 확인합니다.</div>
         </div>
       </section>
     </div>

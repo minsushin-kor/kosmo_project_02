@@ -106,7 +106,7 @@
 - [ ] **협업 필요:** 회원가입·로그인 API 구현
 - [ ] **협업 필요:** JWT 발급·재발급·로그아웃 API 구현
 - [ ] **협업 필요:** 로그인 사용자 조회 및 보호자 정보 수정 API 구현
-- [ ] **협업 필요:** 임시 `VITE_DEMO_USER_ID=1`을 실제 로그인 사용자 ID로 교체
+- [x] JWT 인증 사용자를 기준으로 반려동물 API 연동
 - [ ] **협업 필요:** 실제 사용자와 반려동물 테스트 데이터 준비
 - [ ] **협업 필요:** 반려동물 프로필 이미지 업로드 및 파일 저장 API 구현
 - [ ] **협업 필요:** 활동량·수면·식사 기록 API 또는 대시보드 집계 API 구현
@@ -134,7 +134,7 @@
 
 - Spring Boot API 개발 주소는 `http://localhost:8080`입니다.
 - FastAPI 챗봇 주소는 `http://localhost:8000/ai/chat/stream`입니다.
-- 인증 API가 없어 현재 반려동물 API는 `VITE_DEMO_USER_ID=1`을 사용합니다.
+- Spring Boot Auth API와 JWT를 사용하며 반려동물 API는 인증 사용자 기준으로 동작합니다.
 - ID가 1인 사용자가 PostgreSQL에 존재하지 않으면 반려동물 API를 사용할 수 없습니다.
 - PostgreSQL 또는 Spring Boot가 실행되지 않으면 기존 데모 반려동물 데이터가 표시됩니다.
 - 현재 FastAPI에 학습 모델 파일이 없어 위험도 예측은 규칙 기반 fallback으로 동작합니다.

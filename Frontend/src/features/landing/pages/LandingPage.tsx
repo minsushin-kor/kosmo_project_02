@@ -4,6 +4,7 @@ import heroImage from '../../../assets/images/pet-wellness-hero.webp'
 import { LoadingButton } from '../../../components/common/LoadingButton'
 import { TextField } from '../../../components/common/TextField'
 import { useAuth } from '../../auth/hooks/useAuth'
+import { getApiErrorMessage } from '../../../shared/api/apiClient'
 import styles from './LandingPage.module.css'
 
 export function LandingPage() {
@@ -11,24 +12,26 @@ export function LandingPage() {
   const { currentUser, login } = useAuth()
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
+    if (isSubmitting) return
     setError('')
-
+    setIsSubmitting(true)
     const data = new FormData(event.currentTarget)
-    const result = login(
-      String(data.get('username')),
-      String(data.get('password')),
-      data.get('remember') === 'on',
-    )
-
-    if (!result.success) {
-      setError(result.message ?? '로그인하지 못했습니다.')
-      return
+    try {
+      await login(
+        String(data.get('username')),
+        String(data.get('password')),
+        data.get('remember') === 'on',
+      )
+      navigate('/dashboard')
+    } catch (loginError) {
+      setError(getApiErrorMessage(loginError, '로그인하지 못했습니다.'))
+    } finally {
+      setIsSubmitting(false)
     }
-
-    navigate('/dashboard')
   }
 
   return (
@@ -104,11 +107,11 @@ export function LandingPage() {
                   <label><input name="remember" type="checkbox" /> 로그인 유지</label>
                 </div>
                 {error && <div className={styles.errorMessage} role="alert">{error}</div>}
-                <LoadingButton className={styles.submitButton} type="submit">로그인</LoadingButton>
+                <LoadingButton className={styles.submitButton} type="submit" isLoading={isSubmitting}>로그인</LoadingButton>
               </form>
 
               <p className={styles.switchText}>아직 계정이 없나요? <Link to="/signup">회원가입</Link></p>
-              <div className={styles.mockNotice}>현재는 화면 시연 단계로 로그인 정보가 이 브라우저에만 저장됩니다.</div>
+              <div className={styles.mockNotice}>로그인 정보는 PetPulse 서버에서 안전하게 확인합니다.</div>
             </>
           )}
         </div>

@@ -38,16 +38,12 @@ export function MyPage() {
 
   const profile =
     currentUser ?? {
-      name: '김보호',
-      username: 'guardian',
-      email:
-        'guardian@example.com',
-      phone:
-        '010-1234-5678',
-      postalCode: '00000',
-      address:
-        '회원가입 후 주소가 표시됩니다.',
-      detailAddress: '',
+      userId: 0,
+      name: '',
+      username: '',
+      email: '',
+      phone: '',
+      role: 'USER' as const,
     }
 
   const handleSubmit = (
@@ -149,9 +145,7 @@ export function MyPage() {
               </h2>
 
               <p>
-                {currentUser
-                  ? '회원가입 시 입력한 임시저장 정보입니다.'
-                  : '로그인 후 가입 정보가 표시됩니다.'}
+                서버에 저장된 회원가입 정보입니다.
               </p>
             </div>
           </div>
@@ -225,7 +219,7 @@ export function MyPage() {
 
               <input
                 readOnly
-                defaultValue={`(${profile.postalCode}) ${profile.address} ${profile.detailAddress}`.trim()}
+                defaultValue="주소 정보는 현재 계정에 저장되지 않습니다."
               />
             </label>
 
@@ -264,8 +258,7 @@ export function MyPage() {
               }
               role="status"
             >
-              보호자 정보를
-              저장했어요.
+              프로필 수정 API는 아직 준비 중입니다.
             </div>
           )}
 

@@ -34,7 +34,7 @@ Copy-Item .env.example .env
 npm run dev
 ```
 
-Spring Boot가 실행되지 않거나 테스트 데이터가 없으면 일부 화면은 데모 데이터로 전환됩니다. 인증 API가 구현되기 전에는 `.env`의 `VITE_DEMO_USER_ID`가 반려동물 API의 사용자 ID로 사용됩니다.
+회원가입과 로그인은 Spring Boot 인증 API를 사용하며, 로그인 후 발급받은 JWT로 반려동물 API를 호출합니다. Spring Boot 연결 실패 시 데모 데이터로 자동 전환하지 않고 오류 상태를 표시합니다.
 
 ## 환경변수
 
@@ -43,7 +43,6 @@ Spring Boot가 실행되지 않거나 테스트 데이터가 없으면 일부 �
 | `VITE_API_BASE_URL` | `/api` | Spring Boot API 기본 경로 |
 | `VITE_SPRING_API_TARGET` | `http://localhost:8080` | Vite 개발 프록시 대상 |
 | `VITE_CHAT_API_URL` | `http://localhost:8000/ai/chat/stream` | FastAPI 챗봇 SSE 엔드포인트 |
-| `VITE_DEMO_USER_ID` | `1` | 인증 API 구현 전 개발용 사용자 ID |
 
 실제 API 키는 프론트엔드 환경변수에 저장하지 않습니다. OpenAI 키는 FastAPI 서버의 `.env`에서만 관리해야 합니다.
 
