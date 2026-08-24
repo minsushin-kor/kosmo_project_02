@@ -14,6 +14,21 @@ public enum ErrorCode {
             "RESOURCE_NOT_FOUND",
             "요청한 데이터를 찾을 수 없습니다."),
 
+    DUPLICATE_RESOURCE(
+            HttpStatus.CONFLICT,
+            "DUPLICATE_RESOURCE",
+            "이미 사용 중인 정보입니다."),
+
+    AUTHENTICATION_FAILED(
+            HttpStatus.UNAUTHORIZED,
+            "AUTHENTICATION_FAILED",
+            "인증이 필요합니다."),
+
+    ACCESS_DENIED(
+            HttpStatus.FORBIDDEN,
+            "ACCESS_DENIED",
+            "접근 권한이 없습니다."),
+
     INTERNAL_SERVER_ERROR(
             HttpStatus.INTERNAL_SERVER_ERROR,
             "INTERNAL_SERVER_ERROR",

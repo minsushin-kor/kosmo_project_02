@@ -63,17 +63,16 @@ public class GlobalExceptionHandler {
         }
 
         @ExceptionHandler(BusinessException.class)
-        public ResponseEntity<Map<String, Object>> handleBusinessException(
+        public ResponseEntity<ApiResponse<Void>> handleBusinessException(
                         BusinessException exception) {
 
                 ErrorCode errorCode = exception.getErrorCode();
 
                 return ResponseEntity
                                 .status(errorCode.getStatus())
-                                .body(Map.of(
-                                                "success", false,
-                                                "message", exception.getMessage(),
-                                                "error", errorCode.getCode()));
+                                .body(ApiResponse.failure(
+                                                exception.getMessage(),
+                                                errorCode.getCode()));
         }
 
         @ExceptionHandler(IllegalArgumentException.class)
