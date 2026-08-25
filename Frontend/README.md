@@ -42,9 +42,10 @@ npm run dev
 | --- | --- | --- |
 | `VITE_API_BASE_URL` | `/api` | Spring Boot API 기본 경로 |
 | `VITE_SPRING_API_TARGET` | `http://localhost:8080` | Vite 개발 프록시 대상 |
-| `VITE_CHAT_API_URL` | `http://localhost:8000/ai/chat/stream` | FastAPI 챗봇 SSE 엔드포인트 |
+| `VITE_CHAT_API_URL` | `/ai/chat/stream` | 브라우저가 호출하는 same-origin 챗봇 SSE 경로 |
+| `VITE_FASTAPI_TARGET` | `http://localhost:8000` | Vite 개발 서버 전용 FastAPI 프록시 대상 |
 
-실제 API 키는 프론트엔드 환경변수에 저장하지 않습니다. OpenAI 키는 FastAPI 서버의 `.env`에서만 관리해야 합니다.
+운영 빌드는 `VITE_API_BASE_URL=/api`, `VITE_CHAT_API_URL=/ai/chat/stream`을 사용하고 Nginx가 각 내부 서버로 전달합니다. 실제 API 키는 프론트엔드 환경변수에 저장하지 않으며 Gemini 키는 FastAPI 서버에서만 관리합니다.
 
 ## 검증
 

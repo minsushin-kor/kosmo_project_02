@@ -22,7 +22,7 @@ type ChatSourcePayload = {
   score?: number
 }
 
-const DEFAULT_CHAT_API_URL = 'http://localhost:8000/ai/chat/stream'
+const DEFAULT_CHAT_API_URL = '/ai/chat/stream'
 
 function getChatApiUrl() {
   return import.meta.env.VITE_CHAT_API_URL?.trim() || DEFAULT_CHAT_API_URL

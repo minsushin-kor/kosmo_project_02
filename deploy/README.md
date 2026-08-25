@@ -1,0 +1,99 @@
+# PetPulse single-VM deployment draft
+
+This layout serves the React build and exposes Spring/FastAPI through one Nginx
+origin. It is a deployment template, not an automated installer.
+
+## Directory layout
+
+```text
+/opt/petpulse/backend/app.jar
+/opt/petpulse/fastapi/app
+/opt/petpulse/fastapi/models
+/opt/petpulse/fastapi/.venv
+/var/www/petpulse/index.html
+/var/www/petpulse/assets
+/etc/petpulse/backend.env
+/etc/petpulse/fastapi.env
+```
+
+Run Spring and FastAPI as the unprivileged `petpulse` user. Environment files
+must be readable only by that user and root and must not be copied into the web
+root.
+
+## Production environment
+
+Frontend build-time values:
+
+```text
+VITE_API_BASE_URL=/api
+VITE_CHAT_API_URL=/ai/chat/stream
+```
+
+`VITE_SPRING_API_TARGET` and `VITE_FASTAPI_TARGET` are Vite development-server
+settings and are not needed in the production build.
+
+Spring `/etc/petpulse/backend.env` includes at least:
+
+```text
+SPRING_PROFILES_ACTIVE=prod
+SERVER_ADDRESS=127.0.0.1
+SERVER_PORT=8080
+DB_URL=jdbc:postgresql://managed-postgresql-host:5432/petpulse
+DB_USERNAME=replace-me
+DB_PASSWORD=replace-me
+JWT_SECRET=replace-with-at-least-32-random-bytes
+FASTAPI_BASE_URL=http://127.0.0.1:8000
+APP_CORS_ALLOWED_ORIGINS=
+```
+
+FastAPI `/etc/petpulse/fastapi.env` includes:
+
+```text
+GEMINI_API_KEY=replace-me
+GEMINI_MODEL=gemini-3.6-flash
+CORS_ALLOWED_ORIGINS=
+```
+
+Same-origin browser requests do not require production CORS allowlists. Do not
+replace the empty values with `*`.
+
+## Build and copy
+
+1. Build Spring with `./gradlew clean bootJar`, then copy the generated JAR to
+   `/opt/petpulse/backend/app.jar`.
+2. Copy `FastAPI/petpulse_ai` to `/opt/petpulse/fastapi`, create its virtual
+   environment there, and install `requirements.txt`.
+3. Build React with `npm ci && npm run build`, empty the old static release only
+   after preserving a rollback copy, and copy the contents of `Frontend/dist/`
+   into `/var/www/petpulse/`.
+4. Install the unit files from `deploy/systemd/` into `/etc/systemd/system/`.
+5. Install `deploy/nginx/petpulse.conf` as an enabled Nginx site after replacing
+   `server_name` and adding the production TLS certificate configuration.
+
+## Start and verify
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable --now petpulse-fastapi petpulse-backend
+sudo systemctl status petpulse-fastapi petpulse-backend
+sudo nginx -t
+sudo systemctl reload nginx
+```
+
+Verify the Spring health/auth route through Nginx, load a React nested route
+directly to confirm SPA fallback, and send a chatbot request while checking that
+tokens arrive incrementally.
+
+## Network boundary
+
+- Security group/firewall: expose 80 and 443 only.
+- Bind Spring to `127.0.0.1:8080` and FastAPI to `127.0.0.1:8000`.
+- Do not expose PostgreSQL through this VM; connect outbound to managed
+  PostgreSQL using its restricted network rules.
+- Terminate HTTPS at Nginx and forward `Host`, `X-Real-IP`,
+  `X-Forwarded-For`, and `X-Forwarded-Proto`.
+
+The chatbot location disables proxy buffering and cache because it is a POST SSE
+stream. Its five-minute read timeout is an idle upstream timeout, not a browser
+retry policy. The frontend supports user cancellation through `AbortController`
+but does not automatically reconnect or impose its own fixed timeout.

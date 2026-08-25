@@ -13,6 +13,10 @@ export default defineConfig(({ mode }) => {
           target: env.VITE_SPRING_API_TARGET || 'http://localhost:8080',
           changeOrigin: true,
         },
+        '/ai/chat/stream': {
+          target: env.VITE_FASTAPI_TARGET || 'http://localhost:8000',
+          changeOrigin: true,
+        },
       },
     },
   }
