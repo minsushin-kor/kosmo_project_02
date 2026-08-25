@@ -63,7 +63,7 @@ const initialData: QuestionnaireData = {
   appetiteLevel: 'NORMAL',
   waterIntakeLevel: 'NORMAL',
   activityLevel: 'NORMAL',
-  symptomDurationDays: '1',
+  symptomDurationDays: '0',
   additionalSymptoms: '',
 }
 
@@ -247,7 +247,19 @@ export function QuestionnairePage() {
         <div className={styles.stepContent}>
           <div className={styles.stepHeading}><span aria-hidden="true">⌁</span><div><p>STEP 04</p><h2>추가로 관찰된 증상이 있나요?</h2><small>자연어 증상은 AI 설명을 생성할 때 참고 정보로 사용됩니다.</small></div></div>
           <label className={styles.daysField}><span>증상이 지속된 기간</span><div><input type="number" min="0" max="365" value={data.symptomDurationDays} onChange={(event) => update('symptomDurationDays', event.target.value)} /><em>일</em></div></label>
-          <label className={styles.textareaField}><span>추가 증상</span><textarea rows={7} maxLength={500} value={data.additionalSymptoms} onChange={(event) => update('additionalSymptoms', event.target.value)} placeholder="예: 어제부터 산책 중 자주 멈추고 평소보다 잠이 많아졌어요." /><small>{data.additionalSymptoms.length} / 500자</small></label>
+          <label className={styles.textareaField}><span>추가 증상</span><textarea rows={7} maxLength={500} value={data.additionalSymptoms} onChange={(event) => {
+            const additionalSymptoms = event.target.value
+
+            setData((current) => ({
+              ...current,
+              additionalSymptoms,
+              symptomDurationDays: additionalSymptoms.trim()
+                ? current.additionalSymptoms.trim()
+                  ? current.symptomDurationDays
+                  : '1'
+                : '0',
+            }))
+          }} placeholder="예: 어제부터 산책 중 자주 멈추고 평소보다 잠이 많아졌어요." /><small>{data.additionalSymptoms.length} / 500자</small></label>
         </div>
       )
     }

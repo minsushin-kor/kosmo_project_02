@@ -155,7 +155,6 @@ export function ChatAssistant({ variant, isOpen, onOpen, onClose }: ChatAssistan
               <span className={styles.headerIcon} aria-hidden="true">✦</span>
               <div>
                 <strong>AI 건강 도우미</strong>
-                <span><i /> RAG 자료 기반 답변</span>
               </div>
             </div>
             <div className={styles.headerActions}>
@@ -169,7 +168,7 @@ export function ChatAssistant({ variant, isOpen, onOpen, onClose }: ChatAssistan
           {selectedPet && (
             <div className={styles.petContext}>
               <span aria-hidden="true">{getPetEmoji(selectedPet.species)}</span>
-              <p><strong>{selectedPet.name}</strong>에 대해 질문하고 있어요</p>
+              <p><strong>{selectedPet.name}</strong>에 대해 궁금한 점이 있다면 편하게 물어보세요</p>
             </div>
           )}
 

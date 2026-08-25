@@ -1,0 +1,280 @@
+[건강 다이어리 백엔드 요청사항]
+
+1. 작업 목적
+
+현재 프론트의 건강 다이어리는 다음 두 종류의 정보를 함께 보여줍니다.
+
+1) 보호자가 날짜별로 직접 작성하는 상태와 관찰 메모
+2) 기존 백엔드에서 불러오는 생체정보·건강 문진·알림·주간 리포트
+
+보호자가 작성한 다이어리 기록은 현재 localStorage에만 임시 저장됩니다.
+로그인한 사용자가 다른 브라우저나 기기에서도 기록을 확인할 수 있도록 DB 저장 방식으로 변경해야 합니다.
+
+FastAPI가 판별한 건강 예측 결과와 보호자가 작성한 상태는 서로 다른 정보입니다.
+두 정보를 같은 필드에 저장하거나 서로 덮어쓰지 않도록 분리해 주세요.
+
+
+2. 현재 프론트의 다이어리 데이터 형식
+
+프론트에서 사용 중인 형식은 다음과 같습니다.
+
+{
+  "date": "2026-08-18",
+  "status": "GOOD",
+  "note": "식사와 산책을 평소처럼 잘 마쳤어요.",
+  "updatedAt": "2026-08-18T14:20:00"
+}
+
+상태값과 화면 표시 문구
+
+- GOOD: 좋음
+- WATCH: 관찰 필요
+- 해당 날짜에 저장된 다이어리 데이터가 없음: 기록 없음
+
+주의사항
+
+- BAD는 사용하지 않습니다.
+- 기록 없음은 enum 값으로 저장하지 않습니다.
+- GOOD과 WATCH는 보호자가 직접 선택한 관찰 상태입니다.
+- FastAPI 예측 등급인 NORMAL, WATCH, CAUTION, DANGER와 별개의 값입니다.
+- 관찰 메모는 최대 300자입니다.
+- 프론트에서는 미래 날짜의 입력을 막고 있습니다.
+
+
+3. 구현 요청 1: 건강 다이어리 테이블
+
+예시 테이블명: health_diary_entries
+
+필요한 컬럼
+
+- diary_entry_id: PK
+- pet_id: 반려동물 FK, 필수
+- record_date: DATE, 필수
+- guardian_status: VARCHAR 또는 Enum, GOOD/WATCH, 필수
+- note: VARCHAR(300), 빈 문자열 허용
+- created_at: 생성 일시
+- updated_at: 수정 일시
+
+DB 조건
+
+- 한 반려동물은 날짜별로 다이어리 기록을 하나만 가질 수 있어야 합니다.
+- (pet_id, record_date)에 UNIQUE 제약조건을 설정해 주세요.
+- 월별 조회를 위해 (pet_id, record_date) 인덱스를 설정해 주세요.
+- 다이어리 기록을 삭제해도 생체정보, 문진, 예측, 알림, 주간 리포트는 삭제되지 않아야 합니다.
+
+
+4. 구현 요청 2: 월별 다이어리 조회 API
+
+GET /api/pets/{petId}/diary?year=2026&month=8
+
+요청 조건
+
+- 지정한 반려동물과 연월에 해당하는 보호자 다이어리 기록만 조회
+- date 오름차순으로 반환
+- 해당 월에 기록이 없으면 200 OK와 빈 배열([]) 반환
+- 존재하지 않는 petId는 404 반환
+- year 또는 month가 잘못되었으면 400 반환
+
+응답 예시
+
+[
+  {
+    "diaryEntryId": 12,
+    "petId": 1,
+    "date": "2026-08-18",
+    "status": "GOOD",
+    "note": "식사와 산책을 평소처럼 잘 마쳤어요.",
+    "createdAt": "2026-08-18T09:00:00",
+    "updatedAt": "2026-08-18T14:20:00"
+  },
+  {
+    "diaryEntryId": 13,
+    "petId": 1,
+    "date": "2026-08-19",
+    "status": "WATCH",
+    "note": "저녁 활동량이 평소보다 적었습니다.",
+    "createdAt": "2026-08-19T20:00:00",
+    "updatedAt": "2026-08-19T20:00:00"
+  }
+]
+
+프론트 변경을 줄이기 위해 JSON 필드명은 date, status, note, updatedAt을 그대로 사용해 주세요.
+DB 컬럼명은 record_date, guardian_status를 사용해도 됩니다.
+
+
+5. 구현 요청 3: 날짜별 다이어리 저장·수정 API
+
+PUT /api/pets/{petId}/diary/{date}
+
+예시
+
+PUT /api/pets/1/diary/2026-08-18
+Content-Type: application/json
+
+{
+  "status": "GOOD",
+  "note": "식사와 산책을 평소처럼 잘 마쳤어요."
+}
+
+처리 조건
+
+- 해당 반려동물과 날짜의 기록이 없으면 생성
+- 이미 기록이 있으면 상태와 메모 수정
+- 같은 날짜의 요청으로 데이터가 중복 생성되지 않는 upsert 방식
+- 저장 후 월별 조회와 동일한 형식의 다이어리 객체 반환
+- 신규 생성은 201 Created 또는 200 OK, 수정은 200 OK로 처리
+
+검증 조건
+
+- date는 YYYY-MM-DD 형식
+- 미래 날짜는 400 반환
+- status는 필수이며 GOOD 또는 WATCH만 허용
+- note는 빈 문자열을 허용하고 최대 300자
+- note가 null로 전달되면 빈 문자열로 저장하거나 응답에서 빈 문자열로 반환
+- 존재하지 않는 petId는 404 반환
+
+
+6. 구현 요청 4: 날짜별 다이어리 삭제 API
+
+DELETE /api/pets/{petId}/diary/{date}
+
+처리 조건
+
+- 해당 날짜에 보호자가 작성한 상태와 관찰 메모만 삭제
+- 성공 시 204 No Content 반환
+- 연결된 생체정보·문진·예측·알림·주간 리포트는 유지
+- 존재하지 않는 petId는 404 반환
+
+
+7. 인증 및 소유권 검증
+
+로그인/JWT 기능이 적용되면 모든 다이어리 API에서 현재 사용자가 해당 반려동물의 보호자인지 확인해 주세요.
+
+- userId를 쿼리 파라미터나 요청 본문으로 받지 않음
+- JWT 또는 인증 객체에서 현재 사용자 식별
+- 다른 사용자의 반려동물에 접근하면 403 반환
+
+인증 기능 구현 전에는 최소한 petId 존재 여부를 확인해 주세요.
+
+
+8. FastAPI 건강 예측 결과와의 구분
+
+현재 확인된 예측 기능
+
+- 건강 문진 입력값은 questionnaires 테이블에 저장됩니다.
+- POST /api/questionnaires/{questionnaireId}/predictions 호출 시 FastAPI 결과가 health_predictions 테이블에 저장됩니다.
+- 예측 등급은 NORMAL, WATCH, CAUTION, DANGER입니다.
+- 예측 결과 단건 조회 API는 이미 존재합니다.
+  - GET /api/predictions/{predictionId}
+  - GET /api/questionnaires/{questionnaireId}/prediction
+
+보호자 다이어리 상태를 AI 예측 결과로 자동 변경하지 마세요.
+예를 들어 보호자는 GOOD을 기록했지만 같은 날짜의 AI 결과는 CAUTION일 수 있으며, 두 결과 모두 유지되어야 합니다.
+
+
+9. 구현 요청 5: 반려동물별 월간 예측 결과 조회
+
+건강 다이어리에서 날짜별 FastAPI 예측 결과도 직접 표시할 수 있도록 아래 목록 API가 필요합니다.
+
+GET /api/pets/{petId}/predictions?year=2026&month=8
+
+요청 조건
+
+- petId에 해당하는 health_predictions만 조회
+- year와 month에 포함되는 predictedAt 기준으로 조회
+- predictedAt 오름차순으로 반환
+- 결과가 없으면 200 OK와 빈 배열([]) 반환
+- 존재하지 않는 petId는 404 반환
+
+현재 HealthPredictionRepository에 다음 메서드가 있으므로 재사용할 수 있습니다.
+
+findByQuestionnairePetPetIdAndPredictedAtBetweenOrderByPredictedAtAsc(...)
+
+응답은 기존 HealthPredictionResponse 형식을 그대로 사용해도 됩니다.
+
+[
+  {
+    "predictionId": 21,
+    "questionnaireId": 25,
+    "abnormalProbability": 0.1842,
+    "riskGrade": "NORMAL",
+    "primaryRiskFactor": "activityLevel",
+    "riskFactorsJson": null,
+    "aiSummary": "현재 입력된 정보에서는 위험 신호가 낮게 나타났습니다.",
+    "modelVersion": "1.0.0",
+    "predictedAt": "2026-08-18T14:20:00"
+  }
+]
+
+같은 날짜에 예측 결과가 여러 개면 프론트에서 predictedAt이 가장 최근인 결과를 사용합니다.
+AI 예측 등급을 GOOD/WATCH로 변환해 저장할 필요는 없습니다.
+
+
+10. 문진 제출과 예측 생성 흐름 확인
+
+현재 문진 저장과 예측 생성은 서로 다른 API입니다.
+
+1) POST /api/pets/{petId}/questionnaires
+2) 응답으로 받은 questionnaireId를 이용해 POST /api/questionnaires/{questionnaireId}/predictions
+
+프론트에서는 두 API를 순서대로 호출할 수 있으므로 이번 작업에서 하나의 API로 합치는 것은 필수가 아닙니다.
+다만 두 번째 호출이 실패하면 동일 questionnaireId로 예측 생성을 다시 요청할 수 있어야 합니다.
+
+
+11. 기존 건강 기록 API
+
+현재 프론트는 건강 다이어리의 '연결된 건강 기록'을 만들기 위해 다음 기존 API를 직접 호출합니다.
+
+- 생체정보 목록
+- 건강 문진 목록
+- 건강 알림 목록
+- 주간 리포트 목록
+
+따라서 이 자료를 합친 별도의 건강 다이어리 통합 API는 현재 필요하지 않습니다.
+
+
+12. 테스트 요청사항
+
+보호자 다이어리
+
+- 반려동물과 월별로 정확한 기록만 반환되는지 확인
+- 월의 시작일과 마지막 날 기록이 포함되는지 확인
+- 같은 반려동물과 날짜에 PUT을 반복해도 한 행만 유지되는지 확인
+- 다른 반려동물의 같은 날짜 기록과 분리되는지 확인
+- GOOD/WATCH 이외 상태값이 거부되는지 확인
+- 300자 초과 메모가 거부되는지 확인
+- 미래 날짜와 잘못된 날짜 형식이 거부되는지 확인
+- 기록 삭제 후 관련 건강 데이터가 유지되는지 확인
+- 기록이 없는 월은 빈 배열을 반환하는지 확인
+
+건강 예측 목록
+
+- 특정 반려동물과 월의 예측 결과만 반환되는지 확인
+- 같은 문진에 예측이 중복 저장되지 않는지 확인
+- 결과가 없는 월은 빈 배열을 반환하는지 확인
+
+인증 적용 후
+
+- 다른 사용자의 반려동물 다이어리와 예측 결과에 접근할 수 없는지 확인
+
+
+13. 프론트에서 처리하므로 백엔드에 요청하지 않는 기능
+
+- 기록 없음 상태의 DB 저장
+- 월별 좋음/관찰 필요/기록 없음 일수 계산
+- 이번 달 기록률 계산
+- 생체정보·문진·알림 건수 합산
+- CSV 파일 생성과 다운로드
+- 인쇄 화면 생성
+- 같은 날짜에 여러 예측이 있을 때 최신 결과 선택
+- 보호자 상태와 FastAPI 예측 등급의 통합 또는 자동 덮어쓰기
+
+
+14. 백엔드 완료 후 프론트 변경 예정
+
+- localStorage의 readDiaryEntries를 월별 GET API 호출로 교체
+- saveDiaryEntry를 날짜별 PUT API 호출로 교체
+- removeDiaryEntry를 날짜별 DELETE API 호출로 교체
+- 저장·수정·삭제 중 로딩 및 실패 안내 추가
+- 백엔드 응답을 반영해 달력, 월간 요약, 이번 달 다이어리 목록 갱신
+- 월별 FastAPI 예측 목록 API 연결

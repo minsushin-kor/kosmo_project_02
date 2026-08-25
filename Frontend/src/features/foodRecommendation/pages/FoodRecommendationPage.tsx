@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react'
+import { Link } from 'react-router-dom'
 import { useAuth } from '../../auth/hooks/useAuth'
 import { PetSelector } from '../../pets/components/PetSelector'
 import { usePets } from '../../pets/hooks/usePets'
@@ -67,7 +68,7 @@ function createInitialValues(pet: Pet | null): FoodRecommendationForm {
 
 export function FoodRecommendationPage() {
   const { currentUser } = useAuth()
-  const { selectedPet } = usePets()
+  const { selectedPet, isLoading: isPetsLoading } = usePets()
   const petForPrefill = currentUser ? selectedPet : null
   const [form, setForm] = useState<FoodRecommendationForm>(() => createInitialValues(petForPrefill))
   const [result, setResult] = useState<FoodRecommendationResponse | null>(null)
@@ -151,10 +152,17 @@ export function FoodRecommendationPage() {
           <h1>사료 추천</h1>
           <span>우리 아이의 기본 정보와 건강 정보를 토대로 어울리는 성분의 사료를 추천해 드려요.</span>
         </div>
-        {currentUser ? (
+        {currentUser && (selectedPet || isPetsLoading) ? (
           <div className={styles.headerPetSelector}>
             <small>추천 대상</small>
             <PetSelector />
+          </div>
+        ) : currentUser ? (
+          <div className={styles.guestStatus}>
+            <span>
+              PetPulse에 등록된 반려동물이 없어요. 혹시 키우시는 반려동물이 있다면 아래 버튼을 눌러 등록해 주세요.
+            </span>
+            <Link to="/pets/new">반려동물 등록</Link>
           </div>
         ) : (
           <div className={styles.guestStatus}>

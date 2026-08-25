@@ -10,6 +10,7 @@ import { getMonthlyPredictions, type HealthPrediction, type RiskGrade } from '..
 import { getQuestionnaires, type QuestionnaireResponse } from '../../questionnaire/api/questionnaireApi'
 import { getWeeklyReports, type WeeklyReport } from '../../reports/api/reportApi'
 import { getVitalRecords, type VitalRecord } from '../../vitals/api/vitalApi'
+import { WalkAdviceWidget } from '../../walkAdvice/components/WalkAdviceWidget'
 import { deleteDiaryEntry, getDiaryEntries, upsertDiaryEntry } from '../api/healthDiaryApi'
 import type { DiaryEntries, DiaryStatus } from '../types'
 import {
@@ -359,7 +360,10 @@ export function HealthDiaryPage() {
           <h1 className={common.title}>건강 다이어리</h1>
           <p className={common.description}>{selectedPet.name}의 하루 상태와 건강 기록을 달력에서 함께 확인해 보세요.</p>
         </div>
-        {isDemoMode && <span className={common.mockBadge}>데모 다이어리</span>}
+        <div className={styles.headerAside}>
+          {isDemoMode && <span className={common.mockBadge}>데모 다이어리</span>}
+          <WalkAdviceWidget petId={selectedPet.id} petName={selectedPet.name} />
+        </div>
       </header>
 
       {isLoading && <DataState title="다이어리에 표시할 건강 기록을 불러오는 중입니다." isLoading />}

@@ -23,7 +23,7 @@ export function PetSectionNav() {
         <span><strong>{selectedPet.name}</strong><small>우리 아이 기록 메뉴</small></span>
       </div>
       <nav className={styles.navigation} aria-label={`${selectedPet.name} 우리 아이 기록 메뉴`}>
-        <NavLink className={getClassName} to="/dashboard">요약</NavLink>
+        <NavLink className={getClassName} to="/dashboard">우리 아이 상태</NavLink>
         <NavLink className={getClassName} to={`${petBase}/vitals`}>생체정보</NavLink>
         <NavLink className={getClassName} to={`${petBase}/questionnaire`}>건강 문진</NavLink>
         <NavLink className={getClassName} to={`${petBase}/history`}>알림·이력</NavLink>

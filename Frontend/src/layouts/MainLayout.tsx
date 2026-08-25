@@ -26,7 +26,7 @@ function MainLayoutContent() {
   const isFoodRecommendation = pathname === '/food-recommendation'
   const hidesFloatingChat = isHome || isQuickPrediction || isFoodRecommendation || pathname === '/login' || pathname === '/signup' || pathname.endsWith('/diary')
   const healthRecordsPath = selectedPet ? `/pets/${selectedPet.id}/vitals` : '/pets'
-  const isHealthRecords = /^\/pets\/[^/]+\/(vitals|questionnaire|history|alerts|reports|diary)$/.test(pathname) ||
+  const isHealthRecords = isDashboard || /^\/pets\/[^/]+\/(vitals|questionnaire|history|alerts|reports|diary)$/.test(pathname) ||
     pathname.startsWith('/predictions/') || pathname.startsWith('/reports/')
   const isMyPage = pathname === '/mypage' || pathname === '/pets' || pathname === '/pets/new' ||
     /^\/pets\/[^/]+\/edit$/.test(pathname)
@@ -120,13 +120,6 @@ function MainLayoutContent() {
               onClick={() => setIsMobileNavOpen(false)}
             >
               사료 추천
-            </NavLink>
-            <NavLink
-              to="/dashboard"
-              className={({ isActive }) => (isActive ? styles.active : undefined)}
-              onClick={() => setIsMobileNavOpen(false)}
-            >
-              우리 아이 상태
             </NavLink>
             <NavLink
               to={healthRecordsPath}

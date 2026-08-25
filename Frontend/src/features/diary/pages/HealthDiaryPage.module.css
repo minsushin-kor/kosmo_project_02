@@ -1,3 +1,11 @@
+.headerAside {
+  display: flex;
+  min-width: 0;
+  align-items: flex-end;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
 .diaryLayout {
   display: grid;
   grid-template-columns: minmax(0, 1.35fr) minmax(20rem, 0.72fr);
@@ -712,6 +720,13 @@
   }
 }
 
+@media (max-width: 780px) {
+  .headerAside {
+    width: 100%;
+    align-items: stretch;
+  }
+}
+
 @media (max-width: 640px) {
   .calendarCard {
     padding: 0.85rem;
@@ -827,7 +842,8 @@
   }
 
   .summaryActions,
-  .monthRecordHeading a {
+  .monthRecordHeading a,
+  .headerAside {
     display: none !important;
   }
 

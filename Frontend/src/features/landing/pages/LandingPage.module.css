@@ -67,10 +67,10 @@
   margin: 0;
   color: var(--color-cream);
   font-family: var(--font-display);
-  font-size: clamp(2.7rem, 4.7vw, 5rem);
+  font-size: clamp(2.35rem, 3.9vw, 4.15rem);
   letter-spacing: -0.07em;
   line-height: 1.03;
-  text-wrap: balance;
+  white-space: nowrap;
 }
 
 .introCopy > span {
@@ -336,7 +336,7 @@
   }
 
   .introCopy h1 {
-    font-size: 2.45rem;
+    font-size: clamp(1.85rem, 9vw, 2.15rem);
   }
 
   .introCopy > span {

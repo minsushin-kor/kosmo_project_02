@@ -408,13 +408,14 @@
   padding: 0.75rem 0.95rem;
   border: 1px solid var(--color-line);
   border-radius: 1rem 1rem 0.35rem 1rem;
-  background: var(--color-primary);
+  background: #66704f;
   color: var(--color-cream);
   cursor: pointer;
   font-size: 0.78rem;
   font-weight: 750;
-  box-shadow: 0 0.8rem 2rem rgba(48, 54, 34, 0.15);
+  box-shadow: 0 0.8rem 2rem rgba(48, 54, 34, 0.18);
   animation: bubbleIn 220ms ease-out;
+  transition: transform 160ms ease, background-color 160ms ease;
 }
 
 .promptBubble::after {
@@ -425,13 +426,13 @@
   height: 0.75rem;
   border-right: 1px solid rgba(255, 253, 248, 0.16);
   border-bottom: 1px solid rgba(255, 253, 248, 0.16);
-  background: var(--color-primary);
+  background: #66704f;
   content: '';
   transform: rotate(45deg);
 }
 
-.promptBubble:hover {
-  background: var(--color-primary-hover);
+.launcherGroup:hover .promptBubble {
+  background: #586145;
   color: var(--color-cream);
   transform: translateY(-1px);
 }
@@ -440,27 +441,29 @@
   display: flex;
   min-height: 4.25rem;
   padding: 0.55rem;
-  border: 1px solid rgba(255, 253, 248, 0.18);
+  border: 1px solid rgba(255, 253, 248, 0.22);
   border-radius: 999px;
-  background: var(--color-primary);
+  background: #66704f;
   color: var(--color-cream);
   cursor: pointer;
   align-items: center;
   gap: 0.7rem;
   box-shadow: 0 1rem 2.5rem rgba(48, 54, 34, 0.24);
-  transition: transform 160ms ease, background-color 160ms ease;
+  transition: transform 160ms ease, background-color 160ms ease, border-color 160ms ease;
 }
 
-.launcher:hover {
-  background: var(--color-primary-hover);
+.launcherGroup:hover .launcher {
+  border-color: rgba(255, 253, 248, 0.32);
+  background: #586145;
   transform: translateY(-2px);
 }
 
 .launcherIcon {
   width: 3rem;
   height: 3rem;
-  background: rgba(255, 253, 248, 0.1);
-  color: var(--color-sand);
+  border: 0;
+  background: inherit;
+  color: var(--color-cream);
   font-size: 1.1rem;
 }
 

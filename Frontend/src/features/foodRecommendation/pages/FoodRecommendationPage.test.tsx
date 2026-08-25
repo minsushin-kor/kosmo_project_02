@@ -32,7 +32,10 @@ const petContext: PetContextValue = {
   reloadPets: vi.fn(),
 }
 
-function renderPage(currentUser: AuthContextValue['currentUser']) {
+function renderPage(
+  currentUser: AuthContextValue['currentUser'],
+  petsContext: PetContextValue = petContext,
+) {
   const authContext: AuthContextValue = {
     currentUser,
     isAuthLoading: false,
@@ -44,7 +47,7 @@ function renderPage(currentUser: AuthContextValue['currentUser']) {
   return render(
     <MemoryRouter>
       <AuthContext.Provider value={authContext}>
-        <PetContext.Provider value={petContext}>
+        <PetContext.Provider value={petsContext}>
           <FoodRecommendationPage />
         </PetContext.Provider>
       </AuthContext.Provider>
@@ -78,6 +81,25 @@ describe('FoodRecommendationPage 로그인별 초기값', () => {
     expect(screen.getByRole('radio', { name: /강아지/ })).toBeChecked()
     expect(screen.getByRole('spinbutton', { name: /체중/ })).toHaveValue(5.5)
     expect(screen.getByPlaceholderText('예시: 피부 알레르기 및 가려움')).toHaveValue('')
+  })
+
+  it('로그인했지만 등록된 반려동물이 없으면 등록 안내를 표시한다', () => {
+    renderPage({
+      userId: 1,
+      name: '홍길동',
+      username: 'tester',
+      email: 'tester@example.com',
+      phone: '010-0000-0000',
+      role: 'USER',
+    }, {
+      ...petContext,
+      pets: [],
+      selectedPet: null,
+    })
+
+    expect(screen.getByText(/PetPulse에 등록된 반려동물이 없어요/)).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: '반려동물 등록' })).toHaveAttribute('href', '/pets/new')
+    expect(screen.queryByText('추천 대상')).not.toBeInTheDocument()
   })
 
   it('건강 고민 항목을 여러 개 동시에 선택할 수 있다', () => {
