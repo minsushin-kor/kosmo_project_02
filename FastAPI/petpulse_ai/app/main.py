@@ -479,7 +479,7 @@ def search_rag(query: str, n_results: int = 3) -> Optional[dict]:
 
 
 # =====================================================================
-# 5. API 엔드포인트 구현 (5개 명세 규격 100% 준수)
+# 5. API 엔드포인트 구현
 # =====================================================================
 
 # ---------------------------------------------------------------------
@@ -1003,7 +1003,7 @@ async def _stream_chat_response(
 
 def _build_rag_fallback(message: str, rag_results: Optional[dict]) -> str:
     """
-    OpenAI 미연동 또는 스트리밍 실패 시 RAG 문서 요약으로 답변을 대체합니다.
+    Gemini 미연동 또는 스트리밍 실패 시 RAG 문서 요약으로 답변을 대체합니다.
     """
     if rag_results and rag_results["documents"]:
         top_doc = rag_results["documents"][0][:300].rstrip()
@@ -1032,9 +1032,7 @@ async def chat_stream(req: ChatStreamRequest):
       data: {"type": "token",  "content": "성 단위 텍스트"}\n\n   # 답변 트리거 실시간 전송
       data: {"type": "done",   "sources": [{...}]}\n\n   # 완료 + 출처 목록
 
-    React 사용 예시:
-      const es = new EventSource('/ai/chat/stream');
-      또는 fetch + ReadableStream으로 SSE 파싱
+    React에서는 POST 요청을 fetch로 보내고 ReadableStream으로 SSE를 파싱합니다.
     """
     return StreamingResponse(
         _stream_chat_response(req.message, req.species),

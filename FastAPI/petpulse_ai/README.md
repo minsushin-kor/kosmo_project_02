@@ -7,9 +7,11 @@
 ```
 petpulse_ai/
 ├── app/
-│   ├── main.py                          # FastAPI 서버 (5개 AI 엔드포인트)
+│   ├── main.py                          # FastAPI 서버 (7개 엔드포인트)
 │   └── data/
-│       └── wellness_knowledge_base.json # 수의학 지식베이스 18개 항목 (RAG)
+│       ├── wellness_knowledge_base.json # JSON 룩업 fallback 지식베이스
+│       ├── vet_knowledge_corpus.json    # 벡터 인덱스 원문
+│       └── chroma_db/                   # Chroma 인덱스 (SQLite 포함 필요)
 ├── data/
 │   └── pet_health_synthetic_dataset.csv # 학습용 합성 데이터 (3,000건)
 ├── models/
@@ -81,6 +83,14 @@ python -m uvicorn app.main:app --host 127.0.0.1 --port 8000
 | `POST` | `/ai/predict-health-risk` | ML + SHAP 기반 위험도 예측 |
 | `POST` | `/ai/explain-prediction` | LLM + RAG 기반 자연어 설명 생성 |
 | `POST` | `/ai/generate-weekly-report` | LLM 기반 주간 웰니스 리포트 생성 |
+| `POST` | `/ai/recommend-food` | 맞춤형 사료 및 영양 성분 추천 |
+| `POST` | `/ai/chat/stream` | POST + SSE 형식의 RAG 챗봇 스트림 |
+
+Chroma 벡터 검색에는 `app/data/chroma_db/chroma.sqlite3`와 같은 디렉터리의
+인덱스 파일이 모두 필요합니다. 저장소에는 SQLite 파일이 포함되지 않으므로
+운영 배포 시 검증된 인덱스를 별도 복사하거나 `scripts/build_rag_index.py`로
+생성해야 합니다. 인덱스가 없거나 로드에 실패하면 서버는 기동되며 JSON
+지식베이스 lookup으로 fallback합니다.
 
 ---
 

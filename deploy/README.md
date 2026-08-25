@@ -42,9 +42,19 @@ DB_URL=jdbc:postgresql://managed-postgresql-host:5432/petpulse
 DB_USERNAME=replace-me
 DB_PASSWORD=replace-me
 JWT_SECRET=replace-with-at-least-32-random-bytes
+JWT_EXPIRATION_SECONDS=3600
 FASTAPI_BASE_URL=http://127.0.0.1:8000
+FASTAPI_CONNECT_TIMEOUT_SECONDS=3
+FASTAPI_READ_TIMEOUT_SECONDS=30
 APP_CORS_ALLOWED_ORIGINS=
+FLYWAY_BASELINE_ON_MIGRATE=false
 ```
+
+`DB_URL`, `DB_USERNAME`, `DB_PASSWORD`, and `JWT_SECRET` are mandatory in the
+`prod` profile. Use `sslmode=require` (or the managed database provider's
+required TLS parameters) in `DB_URL`. Keep `FLYWAY_BASELINE_ON_MIGRATE=false`
+for a new empty database; `true` is only for the separately verified existing
+database adoption procedure in `Backend/app/DEPLOYMENT.md`.
 
 FastAPI `/etc/petpulse/fastapi.env` includes:
 
@@ -62,7 +72,14 @@ replace the empty values with `*`.
 1. Build Spring with `./gradlew clean bootJar`, then copy the generated JAR to
    `/opt/petpulse/backend/app.jar`.
 2. Copy `FastAPI/petpulse_ai` to `/opt/petpulse/fastapi`, create its virtual
-   environment there, and install `requirements.txt`.
+   environment there, and install `requirements.txt`. Runtime inference needs
+   `app/`, `models/pet_risk_pipeline.pkl`, `app/data/wellness_knowledge_base.json`,
+   `app/data/vet_knowledge_corpus.json`, and `requirements.txt`. The training
+   CSV, `scripts/`, tests, and `requirements-dev.txt` are not required at runtime.
+   A complete Chroma index additionally needs every file under
+   `app/data/chroma_db/`, including `chroma.sqlite3`. That SQLite file is ignored
+   by Git in this repository, so either copy a verified generated index as a
+   deployment artifact or intentionally use the built-in JSON lookup fallback.
 3. Build React with `npm ci && npm run build`, empty the old static release only
    after preserving a rollback copy, and copy the contents of `Frontend/dist/`
    into `/var/www/petpulse/`.
@@ -80,9 +97,17 @@ sudo nginx -t
 sudo systemctl reload nginx
 ```
 
-Verify the Spring health/auth route through Nginx, load a React nested route
-directly to confirm SPA fallback, and send a chatbot request while checking that
-tokens arrive incrementally.
+Verify an auth route through Nginx (this project does not currently include the
+Actuator dependency), load a React nested route directly to confirm SPA fallback,
+and send a chatbot request while checking that tokens arrive incrementally.
+Inspect service output with `journalctl -u petpulse-backend` and
+`journalctl -u petpulse-fastapi`. Before installing the units, verify that
+`/usr/bin/java`, `/opt/petpulse/fastapi/.venv/bin/python`, the working
+directories, and the `petpulse` user/group exist and are readable by that user.
+
+The services intentionally have no hard dependency on each other. Spring can
+start while FastAPI is down; only AI gateway calls fail until FastAPI is ready.
+Starting FastAPI first remains the recommended operational order.
 
 ## Network boundary
 
