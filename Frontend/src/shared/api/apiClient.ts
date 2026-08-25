@@ -12,6 +12,10 @@ function getApiBaseUrl() {
   return (import.meta.env.VITE_API_BASE_URL?.trim() || DEFAULT_API_BASE_URL).replace(/\/$/, '')
 }
 
+export function getApiUrl(path: string) {
+  return `${getApiBaseUrl()}${path}`
+}
+
 export class ApiError extends Error {
   readonly status: number
 
@@ -40,7 +44,7 @@ export async function apiRequest<T>(path: string, options: ApiRequestOptions = {
     headers.set('Authorization', `Bearer ${token}`)
   }
 
-  const response = await fetch(`${getApiBaseUrl()}${path}`, {
+  const response = await fetch(getApiUrl(path), {
     ...init,
     headers,
   })

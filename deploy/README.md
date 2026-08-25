@@ -26,11 +26,10 @@ Frontend build-time values:
 
 ```text
 VITE_API_BASE_URL=/api
-VITE_CHAT_API_URL=/ai/chat/stream
 ```
 
-`VITE_SPRING_API_TARGET` and `VITE_FASTAPI_TARGET` are Vite development-server
-settings and are not needed in the production build.
+`VITE_SPRING_API_TARGET` is a Vite development-server setting and is not needed
+in the production build. The browser never calls FastAPI directly.
 
 Spring `/etc/petpulse/backend.env` includes at least:
 
@@ -46,6 +45,7 @@ JWT_EXPIRATION_SECONDS=3600
 FASTAPI_BASE_URL=http://127.0.0.1:8000
 FASTAPI_CONNECT_TIMEOUT_SECONDS=3
 FASTAPI_READ_TIMEOUT_SECONDS=30
+CHAT_FASTAPI_READ_TIMEOUT_SECONDS=300
 APP_CORS_ALLOWED_ORIGINS=
 FLYWAY_BASELINE_ON_MIGRATE=false
 ```
@@ -118,7 +118,10 @@ Starting FastAPI first remains the recommended operational order.
 - Terminate HTTPS at Nginx and forward `Host`, `X-Real-IP`,
   `X-Forwarded-For`, and `X-Forwarded-Proto`.
 
-The chatbot location disables proxy buffering and cache because it is a POST SSE
-stream. Its five-minute read timeout is an idle upstream timeout, not a browser
-retry policy. The frontend supports user cancellation through `AbortController`
-but does not automatically reconnect or impose its own fixed timeout.
+The chatbot request flows through the authenticated Spring endpoint
+`/api/ai/chat/stream`; Nginx never exposes a browser route to FastAPI. Its exact
+location disables proxy buffering, cache, and gzip because it is a POST SSE
+stream. Nginx and the upstream socket use five-minute idle timeouts, while
+Spring MVC also limits the total async request to five minutes. These are not
+browser retry policies. The frontend supports user cancellation through
+`AbortController` but does not automatically reconnect.

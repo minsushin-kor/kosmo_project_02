@@ -133,7 +133,7 @@
 ## 현재 실행 조건과 제약
 
 - Spring Boot API 개발 주소는 `http://localhost:8080`입니다.
-- FastAPI 챗봇 주소는 `http://localhost:8000/ai/chat/stream`입니다.
+- 챗봇도 `/api/ai/chat/stream` Spring JWT Gateway를 사용하며 브라우저가 FastAPI를 직접 호출하지 않습니다.
 - Spring Boot Auth API와 JWT를 사용하며 반려동물 API는 인증 사용자 기준으로 동작합니다.
 - ID가 1인 사용자가 PostgreSQL에 존재하지 않으면 반려동물 API를 사용할 수 없습니다.
 - PostgreSQL 또는 Spring Boot가 실행되지 않으면 기존 데모 반려동물 데이터가 표시됩니다.

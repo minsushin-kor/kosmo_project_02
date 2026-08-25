@@ -10,15 +10,21 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
 import java.util.List;
+import java.nio.charset.StandardCharsets;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.request;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.asyncDispatch;
 import static org.springframework.test.web.servlet.setup.MockMvcBuilders.standaloneSetup;
 
 class AiGatewayControllerTest {
@@ -62,6 +68,29 @@ class AiGatewayControllerTest {
                 .andExpect(status().isBadGateway())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.error").value("EXTERNAL_SERVICE_ERROR"));
+    }
+
+    @Test
+    void streamsChatSseWithExpectedContentType() throws Exception {
+        StreamingResponseBody body = output -> {
+            output.write("data: {\"type\":\"token\",\"content\":\"안녕\"}\n\n"
+                    .getBytes(StandardCharsets.UTF_8));
+            output.flush();
+        };
+        when(service.chatStream(any())).thenReturn(body);
+
+        var result = mockMvc.perform(post("/api/ai/chat/stream")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .accept(MediaType.TEXT_EVENT_STREAM)
+                        .content("{\"message\":\"질문\",\"species\":\"DOG\"}"))
+                .andExpect(request().asyncStarted())
+                .andReturn();
+
+        mockMvc.perform(asyncDispatch(result))
+                .andExpect(status().isOk())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.TEXT_EVENT_STREAM))
+                .andExpect(header().string("X-Accel-Buffering", "no"))
+                .andExpect(content().string("data: {\"type\":\"token\",\"content\":\"안녕\"}\n\n"));
     }
 
     private String quickRequest() {

@@ -70,7 +70,8 @@ Swagger UI: http://127.0.0.1:8000/docs
 python -m uvicorn app.main:app --host 127.0.0.1 --port 8000
 ```
 
-외부 요청은 Nginx를 통하고, FastAPI는 loopback 주소에서만 수신합니다.
+외부 AI 요청은 Spring JWT Gateway를 통하고, FastAPI는 loopback 주소에서만
+수신합니다. 브라우저는 FastAPI endpoint를 직접 호출하지 않습니다.
 
 ---
 

@@ -1,4 +1,6 @@
 import type { ChatSource, ChatStreamEvent, ChatStreamRequest } from '../types'
+import { getAuthToken, notifyUnauthorized } from '../../../shared/auth/authTokenStorage'
+import { getApiUrl } from '../../../shared/api/apiClient'
 
 type ChatStreamCallbacks = {
   onDelta: (text: string) => void
@@ -22,11 +24,7 @@ type ChatSourcePayload = {
   score?: number
 }
 
-const DEFAULT_CHAT_API_URL = '/ai/chat/stream'
-
-function getChatApiUrl() {
-  return import.meta.env.VITE_CHAT_API_URL?.trim() || DEFAULT_CHAT_API_URL
-}
+const CHAT_API_PATH = '/ai/chat/stream'
 
 function normalizeSources(sources: ChatSourcePayload[] = []): ChatSource[] {
   return sources
@@ -68,11 +66,17 @@ export async function streamChat(
   callbacks: ChatStreamCallbacks,
   signal: AbortSignal,
 ) {
-  const response = await fetch(getChatApiUrl(), {
+  const token = getAuthToken()
+  if (!token) {
+    throw new Error('로그인이 필요한 기능입니다.')
+  }
+
+  const response = await fetch(getApiUrl(CHAT_API_PATH), {
     method: 'POST',
     headers: {
       Accept: 'text/event-stream',
       'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
     },
     body: JSON.stringify(request),
     signal,
@@ -86,6 +90,10 @@ export async function streamChat(
       detail = errorBody.detail ?? errorBody.message ?? detail
     } catch {
       // 서버가 JSON 오류를 반환하지 않으면 기본 안내 문구를 사용합니다.
+    }
+
+    if (response.status === 401) {
+      notifyUnauthorized()
     }
 
     throw new Error(detail)
