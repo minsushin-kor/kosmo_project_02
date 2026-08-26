@@ -1,8 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { apiRequest } from '../../../shared/api/apiClient'
 import {
+  createLostPetQrProfile,
+  deleteLostPetQrProfile,
   getPublicLostPetProfile,
   updateLostPetQrActive,
+  updateLostPetQrVisibility,
 } from './lostPetQrApi'
 
 vi.mock('../../../shared/api/apiClient', () => ({
@@ -36,5 +39,42 @@ describe('lostPetQrApi', () => {
       body: JSON.stringify({ active: false }),
     })
   })
-})
 
+  it('QR 생성 시 선택한 공개 범위를 함께 저장한다', async () => {
+    const visibility = {
+      showGuardianName: false,
+      showPetDetails: true,
+      showMedicalHistory: false,
+    }
+
+    await createLostPetQrProfile(3, visibility)
+
+    expect(apiRequestMock).toHaveBeenCalledWith('/pets/3/lost-qr-profile', {
+      method: 'POST',
+      body: JSON.stringify(visibility),
+    })
+  })
+
+  it('기존 QR의 공개 범위만 수정한다', async () => {
+    const visibility = {
+      showGuardianName: false,
+      showPetDetails: true,
+      showMedicalHistory: false,
+    }
+
+    await updateLostPetQrVisibility(3, visibility)
+
+    expect(apiRequestMock).toHaveBeenCalledWith('/pets/3/lost-qr-profile/visibility', {
+      method: 'PATCH',
+      body: JSON.stringify(visibility),
+    })
+  })
+
+  it('기존 QR 프로필을 DELETE 요청으로 삭제한다', async () => {
+    await deleteLostPetQrProfile(3)
+
+    expect(apiRequestMock).toHaveBeenCalledWith('/pets/3/lost-qr-profile', {
+      method: 'DELETE',
+    })
+  })
+})

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { ApiError, getApiErrorMessage, isAbortError } from '../../../shared/api/apiClient'
 import { useAuth } from '../../auth/hooks/useAuth'
@@ -7,18 +7,36 @@ import { usePets } from '../../pets/hooks/usePets'
 import { getPetEmoji, speciesLabel } from '../../pets/types'
 import {
   createLostPetQrProfile,
+  deleteLostPetQrProfile,
   getLostPetQrProfile,
-  rotateLostPetQrToken,
   updateLostPetQrActive,
+  updateLostPetQrVisibility,
 } from '../api/lostPetQrApi'
 import { QrCodeSvg } from '../components/QrCodeSvg'
-import type { LostPetQrProfile } from '../types'
+import type {
+  LostPetQrProfile,
+  LostPetQrVisibility,
+} from '../types'
 import {
   buildLostPetProfileUrl,
   getLocalPreviewBaseUrl,
 } from '../utils/publicProfileUrl'
 import { createQrSvgMarkup } from '../utils/qrCodeSvg'
 import styles from './LostPetQrManagementPage.module.css'
+
+const DEFAULT_VISIBILITY: LostPetQrVisibility = {
+  showGuardianName: true,
+  showPetDetails: true,
+  showMedicalHistory: true,
+}
+
+function getVisibility(profile: LostPetQrProfile): LostPetQrVisibility {
+  return {
+    showGuardianName: profile.showGuardianName,
+    showPetDetails: profile.showPetDetails,
+    showMedicalHistory: profile.showMedicalHistory,
+  }
+}
 
 function escapeHtml(value: string) {
   return value
@@ -34,6 +52,9 @@ export function LostPetQrManagementPage() {
   const { pets, selectedPet, isLoading: arePetsLoading } = usePets()
   const [selectedPetId, setSelectedPetId] = useState<number | null>(null)
   const [profile, setProfile] = useState<LostPetQrProfile | null>()
+  const [visibility, setVisibility] = useState<LostPetQrVisibility>(DEFAULT_VISIBILITY)
+  const [visibilityDraft, setVisibilityDraft] = useState<LostPetQrVisibility>(DEFAULT_VISIBILITY)
+  const [isEditingVisibility, setIsEditingVisibility] = useState(false)
   const [hasConsented, setHasConsented] = useState(false)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
@@ -52,12 +73,18 @@ export function LostPetQrManagementPage() {
 
     const controller = new AbortController()
     setProfile(undefined)
+    setVisibility(DEFAULT_VISIBILITY)
+    setVisibilityDraft(DEFAULT_VISIBILITY)
+    setIsEditingVisibility(false)
     setHasConsented(false)
     setError('')
     setNotice('')
 
     getLostPetQrProfile(selectedPetId, controller.signal)
-      .then(setProfile)
+      .then((nextProfile) => {
+        setProfile(nextProfile)
+        setVisibility(getVisibility(nextProfile))
+      })
       .catch((loadError: unknown) => {
         if (isAbortError(loadError)) return
         if (loadError instanceof ApiError && loadError.status === 404) {
@@ -85,13 +112,18 @@ export function LostPetQrManagementPage() {
     [profile],
   )
 
-  const preview = {
+  const publicInfo = {
     guardianName: profile?.guardianName ?? currentUser?.name ?? '',
     guardianPhone: profile?.guardianPhone ?? currentUser?.phone ?? '',
     petName: profile?.petName ?? pet?.name ?? '',
     species: profile?.species ?? pet?.species ?? 'DOG',
+    breed: profile?.breed ?? (pet?.breed === '품종 미등록' ? '' : pet?.breed) ?? '',
     medicalHistory: profile?.medicalHistory ?? pet?.medicalHistory ?? '',
   }
+
+  const petDetails = [speciesLabel[publicInfo.species], publicInfo.breed?.trim()]
+    .filter(Boolean)
+    .join(' · ')
 
   const runAction = async (
     actionName: string,
@@ -104,9 +136,42 @@ export function LostPetQrManagementPage() {
     try {
       const nextProfile = await action()
       setProfile(nextProfile)
+      setVisibility(getVisibility(nextProfile))
       setNotice(successMessage)
     } catch (actionError) {
       setError(getApiErrorMessage(actionError, 'QR 정보를 변경하지 못했습니다.'))
+    } finally {
+      setBusyAction('')
+    }
+  }
+
+  const handleStartEditing = () => {
+    setVisibilityDraft(visibility)
+    setIsEditingVisibility(true)
+    setError('')
+    setNotice('')
+  }
+
+  const handleSaveVisibility = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    if (!selectedPetId || busyAction) return
+
+    setBusyAction('save')
+    setError('')
+    setNotice('')
+    try {
+      if (profile) {
+        const nextProfile = await updateLostPetQrVisibility(selectedPetId, visibilityDraft)
+        setProfile(nextProfile)
+        setVisibility(getVisibility(nextProfile))
+        setNotice('기존 QR의 공개 범위를 저장했습니다.')
+      } else {
+        setVisibility(visibilityDraft)
+        setNotice('선택한 공개 범위는 QR을 생성할 때 적용됩니다.')
+      }
+      setIsEditingVisibility(false)
+    } catch (saveError) {
+      setError(getApiErrorMessage(saveError, 'QR 공개 범위를 저장하지 못했습니다.'))
     } finally {
       setBusyAction('')
     }
@@ -133,7 +198,7 @@ export function LostPetQrManagementPage() {
       return
     }
 
-    printWindow.document.write(`<!doctype html><html lang="ko"><head><title>${escapeHtml(preview.petName)} 실종 대비 QR</title><style>body{margin:0;padding:40px;font-family:sans-serif;text-align:center;color:#303326}svg{width:320px;max-width:100%}h1{margin:20px 0 8px;font-size:24px}p{margin:0;color:#656a59;font-size:14px}@media print{body{padding:0}}</style></head><body>${createQrSvgMarkup(publicUrl)}<h1>${escapeHtml(preview.petName)}를 발견하셨나요?</h1><p>QR을 스캔하면 보호자에게 연락할 수 있습니다.</p><script>window.addEventListener('load',()=>window.print())</script></body></html>`)
+    printWindow.document.write(`<!doctype html><html lang="ko"><head><title>${escapeHtml(publicInfo.petName)} 실종 대비 QR</title><style>body{margin:0;padding:40px;font-family:sans-serif;text-align:center;color:#303326}svg{width:320px;max-width:100%}h1{margin:20px 0 8px;font-size:24px}p{margin:0;color:#656a59;font-size:14px}@media print{body{padding:0}}</style></head><body>${createQrSvgMarkup(publicUrl)}<h1>${escapeHtml(publicInfo.petName)}를 발견하셨나요?</h1><p>QR을 스캔하면 보호자에게 연락할 수 있습니다.</p><script>window.addEventListener('load',()=>window.print())</script></body></html>`)
     printWindow.document.close()
   }
 
@@ -146,6 +211,27 @@ export function LostPetQrManagementPage() {
     }
   }
 
+  const handleDelete = async () => {
+    if (!selectedPetId || !profile || busyAction) return
+    if (!window.confirm('QR을 삭제하면 이미 저장하거나 인쇄한 QR은 더 이상 작동하지 않습니다. 삭제할까요?')) return
+
+    setBusyAction('delete')
+    setError('')
+    setNotice('')
+    try {
+      await deleteLostPetQrProfile(selectedPetId)
+      setProfile(null)
+      setVisibility(DEFAULT_VISIBILITY)
+      setVisibilityDraft(DEFAULT_VISIBILITY)
+      setHasConsented(false)
+      setNotice('QR을 삭제했습니다. 이전 QR 주소는 더 이상 사용할 수 없습니다.')
+    } catch (deleteError) {
+      setError(getApiErrorMessage(deleteError, 'QR을 삭제하지 못했습니다.'))
+    } finally {
+      setBusyAction('')
+    }
+  }
+
   if (arePetsLoading || (pets.length > 0 && selectedPetId === null)) {
     return <div className={styles.page}><p className={styles.loading}>반려동물 정보를 불러오는 중입니다.</p></div>
   }
@@ -154,9 +240,8 @@ export function LostPetQrManagementPage() {
     return (
       <div className={styles.page}>
         <header className={styles.pageHeader}>
-          <p className={styles.eyebrow}>LOST PET QR</p>
-          <h1>실종 대비 QR</h1>
-          <p>QR을 만들려면 먼저 반려동물을 등록해 주세요.</p>
+          <h1 className={styles.eyebrow}>LOST PET QR</h1>
+          <p className={styles.introCopy}>QR을 만들려면 먼저 반려동물을 등록해 주세요.</p>
         </header>
         <Link className={styles.primaryLink} to="/pets/new">반려동물 등록하기</Link>
       </div>
@@ -170,11 +255,8 @@ export function LostPetQrManagementPage() {
       </div>
 
       <header className={styles.pageHeader}>
-        <div>
-          <p className={styles.eyebrow}>LOST PET QR</p>
-          <h1>목걸이에 담는<br />안심 연락처</h1>
-        </div>
-        <p>QR을 발견한 사람이 보호자 연락처와 꼭 필요한 반려동물 정보만 확인할 수 있습니다.</p>
+        <h1 className={styles.eyebrow}>LOST PET QR</h1>
+        <p className={styles.introCopy}>{publicInfo.petName}를 잃어버렸을 때 발견한 분께 연락받을 수 있는 QR 코드 생성을 도와드릴게요.</p>
       </header>
 
       <section className={styles.petChooser} aria-labelledby="qr-pet-heading">
@@ -199,27 +281,109 @@ export function LostPetQrManagementPage() {
 
       <div className={styles.contentGrid}>
         <section className={styles.previewCard} aria-labelledby="public-info-heading">
-          <div className={styles.sectionHeading}>
-            <span>02</span>
-            <div><h2 id="public-info-heading">공개 정보 확인</h2><p>DB에 저장된 현재 정보입니다.</p></div>
+          <div className={styles.sectionHeadingRow}>
+            <div className={styles.sectionHeading}>
+              <span>02</span>
+              <div><h2 id="public-info-heading">공개 정보 확인</h2><p>회원과 반려동물 DB에 저장된 현재 정보입니다.</p></div>
+            </div>
+            {!isEditingVisibility && (
+              <button
+                type="button"
+                className={styles.editButton}
+                disabled={profile === undefined || Boolean(busyAction)}
+                onClick={handleStartEditing}
+              >
+                공개 범위 수정
+              </button>
+            )}
           </div>
 
           <div className={styles.publicHero}>
-            <div className={styles.petMark} aria-hidden="true">{getPetEmoji(preview.species)}</div>
-            <div><small>{speciesLabel[preview.species]}</small><strong>{preview.petName}</strong></div>
+            <div className={styles.petMark} aria-hidden="true">{getPetEmoji(publicInfo.species)}</div>
+            <div>
+              <small>{petDetails}</small>
+              <strong>{publicInfo.petName}</strong>
+            </div>
           </div>
 
           <dl className={styles.infoList}>
-            <div><dt>보호자 이름</dt><dd>{preview.guardianName || '미등록'}</dd></div>
-            <div><dt>보호자 연락처</dt><dd>{preview.guardianPhone || '미등록'}</dd></div>
-            <div><dt>반려동물 종류</dt><dd>{speciesLabel[preview.species]}</dd></div>
+            <div><dt>보호자 이름</dt><dd>{publicInfo.guardianName || '미등록'}</dd></div>
+            <div><dt>보호자 연락처</dt><dd>{publicInfo.guardianPhone || '미등록'}</dd></div>
+            <div><dt>종류 및 품종</dt><dd>{petDetails}</dd></div>
             <div className={styles.medicalRow}>
               <dt>병력 및 특이사항</dt>
-              <dd>{preview.medicalHistory || '등록된 내용이 없습니다.'}</dd>
+              <dd>{publicInfo.medicalHistory || '등록된 내용이 없습니다.'}</dd>
             </div>
           </dl>
 
-          {!preview.guardianPhone && (
+          <div className={styles.sourceActions}>
+            <Link to="/mypage/profile">회원정보 수정</Link>
+            <Link to={`/pets/${selectedPetId}/edit`}>반려동물 정보 수정</Link>
+          </div>
+
+          {isEditingVisibility ? (
+            <form onSubmit={handleSaveVisibility}>
+              <fieldset className={styles.visibilityPanel}>
+                <legend>개인정보 공개 목록</legend>
+                <p>체크를 해제한 정보는 공개 API에서도 전달되지 않습니다.</p>
+                <label><input type="checkbox" checked disabled /><span>반려동물 이름 <small>필수</small></span></label>
+                <label><input type="checkbox" checked disabled /><span>보호자 연락처 <small>필수</small></span></label>
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={visibilityDraft.showGuardianName}
+                    onChange={(event) => setVisibilityDraft((current) => ({ ...current, showGuardianName: event.target.checked }))}
+                  />
+                  <span>보호자 이름</span>
+                </label>
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={visibilityDraft.showPetDetails}
+                    onChange={(event) => setVisibilityDraft((current) => ({ ...current, showPetDetails: event.target.checked }))}
+                  />
+                  <span>반려동물 종류 및 품종</span>
+                </label>
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={visibilityDraft.showMedicalHistory}
+                    onChange={(event) => setVisibilityDraft((current) => ({ ...current, showMedicalHistory: event.target.checked }))}
+                  />
+                  <span>병력 및 특이사항</span>
+                </label>
+              </fieldset>
+
+              <div className={styles.editActions}>
+                <button
+                  type="button"
+                  disabled={busyAction === 'save'}
+                  onClick={() => {
+                    setVisibilityDraft(visibility)
+                    setIsEditingVisibility(false)
+                  }}
+                >
+                  취소
+                </button>
+                <button type="submit" disabled={busyAction === 'save'}>
+                  {busyAction === 'save' ? '저장 중...' : '공개 범위 저장'}
+                </button>
+              </div>
+            </form>
+          ) : (
+            <div className={styles.visibilitySummary}>
+              <strong>현재 공개 범위</strong>
+              <ul>
+                <li className={styles.visibleItem}>반려동물 이름 <small>필수</small></li>
+                <li className={styles.visibleItem}>보호자 연락처 <small>필수</small></li>
+                <li className={visibility.showGuardianName ? styles.visibleItem : styles.hiddenItem}>보호자 이름</li>
+                <li className={visibility.showPetDetails ? styles.visibleItem : styles.hiddenItem}>종류 및 품종</li>
+                <li className={visibility.showMedicalHistory ? styles.visibleItem : styles.hiddenItem}>병력 및 특이사항</li>
+              </ul>
+            </div>
+          )}
+
+          {!publicInfo.guardianPhone && (
             <p className={styles.phoneWarning}>QR을 만들려면 보호자 연락처가 필요합니다. <Link to="/mypage/profile">회원정보에서 등록하기</Link></p>
           )}
 
@@ -230,7 +394,7 @@ export function LostPetQrManagementPage() {
                 checked={hasConsented}
                 onChange={(event) => setHasConsented(event.target.checked)}
               />
-              <span>QR을 활성화하면 위 정보가 링크를 가진 누구에게나 공개된다는 점을 확인했습니다.</span>
+              <span>QR을 활성화하면 체크한 정보가 링크를 가진 누구에게나 공개된다는 점을 확인했습니다.</span>
             </label>
           )}
         </section>
@@ -246,10 +410,10 @@ export function LostPetQrManagementPage() {
           ) : profile ? (
             <>
               <div className={`${styles.qrFrame} ${profile.active ? '' : styles.disabledQr}`}>
-                <QrCodeSvg value={publicUrl} title={`${preview.petName} 실종 대비 QR 코드`} />
+                <QrCodeSvg value={publicUrl} title={`${publicInfo.petName} 실종 대비 QR 코드`} />
                 {!profile.active && <span>현재 공개 중지</span>}
               </div>
-              <p className={styles.qrCaption}><strong>{preview.petName}를 발견하셨나요?</strong><span>QR을 스캔하면 보호자에게 연락할 수 있습니다.</span></p>
+              <p className={styles.qrCaption}><strong>{publicInfo.petName}를 발견하셨나요?</strong><span>QR을 스캔하면 보호자에게 연락할 수 있습니다.</span></p>
               <div className={styles.urlBox}><span>휴대폰 QR 연결 주소</span><code>{publicUrl}</code></div>
 
               <div className={styles.mainActions}>
@@ -277,14 +441,14 @@ export function LostPetQrManagementPage() {
                 <button
                   type="button"
                   disabled={Boolean(busyAction)}
-                  onClick={() => {
-                    if (window.confirm('새 주소를 발급하면 이전에 저장하거나 인쇄한 QR은 더 이상 작동하지 않습니다. 계속할까요?')) {
-                      void runAction('rotate', () => rotateLostPetQrToken(selectedPetId!), '새 QR 주소를 발급했습니다. QR을 다시 저장해 주세요.')
-                    }
-                  }}
+                  onClick={() => void handleDelete()}
                 >
-                  {busyAction === 'rotate' ? '재발급 중...' : 'QR 주소 재발급'}
+                  {busyAction === 'delete' ? '삭제 중...' : 'QR 삭제'}
                 </button>
+              </div>
+              <div className={styles.publicationNotice}>
+                <span aria-hidden="true">🔔</span>
+                <p>QR 공개를 희망하지 않으시면 공개를 중지하거나 삭제해 주세요.</p>
               </div>
             </>
           ) : (
@@ -294,10 +458,10 @@ export function LostPetQrManagementPage() {
               <p>왼쪽의 공개 정보를 확인하고 동의한 뒤 생성해 주세요.</p>
               <button
                 type="button"
-                disabled={!hasConsented || !preview.guardianPhone || Boolean(busyAction)}
+                disabled={!hasConsented || !publicInfo.guardianPhone || Boolean(busyAction)}
                 onClick={() => void runAction(
                   'create',
-                  () => createLostPetQrProfile(selectedPetId!),
+                  () => createLostPetQrProfile(selectedPetId!, visibility),
                   '실종 대비 QR을 생성했습니다.',
                 )}
               >
@@ -311,10 +475,6 @@ export function LostPetQrManagementPage() {
         </section>
       </div>
 
-      <aside className={styles.safetyNotice}>
-        <strong>안전하게 사용해 주세요.</strong>
-        <p>주소·이메일·회원번호는 공개하지 않습니다. QR을 분실했거나 원치 않는 접근이 의심되면 공개를 중지하거나 주소를 재발급해 주세요.</p>
-      </aside>
     </div>
   )
 }

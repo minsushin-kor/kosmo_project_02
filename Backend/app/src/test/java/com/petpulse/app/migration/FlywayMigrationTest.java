@@ -16,6 +16,6 @@ class FlywayMigrationTest {
     @Test
     void flywayIsLoadedAtLatestSchemaVersion() {
         assertThat(flyway.info().current()).isNotNull();
-        assertThat(flyway.info().current().getVersion().getVersion()).isEqualTo("4");
+        assertThat(flyway.info().current().getVersion().getVersion()).isEqualTo("5");
     }
 }

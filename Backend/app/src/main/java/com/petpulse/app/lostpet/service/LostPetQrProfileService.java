@@ -2,8 +2,10 @@ package com.petpulse.app.lostpet.service;
 
 import com.petpulse.app.global.exception.BusinessException;
 import com.petpulse.app.global.exception.ErrorCode;
+import com.petpulse.app.lostpet.dto.CreateLostPetQrProfileRequest;
 import com.petpulse.app.lostpet.dto.LostPetQrProfileResponse;
 import com.petpulse.app.lostpet.dto.PublicLostPetProfileResponse;
+import com.petpulse.app.lostpet.dto.UpdateLostPetQrVisibilityRequest;
 import com.petpulse.app.lostpet.entity.PetLostQrProfile;
 import com.petpulse.app.lostpet.repository.PetLostQrProfileRepository;
 import com.petpulse.app.pet.entity.Pet;
@@ -36,17 +38,44 @@ public class LostPetQrProfileService {
     }
 
     @Transactional
-    public LostPetQrProfileResponse createProfile(String loginId, Long petId) {
+    public LostPetQrProfileResponse createProfile(
+            String loginId,
+            Long petId,
+            CreateLostPetQrProfileRequest request) {
         Pet pet = petAccessService.requireOwnedPet(loginId, petId);
         validatePhone(pet.getUser());
 
         return profileRepository.findByPetPetId(pet.getPetId())
-                .map(this::toOwnerResponse)
+                .map(profile -> {
+                    profile.updateVisibility(
+                            request.showGuardianName(),
+                            request.showPetDetails(),
+                            request.showMedicalHistory());
+                    return toOwnerResponse(profile);
+                })
                 .orElseGet(() -> {
                     PetLostQrProfile saved = profileRepository.save(
-                            new PetLostQrProfile(pet, generateUniqueToken()));
+                            new PetLostQrProfile(
+                                    pet,
+                                    generateUniqueToken(),
+                                    request.showGuardianName(),
+                                    request.showPetDetails(),
+                                    request.showMedicalHistory()));
                     return toOwnerResponse(saved);
                 });
+    }
+
+    @Transactional
+    public LostPetQrProfileResponse updateVisibility(
+            String loginId,
+            Long petId,
+            UpdateLostPetQrVisibilityRequest request) {
+        PetLostQrProfile profile = requireOwnedProfile(loginId, petId);
+        profile.updateVisibility(
+                request.showGuardianName(),
+                request.showPetDetails(),
+                request.showMedicalHistory());
+        return toOwnerResponse(profile);
     }
 
     @Transactional
@@ -63,10 +92,9 @@ public class LostPetQrProfileService {
     }
 
     @Transactional
-    public LostPetQrProfileResponse rotateToken(String loginId, Long petId) {
+    public void deleteProfile(String loginId, Long petId) {
         PetLostQrProfile profile = requireOwnedProfile(loginId, petId);
-        profile.rotateToken(generateUniqueToken());
-        return toOwnerResponse(profile);
+        profileRepository.delete(profile);
     }
 
     public PublicLostPetProfileResponse getPublicProfile(String publicToken) {
@@ -84,11 +112,12 @@ public class LostPetQrProfileService {
                     "현재 보호자 연락처를 확인할 수 없습니다.");
         }
         return new PublicLostPetProfileResponse(
-                guardian.getUserName(),
+                profile.isShowGuardianName() ? guardian.getUserName() : null,
                 guardian.getPhone(),
                 pet.getPetName(),
-                pet.getSpecies().name(),
-                pet.getMedicalHistory());
+                profile.isShowPetDetails() ? pet.getSpecies().name() : null,
+                profile.isShowPetDetails() ? pet.getBreed() : null,
+                profile.isShowMedicalHistory() ? pet.getMedicalHistory() : null);
     }
 
     private PetLostQrProfile requireOwnedProfile(String loginId, Long petId) {
@@ -109,11 +138,19 @@ public class LostPetQrProfileService {
                 guardian.getPhone(),
                 pet.getPetName(),
                 pet.getSpecies().name(),
-                pet.getMedicalHistory());
+                pet.getBreed(),
+                pet.getMedicalHistory(),
+                profile.isShowGuardianName(),
+                profile.isShowPetDetails(),
+                profile.isShowMedicalHistory());
     }
 
     private void validatePhone(User guardian) {
-        if (guardian.getPhone() == null || guardian.getPhone().isBlank()) {
+        validatePhone(guardian.getPhone());
+    }
+
+    private void validatePhone(String phone) {
+        if (phone == null || phone.isBlank()) {
             throw new BusinessException(
                     ErrorCode.INVALID_REQUEST,
                     "보호자 연락처를 등록한 후 QR을 생성해 주세요.");

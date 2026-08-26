@@ -8,6 +8,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.context.WebApplicationContext;
 
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -58,6 +59,13 @@ class PetSecurityIntegrationTest {
     @Test
     void lostPetQrManagementRequiresAuthentication() throws Exception {
         mockMvc.perform(get("/api/pets/1/lost-qr-profile"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.error").value("AUTHENTICATION_FAILED"));
+    }
+
+    @Test
+    void lostPetQrDeletionRequiresAuthentication() throws Exception {
+        mockMvc.perform(delete("/api/pets/1/lost-qr-profile"))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.error").value("AUTHENTICATION_FAILED"));
     }

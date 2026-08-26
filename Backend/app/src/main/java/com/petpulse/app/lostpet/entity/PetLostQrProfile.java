@@ -41,6 +41,15 @@ public class PetLostQrProfile {
     @Column(name = "is_active", nullable = false)
     private boolean active;
 
+    @Column(name = "show_guardian_name", nullable = false)
+    private boolean showGuardianName;
+
+    @Column(name = "show_pet_details", nullable = false)
+    private boolean showPetDetails;
+
+    @Column(name = "show_medical_history", nullable = false)
+    private boolean showMedicalHistory;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -50,17 +59,33 @@ public class PetLostQrProfile {
     private LocalDateTime updatedAt;
 
     public PetLostQrProfile(Pet pet, String publicToken) {
+        this(pet, publicToken, true, true, true);
+    }
+
+    public PetLostQrProfile(
+            Pet pet,
+            String publicToken,
+            boolean showGuardianName,
+            boolean showPetDetails,
+            boolean showMedicalHistory) {
         this.pet = pet;
         this.publicToken = publicToken;
         this.active = true;
+        this.showGuardianName = showGuardianName;
+        this.showPetDetails = showPetDetails;
+        this.showMedicalHistory = showMedicalHistory;
     }
 
     public void updateActive(boolean active) {
         this.active = active;
     }
 
-    public void rotateToken(String publicToken) {
-        this.publicToken = publicToken;
+    public void updateVisibility(
+            boolean showGuardianName,
+            boolean showPetDetails,
+            boolean showMedicalHistory) {
+        this.showGuardianName = showGuardianName;
+        this.showPetDetails = showPetDetails;
+        this.showMedicalHistory = showMedicalHistory;
     }
 }
-

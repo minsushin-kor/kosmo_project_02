@@ -77,14 +77,18 @@ export function PublicLostPetPage() {
   }
 
   const phoneHref = `tel:${profile.guardianPhone.replace(/[^+\d]/g, '')}`
-  const petType = speciesLabel[profile.species]
+  const petType = profile.species
+    ? [speciesLabel[profile.species], profile.breed?.trim()].filter(Boolean).join(' · ')
+    : ''
 
   return (
     <main className={styles.page}>
       <article className={styles.profileCard}>
         <header className={styles.hero}>
           <p>LOST PET CONTACT</p>
-          <div className={styles.petIcon} aria-hidden="true">{getPetEmoji(profile.species)}</div>
+          <div className={styles.petIcon} aria-hidden="true">
+            {profile.species ? getPetEmoji(profile.species) : '🐾'}
+          </div>
           <h1><strong>{profile.petName}</strong>를<br />발견하셨나요?</h1>
           <p>안전한 곳에서 보호하고 계시다면 아래 연락처로 알려주세요.</p>
         </header>
@@ -92,8 +96,8 @@ export function PublicLostPetPage() {
         <section className={styles.details} aria-label="반려동물과 보호자 공개 정보">
           <dl>
             <div><dt>이름</dt><dd>{profile.petName}</dd></div>
-            <div><dt>종류</dt><dd>{petType}</dd></div>
-            <div><dt>보호자</dt><dd>{profile.guardianName}</dd></div>
+            {petType && <div><dt>종류·품종</dt><dd>{petType}</dd></div>}
+            {profile.guardianName && <div><dt>보호자</dt><dd>{profile.guardianName}</dd></div>}
             <div><dt>연락처</dt><dd>{profile.guardianPhone}</dd></div>
           </dl>
 

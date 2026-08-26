@@ -2,6 +2,8 @@ package com.petpulse.app.lostpet.service;
 
 import com.petpulse.app.global.exception.BusinessException;
 import com.petpulse.app.global.exception.ErrorCode;
+import com.petpulse.app.lostpet.dto.CreateLostPetQrProfileRequest;
+import com.petpulse.app.lostpet.dto.UpdateLostPetQrVisibilityRequest;
 import com.petpulse.app.lostpet.entity.PetLostQrProfile;
 import com.petpulse.app.lostpet.repository.PetLostQrProfileRepository;
 import com.petpulse.app.pet.entity.Pet;
@@ -52,7 +54,8 @@ class LostPetQrProfileServiceTest {
         when(repository.save(any(PetLostQrProfile.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
-        var response = service.createProfile("guardian", 1L);
+        var response = service.createProfile(
+                "guardian", 1L, new CreateLostPetQrProfileRequest(true, true, true));
 
         assertThat(response.publicToken()).hasSize(32);
         assertThat(response.active()).isTrue();
@@ -60,7 +63,11 @@ class LostPetQrProfileServiceTest {
         assertThat(response.guardianPhone()).isEqualTo("010-1234-5678");
         assertThat(response.petName()).isEqualTo("초코");
         assertThat(response.species()).isEqualTo("DOG");
+        assertThat(response.breed()).isEqualTo("푸들");
         assertThat(response.medicalHistory()).isEqualTo("땅콩 알레르기");
+        assertThat(response.showGuardianName()).isTrue();
+        assertThat(response.showPetDetails()).isTrue();
+        assertThat(response.showMedicalHistory()).isTrue();
         verify(repository).save(any(PetLostQrProfile.class));
     }
 
@@ -75,7 +82,8 @@ class LostPetQrProfileServiceTest {
                 BigDecimal.valueOf(4.5), true, "", null);
         when(petAccessService.requireOwnedPet("guardian", 1L)).thenReturn(petWithoutPhone);
 
-        assertThatThrownBy(() -> service.createProfile("guardian", 1L))
+        assertThatThrownBy(() -> service.createProfile(
+                "guardian", 1L, new CreateLostPetQrProfileRequest(true, true, true)))
                 .isInstanceOf(BusinessException.class)
                 .extracting(exception -> ((BusinessException) exception).getErrorCode())
                 .isEqualTo(ErrorCode.INVALID_REQUEST);
@@ -97,7 +105,48 @@ class LostPetQrProfileServiceTest {
 
         assertThat(response.guardianName()).isEqualTo("새보호자");
         assertThat(response.guardianPhone()).isEqualTo("010-9999-0000");
+        assertThat(response.breed()).isEqualTo("푸들");
         assertThat(response.medicalHistory()).isEqualTo("심장약 복용 중");
+    }
+
+    @Test
+    void publicLookupOmitsInformationDisabledByGuardian() {
+        PetLostQrProfile profile = new PetLostQrProfile(
+                pet, "public-token", false, false, false);
+        when(repository.findByPublicTokenAndActiveTrue("public-token"))
+                .thenReturn(Optional.of(profile));
+
+        var response = service.getPublicProfile("public-token");
+
+        assertThat(response.guardianName()).isNull();
+        assertThat(response.guardianPhone()).isEqualTo("010-1234-5678");
+        assertThat(response.petName()).isEqualTo("초코");
+        assertThat(response.species()).isNull();
+        assertThat(response.breed()).isNull();
+        assertThat(response.medicalHistory()).isNull();
+    }
+
+    @Test
+    void updatesOnlyVisibilityWithoutRotatingTokenOrChangingSourceData() {
+        PetLostQrProfile profile = new PetLostQrProfile(pet, "public-token");
+        when(repository.findByPetPetId(any())).thenReturn(Optional.of(profile));
+
+        var response = service.updateVisibility(
+                "guardian",
+                1L,
+                new UpdateLostPetQrVisibilityRequest(
+                        false,
+                        true,
+                        false));
+
+        assertThat(response.publicToken()).isEqualTo("public-token");
+        assertThat(response.guardianName()).isEqualTo("김보호");
+        assertThat(response.petName()).isEqualTo("초코");
+        assertThat(response.species()).isEqualTo("DOG");
+        assertThat(response.breed()).isEqualTo("푸들");
+        assertThat(response.showGuardianName()).isFalse();
+        assertThat(response.showPetDetails()).isTrue();
+        assertThat(response.showMedicalHistory()).isFalse();
     }
 
     @Test
@@ -114,12 +163,12 @@ class LostPetQrProfileServiceTest {
     }
 
     @Test
-    void rotatingTokenInvalidatesThePreviousUrlValue() {
-        PetLostQrProfile profile = new PetLostQrProfile(pet, "old-token");
+    void deletesOwnedQrProfileSoThePreviousUrlStopsWorking() {
+        PetLostQrProfile profile = new PetLostQrProfile(pet, "public-token");
         when(repository.findByPetPetId(any())).thenReturn(Optional.of(profile));
 
-        var response = service.rotateToken("guardian", 1L);
+        service.deleteProfile("guardian", 1L);
 
-        assertThat(response.publicToken()).hasSize(32).isNotEqualTo("old-token");
+        verify(repository).delete(profile);
     }
 }
