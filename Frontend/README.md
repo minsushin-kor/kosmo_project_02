@@ -34,7 +34,7 @@ Copy-Item .env.example .env
 npm run dev
 ```
 
-회원가입과 로그인은 Spring Boot 인증 API를 사용하며, 로그인 후 발급받은 JWT로 반려동물 API를 호출합니다. Spring Boot 연결 실패 시 데모 데이터로 자동 전환하지 않고 오류 상태를 표시합니다.
+회원가입과 로그인은 Spring Boot 인증 API를 사용하며, 로그인 후 발급받은 JWT로 반려동물 API를 호출합니다. 빠른 예측과 사료 추천은 비로그인 사용자도 이용할 수 있고, 건강 데이터와 RAG 챗봇은 JWT 인증이 필요합니다. Spring Boot 연결 실패 시 데모 데이터로 자동 전환하지 않고 오류 상태를 표시합니다.
 
 ## 환경변수
 
@@ -47,6 +47,7 @@ npm run dev
 `/api/ai/chat/stream` Spring Gateway를 호출하므로 브라우저용 FastAPI URL은
 필요하지 않습니다. 실제 API 키는 프론트엔드 환경변수에 저장하지 않으며
 Gemini 키는 FastAPI 서버에서만 관리합니다.
+이전 구조의 `VITE_CHAT_API_URL`은 현재 사용하지 않습니다.
 
 ## 검증
 

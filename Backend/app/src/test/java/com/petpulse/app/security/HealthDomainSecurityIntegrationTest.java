@@ -1,6 +1,8 @@
 package com.petpulse.app.security;
 
 import com.petpulse.app.ai.service.AiGatewayService;
+import com.petpulse.app.ai.dto.FoodRecommendationResponse;
+import com.petpulse.app.prediction.dto.ai.AiHealthRiskResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,6 +14,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.web.context.WebApplicationContext;
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
@@ -47,9 +50,32 @@ class HealthDomainSecurityIntegrationTest {
         assertUnauthorized(get("/api/predictions/1"));
         assertUnauthorized(get("/api/reports/1"));
         assertUnauthorized(patch("/api/alerts/1/read"));
-        assertUnauthorized(post("/api/ai/quick-predictions"));
-        assertUnauthorized(post("/api/ai/food-recommendations"));
         assertUnauthorized(post("/api/ai/chat/stream"));
+    }
+
+    @Test
+    void quickPredictionAndFoodRecommendationArePublic() throws Exception {
+        when(aiGatewayService.quickPrediction(any()))
+                .thenReturn(new AiHealthRiskResponse(0.0, "NORMAL", "이상 없음(정상)"));
+        when(aiGatewayService.foodRecommendation(any()))
+                .thenReturn(new FoodRecommendationResponse(
+                        "초코 요약",
+                        List.of(new FoodRecommendationResponse.RecommendedIngredient("연어", "오메가3")),
+                        List.of(), List.of(), "상담 권장"));
+
+        mockMvc.perform(post("/api/ai/quick-predictions")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(quickPredictionRequest()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.riskGrade").value("NORMAL"));
+
+        mockMvc.perform(post("/api/ai/food-recommendations")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"petName":"초코","species":"DOG","age":3,"weight":5.5}
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.recommendedIngredients[0].name").value("연어"));
     }
 
     @Test
@@ -85,5 +111,14 @@ class HealthDomainSecurityIntegrationTest {
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.error").value("AUTHENTICATION_FAILED"));
+    }
+
+    private String quickPredictionRequest() {
+        return """
+                {"species":"DOG","age":3,"weight":5.5,"temperature":38.5,"heartRate":100,
+                "respiratoryRate":24,"skinRedness":false,"itching":false,"hairLoss":false,
+                "vomiting":false,"diarrhea":false,"appetiteLevel":"NORMAL",
+                "waterIntakeLevel":"NORMAL","activityLevel":"NORMAL","symptomDurationDays":0}
+                """;
     }
 }

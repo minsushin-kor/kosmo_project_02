@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { clearAuthToken, saveAuthToken } from '../../../shared/auth/authTokenStorage'
 import {
   recommendFood,
   type FoodRecommendationRequest,
@@ -18,6 +19,7 @@ const request: FoodRecommendationRequest = {
 describe('recommendFood', () => {
   afterEach(() => {
     vi.unstubAllGlobals()
+    clearAuthToken()
   })
 
   it('반려동물 정보를 Spring Food Recommendation 엔드포인트로 전달한다', async () => {
@@ -33,6 +35,7 @@ describe('recommendFood', () => {
       headers: { 'Content-Type': 'application/json' },
     }))
     vi.stubGlobal('fetch', fetchMock)
+    saveAuthToken('expired-token', false)
 
     await expect(recommendFood(request)).resolves.toEqual(result)
     expect(fetchMock).toHaveBeenCalledWith(
@@ -42,6 +45,8 @@ describe('recommendFood', () => {
         body: JSON.stringify(request),
       }),
     )
+    const [, init] = fetchMock.mock.calls[0]
+    expect((init.headers as Headers).has('Authorization')).toBe(false)
   })
 
   it('Spring Gateway 오류 메시지를 전달한다', async () => {

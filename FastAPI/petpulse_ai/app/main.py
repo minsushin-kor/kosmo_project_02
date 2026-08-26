@@ -12,6 +12,10 @@ from dotenv import load_dotenv
 # .env 파일 자동 로드
 load_dotenv()
 
+# Windows의 물리 CPU 감지 과정에서 발생하는 cp949/joblib 경고를 피하고,
+# 팀 시연 환경에서 예측 작업이 과도한 병렬 프로세스를 만들지 않도록 제한합니다.
+os.environ.setdefault("LOKY_MAX_CPU_COUNT", "1")
+
 logger = logging.getLogger(__name__)
 
 from fastapi import FastAPI, HTTPException, status
@@ -21,7 +25,7 @@ from pydantic import BaseModel, Field
 
 # Google Gemini API 라이브러리 (선택적 사용 및 에러 예외 처리)
 try:
-    import google.generativeai as genai
+    from google import genai
     HAS_GEMINI = True
 except ImportError:
     HAS_GEMINI = False
@@ -59,6 +63,13 @@ RAG_DB_PATH = "app/data/chroma_db"
 # RAG 전역 변수
 RAG_COLLECTION = None
 EMBEDDING_MODEL = None
+
+
+def create_gemini_client():
+    api_key = os.getenv("GEMINI_API_KEY")
+    if not HAS_GEMINI or not api_key:
+        return None
+    return genai.Client(api_key=api_key)
 
 # 환경변수에서 LLM 모델명 로드 (기본값: gemini-3.6-flash)
 LLM_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.6-flash")
@@ -206,38 +217,38 @@ app.add_middleware(
 
 # --- 1) /ai/predict-health-risk 요청/응답 스키마 ---
 class HealthRiskPredictRequest(BaseModel):
-    species: str = Field(..., example="DOG", description="반려동물 종 (DOG / CAT)")
-    age: int = Field(..., ge=0, le=30, example=3, description="나이 (세)")
-    weight: float = Field(..., ge=0.1, le=100.0, example=5.2, description="체중 (kg)")
-    temperature: float = Field(..., ge=30.0, le=45.0, example=39.8, description="체온 (°C)")
-    heartRate: int = Field(..., ge=30, le=300, example=145, description="심박수 (bpm)")
-    respiratoryRate: int = Field(..., ge=5, le=100, example=32, description="호흡수 (회/분)")
-    skinRedness: bool = Field(False, example=True, description="피부 붉어짐 여부")
-    itching: bool = Field(False, example=True, description="가려움증 긁기 여부")
-    hairLoss: bool = Field(False, example=False, description="탈모 징후 여부")
-    vomiting: bool = Field(False, example=False, description="구토 여부")
-    diarrhea: bool = Field(False, example=True, description="설사 여부")
-    appetiteLevel: str = Field("NORMAL", example="DECREASED", description="식욕 상태 (NONE, DECREASED, NORMAL, INCREASED)")
-    waterIntakeLevel: str = Field("NORMAL", example="NORMAL", description="음수량 상태 (DECREASED, NORMAL, INCREASED)")
-    activityLevel: str = Field("NORMAL", example="LOW", description="활동량 상태 (LOW, NORMAL, HIGH)")
-    symptomDurationDays: int = Field(0, ge=0, example=3, description="증상 지속 일수 (일)")
+    species: str = Field(..., examples=["DOG"], description="반려동물 종 (DOG / CAT)")
+    age: int = Field(..., ge=0, le=30, examples=[3], description="나이 (세)")
+    weight: float = Field(..., ge=0.1, le=100.0, examples=[5.2], description="체중 (kg)")
+    temperature: float = Field(..., ge=30.0, le=45.0, examples=[39.8], description="체온 (°C)")
+    heartRate: int = Field(..., ge=30, le=300, examples=[145], description="심박수 (bpm)")
+    respiratoryRate: int = Field(..., ge=5, le=100, examples=[32], description="호흡수 (회/분)")
+    skinRedness: bool = Field(False, examples=[True], description="피부 붉어짐 여부")
+    itching: bool = Field(False, examples=[True], description="가려움증 긁기 여부")
+    hairLoss: bool = Field(False, examples=[False], description="탈모 징후 여부")
+    vomiting: bool = Field(False, examples=[False], description="구토 여부")
+    diarrhea: bool = Field(False, examples=[True], description="설사 여부")
+    appetiteLevel: str = Field("NORMAL", examples=["DECREASED"], description="식욕 상태 (NONE, DECREASED, NORMAL, INCREASED)")
+    waterIntakeLevel: str = Field("NORMAL", examples=["NORMAL"], description="음수량 상태 (DECREASED, NORMAL, INCREASED)")
+    activityLevel: str = Field("NORMAL", examples=["LOW"], description="활동량 상태 (LOW, NORMAL, HIGH)")
+    symptomDurationDays: int = Field(0, ge=0, examples=[3], description="증상 지속 일수 (일)")
 
 
 class HealthRiskPredictResponse(BaseModel):
-    abnormalProbability: float = Field(..., example=0.68, description="이상 확률 (0.00 ~ 1.00)")
-    riskGrade: str = Field(..., example="CAUTION", description="위험 등급 (NORMAL, WATCH, CAUTION, DANGER)")
-    primaryRiskFactor: str = Field(..., example="체온 이상 및 구토", description="대표 위험 요인 (SHAP 기반 / 규칙 기반 fallback)")
+    abnormalProbability: float = Field(..., examples=[0.68], description="이상 확률 (0.00 ~ 1.00)")
+    riskGrade: str = Field(..., examples=["CAUTION"], description="위험 등급 (NORMAL, WATCH, CAUTION, DANGER)")
+    primaryRiskFactor: str = Field(..., examples=["체온 이상 및 구토"], description="대표 위험 요인 (SHAP 기반 / 규칙 기반 fallback)")
 
 
 # --- 2) /ai/explain-prediction 요청/응답 스키마 ---
 class ExplainPredictionRequest(BaseModel):
-    species: str = Field("DOG", example="DOG")
-    age: int = Field(3, example=7)
-    riskGrade: str = Field("CAUTION", example="CAUTION")
-    abnormalProbability: float = Field(0.68, example=0.68)
-    primaryRiskFactor: str = Field("체온 이상 및 구토", example="체온 이상 및 구토")
-    symptomDurationDays: int = Field(3, example=3)
-    additionalSymptoms: Optional[str] = Field(None, example="날씨가 더워진 후 사료를 잘 안 먹어요.")
+    species: str = Field("DOG", examples=["DOG"])
+    age: int = Field(3, examples=[7])
+    riskGrade: str = Field("CAUTION", examples=["CAUTION"])
+    abnormalProbability: float = Field(0.68, examples=[0.68])
+    primaryRiskFactor: str = Field("체온 이상 및 구토", examples=["체온 이상 및 구토"])
+    symptomDurationDays: int = Field(3, examples=[3])
+    additionalSymptoms: Optional[str] = Field(None, examples=["날씨가 더워진 후 사료를 잘 안 먹어요."])
 
 
 class ExplainPredictionResponse(BaseModel):
@@ -248,21 +259,21 @@ class ExplainPredictionResponse(BaseModel):
 
 # --- 3) /ai/generate-weekly-report 요청/응답 스키마 ---
 class WeeklyReportRequest(BaseModel):
-    petName: str = Field("초코", example="초코")
-    species: str = Field("DOG", example="DOG")
-    age: int = Field(3, example=5)
-    avgTemperature: float = Field(38.6, example=38.8)
-    avgHeartRate: float = Field(105.0, example=115.0)
-    avgRespiratoryRate: float = Field(22.0, example=28.0)
-    cautionAlertCount: int = Field(0, example=2)
-    dangerAlertCount: int = Field(0, example=0)
-    questionnaireCount: int = Field(1, example=3)
+    petName: str = Field("초코", examples=["초코"])
+    species: str = Field("DOG", examples=["DOG"])
+    age: int = Field(3, examples=[5])
+    avgTemperature: float = Field(38.6, examples=[38.8])
+    avgHeartRate: float = Field(105.0, examples=[115.0])
+    avgRespiratoryRate: float = Field(22.0, examples=[28.0])
+    cautionAlertCount: int = Field(0, examples=[2])
+    dangerAlertCount: int = Field(0, examples=[0])
+    questionnaireCount: int = Field(1, examples=[3])
 
-    averageRiskProbability: float = Field(0.0, example=0.595)
+    averageRiskProbability: float = Field(0.0, examples=[0.595])
 
     mainSymptomsSummary: Optional[str] = Field(
         None,
-        example="주초 미열 및 경미한 식욕 저하 관찰"
+        examples=["주초 미열 및 경미한 식욕 저하 관찰"]
     )
 
 
@@ -280,13 +291,13 @@ class IngredientInfo(BaseModel):
 
 
 class FoodRecommendRequest(BaseModel):
-    petName: Optional[str] = Field("아이", example="초코", description="반려동물 이름")
-    species: str = Field("DOG", example="DOG", description="반려동물 종 (DOG/CAT)")
-    age: int = Field(3, example=3, description="나이 (세)")
-    weight: Optional[float] = Field(None, example=5.5, description="체중 (kg)")
-    healthConcerns: Optional[str] = Field(None, example="피부 알레르기", description="주요 건강 고민 (피부/알레르기, 비만, 관절, 소화기, 노령기 등)")
-    currentFoodType: Optional[str] = Field(None, example="건식", description="현재 급여 중인 사료 형태 (건식, 습식, 화식 등)")
-    additionalNotes: Optional[str] = Field(None, example="닭고기 알레르기가 의심돼요.", description="기타 특이사항이나 알레르기 의심 원료")
+    petName: Optional[str] = Field("아이", examples=["초코"], description="반려동물 이름")
+    species: str = Field("DOG", examples=["DOG"], description="반려동물 종 (DOG/CAT)")
+    age: int = Field(3, examples=[3], description="나이 (세)")
+    weight: Optional[float] = Field(None, examples=[5.5], description="체중 (kg)")
+    healthConcerns: Optional[str] = Field(None, examples=["피부 알레르기"], description="주요 건강 고민 (피부/알레르기, 비만, 관절, 소화기, 노령기 등)")
+    currentFoodType: Optional[str] = Field(None, examples=["건식"], description="현재 급여 중인 사료 형태 (건식, 습식, 화식 등)")
+    additionalNotes: Optional[str] = Field(None, examples=["닭고기 알레르기가 의심돼요."], description="기타 특이사항이나 알레르기 의심 원료")
 
 
 class FoodRecommendResponse(BaseModel):
@@ -600,12 +611,16 @@ def predict_health_risk(req: HealthRiskPredictRequest):
         else:
             risk_grade = "DANGER"
 
-        # 4. SHAP 기반 primaryRiskFactor 추출 (ML 모델의 실제 판단 근거 반영)
-        primary_factor = get_shap_risk_factors(df_input, predicted_class_idx)
+        # 4. 정상 결과에는 위험 요인을 붙이지 않습니다. NORMAL 클래스에 기여한
+        # SHAP 값을 위험 신호로 잘못 표시하지 않도록 비정상 등급에서만 분석합니다.
+        if risk_grade == "NORMAL":
+            primary_factor = "이상 없음(정상)"
+        else:
+            primary_factor = get_shap_risk_factors(df_input, predicted_class_idx)
 
-        # SHAP 사용 불가 시 규칙 기반 Fallback
-        if primary_factor is None:
-            primary_factor = get_rule_based_risk_factors(req, risk_grade)
+            # SHAP 사용 불가 시 규칙 기반 Fallback
+            if primary_factor is None:
+                primary_factor = get_rule_based_risk_factors(req, risk_grade)
 
         return HealthRiskPredictResponse(
             abnormalProbability=abnormal_prob,
@@ -651,12 +666,9 @@ def explain_prediction(req: ExplainPredictionRequest):
     # ----------------------------------------------------------------
     # 3. Gemini API 연동 시도 (RAG 컨텍스트를 프롬프트에 주입)
     # ----------------------------------------------------------------
-    api_key = os.getenv("GEMINI_API_KEY")
-    if HAS_GEMINI and api_key:
+    gemini_client = create_gemini_client()
+    if gemini_client:
         try:
-            genai.configure(api_key=api_key)
-            model = genai.GenerativeModel(LLM_MODEL)
-
             # RAG 검색 결과가 있으면 수의학 문서를 컨텍스트로 추가
             if rag_results and rag_results["documents"]:
                 rag_context = "\n\n".join(
@@ -684,7 +696,10 @@ def explain_prediction(req: ExplainPredictionRequest):
 2. 보호자가 가정에서 점검할 수 있는 환경적·생리적 원인 위주로 3문장 이내로 다정하게 작성할 것.
 3. 참고 문서 번호([수의학 참고문서 N])를 직접 언급하지 말 것."""
 
-            response = model.generate_content(prompt)
+            response = gemini_client.models.generate_content(
+                model=LLM_MODEL,
+                contents=prompt,
+            )
             llm_text = response.text.strip()
             return ExplainPredictionResponse(
                 explanation=llm_text,
@@ -743,11 +758,9 @@ def generate_weekly_report(req: WeeklyReportRequest):
         one_line = f"지난 한 주간 전반적으로 안정적인 웰니스 상태를 유지했습니다."
 
     # 2. Gemini API 연동 시도 (API KEY가 있으면 고급 LLM 리포트 생성)
-    api_key = os.getenv("GEMINI_API_KEY")
-    if HAS_GEMINI and api_key:
+    gemini_client = create_gemini_client()
+    if gemini_client:
         try:
-            genai.configure(api_key=api_key)
-            model = genai.GenerativeModel(LLM_MODEL)
             prompt = f"""
 너는 반려동물 건강 리포트 전문 에디터야.
 아래 주간 데이터 통계를 바탕으로 보호자에게 보여줄 종합 주간 웰니스 리포트 문장을 다정하게 작성해줘.
@@ -762,7 +775,10 @@ def generate_weekly_report(req: WeeklyReportRequest):
 1. 다정하고 체계적인 어조로 4문장 내외로 종합 분석 문장을 작성할 것.
 2. 진정성이 느껴지는 웰니스 관리 조언을 담을 것.
 """
-            response = model.generate_content(prompt)
+            response = gemini_client.models.generate_content(
+                model=LLM_MODEL,
+                contents=prompt,
+            )
             report_content = response.text.strip()
 
             return WeeklyReportResponse(
@@ -826,11 +842,9 @@ def recommend_food(req: FoodRecommendRequest):
         rag_context = "\n".join(rag_results["documents"])
 
     # 2. Gemini API 호출
-    api_key = os.getenv("GEMINI_API_KEY")
-    if HAS_GEMINI and api_key:
+    gemini_client = create_gemini_client()
+    if gemini_client:
         try:
-            genai.configure(api_key=api_key)
-            model = genai.GenerativeModel(LLM_MODEL)
             prompt = f"""
 너는 전문적이고 다정한 반려동물 임상영양사 겸 수의학 웰니스 코치야.
 보호자의 반려동물 정보를 바탕으로 맞춤형 사료 선택 기준, 추천 원료 및 영양 성분, 주의해야 할 성분, 급여 팁을 JSON 형식으로 작성해줘.
@@ -868,7 +882,10 @@ def recommend_food(req: FoodRecommendRequest):
   "vetNote": "수의학적 관점에서의 모니터링 조언 및 내원 안내 2~3문장"
 }}
 """
-            response = model.generate_content(prompt)
+            response = gemini_client.models.generate_content(
+                model=LLM_MODEL,
+                contents=prompt,
+            )
             raw_text = response.text.strip()
 
             # JSON 코드블록(```json ... ```) 제거 처리
@@ -919,8 +936,8 @@ def recommend_food(req: FoodRecommendRequest):
 # =====================================================================
 
 class ChatStreamRequest(BaseModel):
-    message: str = Field(..., example="강아지가 헐떡이는 이유가 무엇인가요?", description="보호자가 입력한 자유 질문")
-    species: Optional[str] = Field(None, example="DOG", description="반려동물 종 (선택, DOG/CAT)")
+    message: str = Field(..., examples=["강아지가 헐떡이는 이유가 무엇인가요?"], description="보호자가 입력한 자유 질문")
+    species: Optional[str] = Field(None, examples=["DOG"], description="반려동물 종 (선택, DOG/CAT)")
 
 
 async def _stream_chat_response(
@@ -956,11 +973,9 @@ async def _stream_chat_response(
         )
 
     # 2. Gemini 스트리밍 시도
-    api_key = os.getenv("GEMINI_API_KEY")
-    if HAS_GEMINI and api_key and rag_context:
+    gemini_client = create_gemini_client()
+    if gemini_client and rag_context:
         try:
-            genai.configure(api_key=api_key)
-            model = genai.GenerativeModel(LLM_MODEL)
             species_ctx = f" ({species}를 키우고 있습니다.)" if species else ""
             prompt = f"""너는 다정하고 전문적인 반려동물 웰니스 코치야.{species_ctx}
 아래 수의학 참고 자료를 바탕으로 보호자의 질문에 친절하고 정확하게 답해줘.
@@ -977,7 +992,10 @@ async def _stream_chat_response(
 3. 3문단 이내로 친근하게 작성할 것.
 4. 증상이 24시간 이상 지속되는 경우 수의사 방문 권유 문구를 자연스럽게 포함할 것."""
 
-            response = model.generate_content(prompt, stream=True)
+            response = gemini_client.models.generate_content_stream(
+                model=LLM_MODEL,
+                contents=prompt,
+            )
 
             # 토큰 단위로 SSE data 전송
             for chunk in response:

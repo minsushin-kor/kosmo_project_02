@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { clearAuthToken, saveAuthToken } from '../../../shared/auth/authTokenStorage'
 import { predictHealthRisk, type QuickPredictionRequest } from './quickPredictionApi'
 
 const request: QuickPredictionRequest = {
@@ -22,6 +23,7 @@ const request: QuickPredictionRequest = {
 describe('predictHealthRisk', () => {
   afterEach(() => {
     vi.unstubAllGlobals()
+    clearAuthToken()
   })
 
   it('현재 상태를 Spring Quick Prediction 엔드포인트로 전달한다', async () => {
@@ -35,6 +37,7 @@ describe('predictHealthRisk', () => {
       headers: { 'Content-Type': 'application/json' },
     }))
     vi.stubGlobal('fetch', fetchMock)
+    saveAuthToken('expired-token', false)
 
     await expect(predictHealthRisk(request)).resolves.toEqual(result)
     expect(fetchMock).toHaveBeenCalledWith(
@@ -44,6 +47,8 @@ describe('predictHealthRisk', () => {
         body: JSON.stringify(request),
       }),
     )
+    const [, init] = fetchMock.mock.calls[0]
+    expect((init.headers as Headers).has('Authorization')).toBe(false)
   })
 
   it('Spring Gateway 오류 메시지를 전달한다', async () => {

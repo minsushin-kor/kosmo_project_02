@@ -45,6 +45,7 @@ pip install -r requirements.txt
 copy .env.example .env
 # .env 파일을 열어 GEMINI_API_KEY와 GEMINI_MODEL 설정
 # GEMINI_API_KEY가 없으면 템플릿 Fallback을 사용합니다.
+# Windows에서는 LOKY_MAX_CPU_COUNT=1 기본값으로 CPU 감지 경고를 방지합니다.
 ```
 
 ### 3. 데이터 생성 및 모델 학습 (petpulse_ai/ 루트에서 실행)
@@ -62,7 +63,16 @@ python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
 
 Swagger UI: http://127.0.0.1:8000/docs
 
-### 5. 운영 서버 실행
+### 5. 테스트 실행
+
+테스트를 실행할 환경에서는 개발 의존성까지 설치합니다.
+
+```bash
+pip install -r requirements-dev.txt
+python -m pytest -q
+```
+
+### 6. 운영 서버 실행
 
 프로젝트 루트(`FastAPI/petpulse_ai`)에서 실행하며 `--reload`를 사용하지 않습니다.
 
@@ -70,8 +80,9 @@ Swagger UI: http://127.0.0.1:8000/docs
 python -m uvicorn app.main:app --host 127.0.0.1 --port 8000
 ```
 
-외부 AI 요청은 Spring JWT Gateway를 통하고, FastAPI는 loopback 주소에서만
-수신합니다. 브라우저는 FastAPI endpoint를 직접 호출하지 않습니다.
+외부 AI 요청은 Spring Gateway를 통하고, FastAPI는 loopback 주소에서만
+수신합니다. Spring은 빠른 예측·사료 추천을 공개하고 챗봇에는 JWT 인증을
+요구합니다. 브라우저는 FastAPI endpoint를 직접 호출하지 않습니다.
 
 ---
 

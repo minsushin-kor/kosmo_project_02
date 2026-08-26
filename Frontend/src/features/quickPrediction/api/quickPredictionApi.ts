@@ -37,5 +37,6 @@ export async function predictHealthRisk(
     method: 'POST',
     body: JSON.stringify(request),
     signal,
+    skipAuth: true,
   })
 }

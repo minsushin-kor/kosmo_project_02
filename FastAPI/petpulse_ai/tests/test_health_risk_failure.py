@@ -51,6 +51,28 @@ def test_model_not_loaded_uses_explicit_rule_based_fallback(monkeypatch):
     assert response.riskGrade == "WATCH"
 
 
+def test_normal_model_result_never_exposes_shap_risk_factor(monkeypatch):
+    class NormalModel:
+        def predict_proba(self, _data):
+            return [[1.0, 0.0, 0.0, 0.0]]
+
+        def predict(self, _data):
+            return [0]
+
+    def unexpected_shap_call(*_args):
+        raise AssertionError("NORMAL 결과에서는 SHAP 위험 요인을 계산하면 안 됩니다.")
+
+    normal_request = request().model_copy(update={"temperature": 38.5})
+    monkeypatch.setattr(main, "MODEL_PIPELINE", NormalModel())
+    monkeypatch.setattr(main, "get_shap_risk_factors", unexpected_shap_call)
+
+    response = main.predict_health_risk(normal_request)
+
+    assert response.abnormalProbability == 0.0
+    assert response.riskGrade == "NORMAL"
+    assert response.primaryRiskFactor == "이상 없음(정상)"
+
+
 def test_inference_exception_returns_generic_service_error(monkeypatch):
     class FailingModel:
         def predict_proba(self, _data):

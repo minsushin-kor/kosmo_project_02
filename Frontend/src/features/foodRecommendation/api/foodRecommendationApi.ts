@@ -33,5 +33,6 @@ export async function recommendFood(
     method: 'POST',
     body: JSON.stringify(request),
     signal,
+    skipAuth: true,
   })
 }
