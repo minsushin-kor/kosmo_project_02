@@ -22,6 +22,18 @@ export function MyPage() {
         </div>
       </header>
 
+      <Link className={styles.qrBanner} to="/mypage/lost-qr">
+        <span className={styles.qrIcon} aria-hidden="true">
+          <i /><i /><i /><i />
+        </span>
+        <span className={styles.qrContent}>
+          <small>LOST PET QR</small>
+          <strong>실종 대비 QR 만들기</strong>
+          <em>목걸이에 부착할 QR을 만들고 공개 정보를 관리합니다.</em>
+        </span>
+        <span className={styles.itemArrow} aria-hidden="true">→</span>
+      </Link>
+
       <nav className={styles.managementList} aria-label="마이페이지 관리 목록">
         <Link className={styles.managementItem} to="/mypage/profile">
           <span className={styles.itemIcon} aria-hidden="true">👤</span>

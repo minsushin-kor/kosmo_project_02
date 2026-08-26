@@ -81,7 +81,6 @@ export function HealthDiaryPage() {
   const [alerts, setAlerts] = useState<HealthAlert[]>([])
   const [reports, setReports] = useState<WeeklyReport[]>([])
   const [isLoading, setIsLoading] = useState(false)
-  const [loadNotice, setLoadNotice] = useState('')
 
   const predictionsByDate = useMemo(
     () => getLatestPredictionsByDate(monthlyPredictions),
@@ -147,7 +146,6 @@ export function HealthDiaryPage() {
 
     const controller = new AbortController()
     setIsLoading(true)
-    setLoadNotice('')
 
     Promise.allSettled([
       getQuestionnaires(selectedPet.id, controller.signal),
@@ -157,10 +155,6 @@ export function HealthDiaryPage() {
       setQuestionnaires(questionnaireResult.status === 'fulfilled' ? questionnaireResult.value : [])
       setAlerts(alertResult.status === 'fulfilled' ? alertResult.value : [])
       setReports(reportResult.status === 'fulfilled' ? reportResult.value : [])
-
-      if ([questionnaireResult, alertResult, reportResult].some((result) => result.status === 'rejected')) {
-        setLoadNotice('일부 건강 기록을 불러오지 못해 확인 가능한 데이터만 표시합니다.')
-      }
     }).finally(() => setIsLoading(false))
 
     return () => controller.abort()
@@ -255,19 +249,18 @@ export function HealthDiaryPage() {
 
   return (
     <div className={common.page}>
-      <header className={common.header}>
-        <div>
+      <header className={`${common.header} ${styles.pageHeader}`}>
+        <div className={styles.headerCopy}>
           <p className={common.eyebrow}>PET WELLNESS DIARY</p>
-          <h1 className={common.title}>건강 다이어리</h1>
+          <h1 className={`${common.title} ${styles.pageTitle}`}>건강 다이어리</h1>
           <p className={common.description}>{selectedPet.name}의 하루 상태와 건강 기록을 달력에서 함께 확인해 보세요.</p>
         </div>
-        <div className={styles.headerAside}>
+        <div className={styles.headerAside} id="walk-advice">
           <WalkAdviceWidget petId={selectedPet.id} petName={selectedPet.name} />
         </div>
       </header>
 
       {isLoading && <DataState title="다이어리에 표시할 건강 기록을 불러오는 중입니다." isLoading />}
-      {loadNotice && <DataState title="일부 기록만 표시하고 있습니다." tone="error">{loadNotice}</DataState>}
       {isDiaryLoading && <DataState title="월별 다이어리와 AI 예측을 불러오는 중입니다." isLoading />}
       {diaryNotice && <DataState title="월별 다이어리 정보를 불러오지 못했습니다." tone="error">{diaryNotice}</DataState>}
 
@@ -288,8 +281,10 @@ export function HealthDiaryPage() {
           <div className={styles.legend} aria-label="다이어리 상태 안내">
             <span><i className={styles.goodDot} />좋음</span>
             <span><i className={styles.watchDot} />관찰 필요</span>
-            <span><i className={styles.noneDot} />기록 없음</span>
-            <span><i className={styles.dataDot} />건강 기록 있음</span>
+            <span className={styles.healthRecordLegend} aria-label="연결된 건강 기록 표시" title="문진·알림 등 연결된 건강 기록">
+              <i className={styles.dataStar} aria-hidden="true">☆</i>
+              입력한 건강 기록 있음
+            </span>
           </div>
 
           <div className={styles.weekDays} aria-hidden="true">
@@ -298,14 +293,13 @@ export function HealthDiaryPage() {
           <div className={styles.calendarGrid}>
             {calendarDays.map((day) => {
               const entry = diaryEntries[day.dateKey]
-              const statusLabel = entry ? statusLabels[entry.status] : '기록 없음'
               const hasData = healthDataDates.has(day.dateKey)
               const classNames = [
                 styles.dayButton,
                 !day.isCurrentMonth ? styles.outsideMonth : '',
                 day.isToday ? styles.today : '',
                 selectedDate === day.dateKey ? styles.selectedDay : '',
-                entry?.status === 'GOOD' ? styles.goodDay : entry?.status === 'WATCH' ? styles.watchDay : styles.noneDay,
+                entry?.status === 'GOOD' ? styles.goodDay : entry?.status === 'WATCH' ? styles.watchDay : '',
               ].filter(Boolean).join(' ')
 
               return (
@@ -315,12 +309,12 @@ export function HealthDiaryPage() {
                   key={day.dateKey}
                   disabled={!day.isCurrentMonth || day.isFuture}
                   aria-pressed={selectedDate === day.dateKey}
-                  aria-label={`${day.date.getMonth() + 1}월 ${day.date.getDate()}일, ${statusLabel}${hasData ? ', 건강 기록 있음' : ''}`}
+                  aria-label={`${day.date.getMonth() + 1}월 ${day.date.getDate()}일${entry ? `, ${statusLabels[entry.status]}` : ''}${hasData ? ', 연결된 건강 기록' : ''}`}
                   onClick={() => setSelectedDate(day.dateKey)}
                 >
                   <span>{day.date.getDate()}</span>
-                  {day.isCurrentMonth && !day.isFuture && <small>{statusLabel}</small>}
-                  {hasData && day.isCurrentMonth && <i className={styles.recordMarker} aria-hidden="true" />}
+                  {entry && day.isCurrentMonth && !day.isFuture && <small>{statusLabels[entry.status]}</small>}
+                  {hasData && day.isCurrentMonth && <i className={styles.recordMarker} aria-hidden="true">☆</i>}
                 </button>
               )
             })}
@@ -333,9 +327,11 @@ export function HealthDiaryPage() {
               <p>DAILY NOTE</p>
               <h2 id="selected-date-title">{formatSelectedDate(selectedDate)}</h2>
             </div>
-            <span className={selectedEntry?.status === 'GOOD' ? styles.goodBadge : selectedEntry?.status === 'WATCH' ? styles.watchBadge : styles.noneBadge}>
-              {selectedEntry ? statusLabels[selectedEntry.status] : '기록 없음'}
-            </span>
+            {selectedEntry && (
+              <span className={selectedEntry.status === 'GOOD' ? styles.goodBadge : styles.watchBadge}>
+                {statusLabels[selectedEntry.status]}
+              </span>
+            )}
           </div>
 
           <form className={styles.diaryForm} onSubmit={handleSave}>
@@ -414,7 +410,6 @@ export function HealthDiaryPage() {
         <div className={styles.summaryGrid}>
           <article className={styles.goodSummary}><span>좋음</span><strong>{monthCounts.good}<small>일</small></strong><p>보호자가 좋음으로 남긴 날</p></article>
           <article className={styles.watchSummary}><span>관찰 필요</span><strong>{monthCounts.watch}<small>일</small></strong><p>한 번 더 살펴보기로 한 날</p></article>
-          <article className={styles.noneSummary}><span>기록 없음</span><strong>{monthCounts.none}<small>일</small></strong><p>오늘까지 다이어리를 남기지 않은 날</p></article>
           <article className={styles.recordSummary}><span>건강 기록</span><strong>{monthQuestionnaires.length + monthAlerts.length}<small>건</small></strong><p>문진·알림을 합한 기록</p></article>
         </div>
 

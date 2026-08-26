@@ -1,0 +1,128 @@
+.topCard {
+  display: inline-flex;
+  min-height: 2.75rem;
+  align-items: center;
+  padding: 0.3rem 0.7rem 0.3rem 0.45rem;
+  border: 1px solid var(--color-line);
+  border-radius: 0.85rem;
+  color: var(--color-text-strong);
+  cursor: pointer;
+  gap: 0.28rem;
+  box-shadow: 0 0.3rem 1rem rgba(64, 70, 45, 0.08);
+  text-decoration: none;
+  transition: box-shadow 140ms ease, transform 140ms ease;
+}
+
+.topCard:hover {
+  box-shadow: 0 0.55rem 1.4rem rgba(64, 70, 45, 0.13);
+  transform: translateY(-1px);
+}
+
+.topCard:focus-visible {
+  outline: 3px solid rgba(64, 70, 45, 0.3);
+  outline-offset: 2px;
+}
+
+.dogMood {
+  position: relative;
+  display: grid;
+  width: 1.95rem;
+  height: 1.95rem;
+  flex: 0 0 auto;
+  place-items: center;
+}
+
+.dogEmoji {
+  font-family: 'Segoe UI Emoji', 'Apple Color Emoji', sans-serif;
+  font-size: 1.55rem;
+  line-height: 1;
+}
+
+.moodSymbol {
+  position: absolute;
+  right: -0.16rem;
+  bottom: -0.08rem;
+  display: grid;
+  width: 0.85rem;
+  height: 0.85rem;
+  place-items: center;
+  border: 1px solid rgba(64, 70, 45, 0.16);
+  border-radius: 50%;
+  background: var(--color-surface);
+  color: currentColor;
+  font-family: var(--font-sans);
+  font-size: 0.58rem;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.label {
+  margin-left: 0.08rem;
+  font-size: 0.69rem;
+  font-weight: 750;
+}
+
+.topCard strong {
+  font-size: 0.76rem;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.unit {
+  margin-left: 0.05rem;
+  font-size: 0.62rem;
+}
+
+.good {
+  background: var(--color-success-soft);
+  color: var(--color-success-strong);
+}
+
+.caution {
+  background: var(--color-watch-soft);
+  color: var(--color-watch);
+}
+
+.rest {
+  background: #e6ebec;
+  color: #53666b;
+}
+
+@media (max-width: 520px) {
+  .topCard {
+    min-width: 4.4rem;
+    min-height: 2.5rem;
+    padding: 0.25rem 0.5rem 0.25rem 0.35rem;
+  }
+
+  .dogMood {
+    width: 1.72rem;
+    height: 1.72rem;
+  }
+
+  .dogEmoji {
+    font-size: 1.4rem;
+  }
+
+  .label {
+    display: none;
+  }
+}
+
+@media (max-width: 360px) {
+  .topCard {
+    min-width: 3.5rem;
+    padding-right: 0.35rem;
+    gap: 0.15rem;
+  }
+
+  .unit {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .topCard {
+    transition: none;
+  }
+}

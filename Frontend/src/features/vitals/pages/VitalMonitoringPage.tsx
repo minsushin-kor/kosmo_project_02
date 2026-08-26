@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { DataState } from '../../../components/common/DataState'
-import { getApiErrorMessage } from '../../../shared/api/apiClient'
+import { getApiErrorMessage, isAbortError } from '../../../shared/api/apiClient'
 import { useRoutePet } from '../../pets/hooks/useRoutePet'
 import {
   getPredictions,
@@ -87,10 +87,6 @@ function getRiskTone(grade?: RiskGrade) {
   if (grade === 'NORMAL') return styles.normal
   if (grade === 'DANGER') return styles.danger
   return styles.watch
-}
-
-function isAbortError(error: unknown) {
-  return error instanceof DOMException && error.name === 'AbortError'
 }
 
 export function VitalMonitoringPage() {

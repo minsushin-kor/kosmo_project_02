@@ -8,6 +8,7 @@ export default defineConfig(({ mode }) => {
   return {
     plugins: [react()],
     server: {
+      host: env.VITE_DEV_HOST || 'localhost',
       proxy: {
         '/api': {
           target: env.VITE_SPRING_API_TARGET || 'http://localhost:8080',

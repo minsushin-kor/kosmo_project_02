@@ -1,5 +1,22 @@
+.pageHeader {
+  display: grid;
+  grid-template-columns: minmax(16rem, 1fr) minmax(22rem, 29rem);
+  align-items: start;
+  gap: clamp(1.5rem, 4vw, 3.5rem);
+}
+
+.headerCopy {
+  min-width: 0;
+}
+
+.pageTitle {
+  font-size: clamp(2.35rem, 5vw, 4.7rem);
+  white-space: nowrap;
+}
+
 .headerAside {
   display: flex;
+  width: 100%;
   min-width: 0;
   align-items: flex-end;
   flex-direction: column;
@@ -124,14 +141,30 @@
   background: var(--color-watch);
 }
 
-.noneDot {
-  border: 1px solid var(--color-line);
-  background: var(--color-bg);
+.legend .healthRecordLegend {
+  min-width: 1.15rem;
+  justify-content: center;
 }
 
-.dataDot {
-  background: var(--color-secondary);
-  box-shadow: 0 0 0 2px var(--color-sage-soft);
+.legend .dataStar,
+.recordMarker {
+  width: auto;
+  height: auto;
+  border-radius: 0;
+  color: var(--color-secondary-strong);
+  font-family: Georgia, 'Times New Roman', serif;
+  font-style: normal;
+  font-weight: 900;
+  line-height: 1;
+  text-shadow:
+    0.04em 0.025em 0 rgba(127, 138, 102, 0.58),
+    -0.03em 0.04em 0 rgba(103, 113, 78, 0.42),
+    0.015em -0.025em 0 rgba(174, 146, 91, 0.3);
+  transform: rotate(-8deg);
+}
+
+.legend .dataStar {
+  font-size: 1.1rem;
 }
 
 .weekDays,
@@ -216,11 +249,6 @@
   color: var(--color-watch);
 }
 
-.noneDay small {
-  background: var(--color-bg);
-  color: var(--color-text-soft);
-}
-
 .today > span {
   background: var(--color-primary);
   color: var(--color-cream);
@@ -244,11 +272,7 @@
   position: absolute;
   right: 0.65rem;
   bottom: 0.65rem;
-  width: 0.42rem;
-  height: 0.42rem;
-  border-radius: 50%;
-  background: var(--color-secondary);
-  box-shadow: 0 0 0 2px var(--color-sage-soft);
+  font-size: 1rem;
 }
 
 .dayPanel {
@@ -269,8 +293,7 @@
 }
 
 .goodBadge,
-.watchBadge,
-.noneBadge {
+.watchBadge {
   display: inline-flex;
   min-height: 1.8rem;
   align-items: center;
@@ -289,11 +312,6 @@
 .watchBadge {
   background: var(--color-watch-soft);
   color: var(--color-watch);
-}
-
-.noneBadge {
-  background: var(--color-bg);
-  color: var(--color-text-soft);
 }
 
 .diaryForm {
@@ -540,7 +558,7 @@
 .summaryGrid {
   display: grid;
   margin-top: 1.5rem;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 11rem), 1fr));
   gap: 0.75rem;
 }
 
@@ -590,11 +608,6 @@
 .watchSummary {
   background: var(--color-watch-soft);
   color: var(--color-watch);
-}
-
-.noneSummary {
-  background: var(--color-bg);
-  color: var(--color-text-soft);
 }
 
 .recordSummary {
@@ -715,8 +728,16 @@
     height: auto;
   }
 
-  .summaryGrid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (max-width: 900px) {
+  .pageHeader {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .headerAside {
+    max-width: 29rem;
+    align-items: stretch;
   }
 }
 
@@ -762,10 +783,6 @@
     bottom: 0.35rem;
   }
 
-  .summaryGrid {
-    grid-template-columns: 1fr 1fr;
-  }
-
   .summaryActions {
     width: 100%;
   }
@@ -794,8 +811,7 @@
     min-height: 3.8rem;
   }
 
-  .statusChoices,
-  .summaryGrid {
+  .statusChoices {
     grid-template-columns: 1fr;
   }
 }

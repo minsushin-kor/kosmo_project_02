@@ -8,7 +8,7 @@ import {
 } from 'react-router-dom'
 
 import { DataState } from '../../../components/common/DataState'
-import { getApiErrorMessage } from '../../../shared/api/apiClient'
+import { getApiErrorMessage, isAbortError } from '../../../shared/api/apiClient'
 import { usePets } from '../../pets/hooks/usePets'
 import {
   getWeeklyReport,
@@ -159,12 +159,7 @@ export function ReportDetailPage() {
         }
       })
       .catch((loadError) => {
-        if (
-          loadError instanceof
-          DOMException &&
-          loadError.name ===
-          'AbortError'
-        ) {
+        if (isAbortError(loadError)) {
           return
         }
 

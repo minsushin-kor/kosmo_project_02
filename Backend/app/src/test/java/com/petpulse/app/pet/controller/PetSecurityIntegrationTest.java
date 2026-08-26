@@ -47,4 +47,18 @@ class PetSecurityIntegrationTest {
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.error").value("RESOURCE_NOT_FOUND"));
     }
+
+    @Test
+    void lostPetPublicProfileDoesNotRequireAuthentication() throws Exception {
+        mockMvc.perform(get("/api/public/lost-pets/non-existing-token"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.error").value("RESOURCE_NOT_FOUND"));
+    }
+
+    @Test
+    void lostPetQrManagementRequiresAuthentication() throws Exception {
+        mockMvc.perform(get("/api/pets/1/lost-qr-profile"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.error").value("AUTHENTICATION_FAILED"));
+    }
 }

@@ -1,6 +1,80 @@
 .managementList {
   display: grid;
+  margin-top: 1rem;
   gap: 1rem;
+}
+
+.qrBanner {
+  display: grid;
+  min-height: 8.5rem;
+  padding: 1.4rem 1.5rem;
+  border-radius: var(--radius-card);
+  background: var(--color-primary);
+  color: var(--color-cream);
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 1.25rem;
+  text-decoration: none;
+  transition: transform 140ms ease, box-shadow 140ms ease;
+}
+
+.qrBanner:hover,
+.qrBanner:focus-visible {
+  box-shadow: 0 1rem 2.5rem rgba(64, 70, 45, 0.18);
+  transform: translateY(-2px);
+}
+
+.qrIcon {
+  position: relative;
+  display: grid;
+  width: 4.25rem;
+  height: 4.25rem;
+  padding: 0.75rem;
+  border-radius: 1rem;
+  background: var(--color-cream);
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.3rem;
+}
+
+.qrIcon i {
+  border: 0.22rem solid var(--color-primary);
+}
+
+.qrIcon i:last-child {
+  border: 0;
+  background: repeating-linear-gradient(45deg, var(--color-primary) 0 0.18rem, transparent 0.18rem 0.36rem);
+}
+
+.qrContent small,
+.qrContent strong,
+.qrContent em {
+  display: block;
+}
+
+.qrContent small {
+  color: rgba(255, 253, 248, 0.58);
+  font-size: 0.62rem;
+  font-weight: 850;
+  letter-spacing: 0.12em;
+}
+
+.qrContent strong {
+  margin-top: 0.25rem;
+  font-family: var(--font-display);
+  font-size: 1.55rem;
+  letter-spacing: -0.04em;
+}
+
+.qrContent em {
+  margin-top: 0.35rem;
+  color: rgba(255, 253, 248, 0.7);
+  font-size: 0.75rem;
+  font-style: normal;
+}
+
+.qrBanner .itemArrow {
+  background: rgba(255, 253, 248, 0.12);
+  color: var(--color-cream);
 }
 
 .managementItem {
@@ -76,6 +150,22 @@
   background: var(--color-sand-soft);
   color: var(--color-primary);
   font-size: 1.1rem;
+}
+
+@media (max-width: 560px) {
+  .qrBanner {
+    padding: 1.25rem;
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .qrBanner .itemArrow {
+    display: none;
+  }
+
+  .qrIcon {
+    width: 3.6rem;
+    height: 3.6rem;
+  }
 }
 
 .backLink {

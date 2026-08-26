@@ -102,6 +102,10 @@ describe('HealthDiaryPage backend integration flow', () => {
     expect(await screen.findByText('AI 예측: 주의')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /8월 18일, 좋음/ })).toBeInTheDocument()
     expect(screen.getByText('최근 AI 주의 결과')).toBeInTheDocument()
+    expect(screen.getByLabelText('연결된 건강 기록 표시')).toBeInTheDocument()
+    expect(screen.getByText('입력한 건강 기록 있음')).toBeInTheDocument()
+    expect(screen.queryByText('건강 기록 있음')).not.toBeInTheDocument()
+    expect(screen.queryByText('기록 없음')).not.toBeInTheDocument()
   })
 
   it('reloads diary when pet or displayed month changes', async () => {

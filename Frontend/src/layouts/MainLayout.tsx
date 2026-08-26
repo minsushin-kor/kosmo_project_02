@@ -5,6 +5,7 @@ import { useAuth } from '../features/auth/hooks/useAuth'
 import { ChatAssistant } from '../features/chatbot/components/ChatAssistant'
 import { ChatProvider } from '../features/chatbot/context/ChatProvider'
 import { usePets } from '../features/pets/hooks/usePets'
+import { WalkAdviceTopCard } from '../features/walkAdvice/components/WalkAdviceTopCard'
 import styles from './MainLayout.module.css'
 
 const DASHBOARD_CHAT_HIDDEN_KEY = 'petpulse-dashboard-chat-hidden'
@@ -210,6 +211,7 @@ function MainLayoutContent() {
           <div className={styles.headerActions}>
             {currentUser ? (
               <>
+                {selectedPet && <WalkAdviceTopCard petId={selectedPet.id} petName={selectedPet.name} />}
                 <Link className={styles.userSummary} to="/mypage" aria-label={`${currentUser.name}님의 마이페이지`}>
                   <span aria-hidden="true">{currentUser.name.slice(0, 1)}</span>
                   <span><strong>{currentUser.name}</strong><small>@{currentUser.username}</small></span>

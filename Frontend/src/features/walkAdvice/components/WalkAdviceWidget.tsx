@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react'
+import { type FormEvent, useEffect, useState } from 'react'
 import changeableImage from '../../../assets/images/walk-advice/walk-changeable.webp'
 import rainyImage from '../../../assets/images/walk-advice/walk-rainy.webp'
 import sunnyImage from '../../../assets/images/walk-advice/walk-sunny.webp'
-import { getWalkAdvice, getWalkAdviceMockScenario } from '../api/walkAdviceApi'
+import { getApiErrorMessage, isAbortError } from '../../../shared/api/apiClient'
+import { getWalkAdvice } from '../api/walkAdviceApi'
 import type { WalkAdvice, WalkWeatherCondition } from '../types'
 import { getWalkAdviceCopy } from '../utils/walkAdviceView'
 import styles from './WalkAdviceWidget.module.css'
@@ -15,22 +16,14 @@ type WalkAdviceWidgetProps = {
 const KMA_WEATHER_URL = 'https://www.weather.go.kr/w/index.do'
 
 const weatherImageByCondition: Record<WalkWeatherCondition, string> = {
-  SUNNY: sunnyImage,
-  CHANGEABLE: changeableImage,
-  RAINY: rainyImage,
+  GOOD: sunnyImage,
+  CAUTION: changeableImage,
+  REST: rainyImage,
 }
 
-const mockScenarioOptions: Array<{
-  condition: WalkWeatherCondition
-  label: string
-}> = [
-  { condition: 'SUNNY', label: '맑은 날' },
-  { condition: 'CHANGEABLE', label: '흐린 날' },
-  { condition: 'RAINY', label: '비 오는 날' },
-]
-
 export function WalkAdviceWidget({ petId, petName }: WalkAdviceWidgetProps) {
-  const [mockScenario, setMockScenario] = useState<WalkWeatherCondition>(getWalkAdviceMockScenario)
+  const [locationInput, setLocationInput] = useState('')
+  const [requestedLocation, setRequestedLocation] = useState<string>()
   const [advice, setAdvice] = useState<WalkAdvice | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState('')
@@ -41,14 +34,15 @@ export function WalkAdviceWidget({ petId, petName }: WalkAdviceWidgetProps) {
     setIsLoading(true)
     setError('')
 
-    getWalkAdvice(petId, controller.signal, mockScenario)
+    getWalkAdvice(petId, controller.signal, requestedLocation)
       .then(setAdvice)
       .catch((loadError: unknown) => {
-        if (loadError instanceof DOMException && loadError.name === 'AbortError') {
+        if (isAbortError(loadError)) {
           return
         }
 
-        setError('오늘의 산책 날씨를 불러오지 못했어요.')
+        setAdvice(null)
+        setError(getApiErrorMessage(loadError, '오늘의 산책 날씨를 불러오지 못했어요.'))
       })
       .finally(() => {
         if (!controller.signal.aborted) {
@@ -57,28 +51,48 @@ export function WalkAdviceWidget({ petId, petName }: WalkAdviceWidgetProps) {
       })
 
     return () => controller.abort()
-  }, [mockScenario, petId])
+  }, [petId, requestedLocation])
 
-  const scenarioControls = (
-    <div className={styles.scenarioControls} role="group" aria-label="목업 날씨 선택">
-      {mockScenarioOptions.map((option) => (
-        <button
-          className={mockScenario === option.condition ? styles.activeScenario : undefined}
-          type="button"
-          key={option.condition}
-          aria-pressed={mockScenario === option.condition}
-          onClick={() => setMockScenario(option.condition)}
-        >
-          {option.label}
+  const handleLocationSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    const nextLocation = locationInput.trim()
+    if (nextLocation) {
+      setRequestedLocation(nextLocation)
+    }
+  }
+
+  const resetToMemberAddress = () => {
+    setLocationInput('')
+    setRequestedLocation(undefined)
+  }
+
+  const locationTools = (
+    <div className={styles.locationTools}>
+      <form className={styles.locationForm} onSubmit={handleLocationSubmit} role="search">
+        <label htmlFor={`walk-location-${petId}`}>다른 지역</label>
+        <input
+          id={`walk-location-${petId}`}
+          type="search"
+          value={locationInput}
+          onChange={(event) => setLocationInput(event.target.value)}
+          maxLength={120}
+          placeholder="예: 부산 해운대구"
+          autoComplete="off"
+        />
+        <button type="submit" disabled={!locationInput.trim() || isLoading}>확인</button>
+      </form>
+      {requestedLocation && (
+        <button className={styles.memberLocationButton} type="button" onClick={resetToMemberAddress}>
+          내 주소로 돌아가기
         </button>
-      ))}
+      )}
     </div>
   )
 
   if (isLoading) {
     return (
       <div className={styles.widget}>
-        {scenarioControls}
+        {locationTools}
         <section className={styles.stateCard} aria-busy="true" aria-label="산책 날씨를 불러오는 중">
           <span className={styles.stateIllustration} aria-hidden="true" />
           <div>
@@ -93,7 +107,7 @@ export function WalkAdviceWidget({ petId, petName }: WalkAdviceWidgetProps) {
   if (!advice || error) {
     return (
       <div className={styles.widget}>
-        {scenarioControls}
+        {locationTools}
         <section className={styles.errorCard} role="status">
           <span aria-hidden="true">☁</span>
           <div>
@@ -109,7 +123,7 @@ export function WalkAdviceWidget({ petId, petName }: WalkAdviceWidgetProps) {
 
   return (
     <div className={styles.widget}>
-      {scenarioControls}
+      {locationTools}
       <a
         className={`${styles.card} ${styles[advice.condition.toLowerCase()]}`}
         href={KMA_WEATHER_URL}
@@ -125,16 +139,17 @@ export function WalkAdviceWidget({ petId, petName }: WalkAdviceWidgetProps) {
         <div className={styles.content}>
           <div className={styles.locationLine}>
             <span>{advice.location}</span>
-            <small>목업</small>
+            <small>{advice.locationSource === 'MEMBER_ADDRESS' ? '등록 주소' : '검색 지역'}</small>
           </div>
           <p className={styles.observedAt}>{advice.observedAt}</p>
           <h2>{copy.headline}</h2>
+          <p className={styles.score}>산책 추천도 <strong>{advice.recommendationScore}점</strong></p>
           <p className={styles.weatherSummary}>
             <strong>{advice.temperature}°</strong>
             <span>강수 {advice.precipitationProbability}%</span>
             <span>미세먼지 {advice.airQualityLabel}</span>
           </p>
-          <p className={styles.description}>{copy.description}</p>
+          <p className={styles.description}>{advice.recommendationReason || copy.description}</p>
           <span className={styles.externalLink}>기상청 날씨 자세히 보기 <i aria-hidden="true">↗</i></span>
         </div>
       </a>

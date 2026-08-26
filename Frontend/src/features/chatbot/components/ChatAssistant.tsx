@@ -140,7 +140,7 @@ export function ChatAssistant({ variant, isOpen, onOpen, onClose }: ChatAssistan
         type="button"
         className={styles.launcherGroup}
         onClick={onOpen}
-        aria-label="펫펄스 AI 챗봇 열기"
+        aria-label="PatPet AI 챗봇 열기"
       >
         <span className={styles.promptBubble} aria-hidden="true">
           AI에 궁금하신 점이 있나요?
@@ -154,7 +154,7 @@ export function ChatAssistant({ variant, isOpen, onOpen, onClose }: ChatAssistan
         </span>
       </button>
       ) : (
-        <section className={styles.panel} aria-label="펫펄스 AI 건강 도우미">
+        <section className={styles.panel} aria-label="PatPet AI 건강 도우미">
           <header className={styles.panelHeader}>
             <div className={styles.assistantIdentity}>
               <span className={styles.headerIcon} aria-hidden="true">✦</span>

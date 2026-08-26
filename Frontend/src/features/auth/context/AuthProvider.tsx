@@ -5,6 +5,7 @@ import {
   saveAuthToken,
   subscribeUnauthorized,
 } from '../../../shared/auth/authTokenStorage'
+import { isAbortError } from '../../../shared/api/apiClient'
 import { getMe, login as loginRequest, signup, updateMe } from '../api/authApi'
 import type { AuthUser } from '../types'
 import { AuthContext, type AuthContextValue } from './AuthContext'
@@ -33,7 +34,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     getMe(controller.signal)
       .then(setCurrentUser)
       .catch((error) => {
-        if (!(error instanceof DOMException && error.name === 'AbortError')) {
+        if (!isAbortError(error)) {
           clearAuthentication()
         }
       })

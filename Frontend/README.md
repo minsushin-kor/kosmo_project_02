@@ -42,8 +42,12 @@ npm run dev
 | --- | --- | --- |
 | `VITE_API_BASE_URL` | `/api` | Spring Boot API 기본 경로 |
 | `VITE_SPRING_API_TARGET` | `http://localhost:8080` | Vite 개발 프록시 대상 |
+| `VITE_PUBLIC_BASE_URL` | `http://localhost:5173` | QR에 담을 공개 프로필 기본 주소 |
+| `VITE_LOCAL_BASE_URL` | `http://localhost:5173` | 현재 PC의 QR 공개 화면 미리보기 주소 |
+| `VITE_DEV_HOST` | `localhost` | LAN 휴대폰 테스트 시 `0.0.0.0`으로 설정 |
 
-운영 빌드는 `VITE_API_BASE_URL=/api`만 사용합니다. 챗봇도 JWT를 포함해
+운영 빌드에서는 `VITE_PUBLIC_BASE_URL`을 실제 HTTPS 도메인으로 설정해야
+인쇄한 QR이 배포 후에도 동작합니다. 챗봇도 JWT를 포함해
 `/api/ai/chat/stream` Spring Gateway를 호출하므로 브라우저용 FastAPI URL은
 필요하지 않습니다. 실제 API 키는 프론트엔드 환경변수에 저장하지 않으며
 Gemini 키는 FastAPI 서버에서만 관리합니다.
@@ -87,7 +91,8 @@ npm run build
 - 건강 문진 저장 및 예측 생성
 - 예측 결과·알림·주간 리포트 조회
 - RAG 챗봇 답변과 출처 SSE 스트리밍
+- 회원 주소 또는 검색 지역 기준 실시간 산책 추천
 
-회원 주소는 회원가입과 마이페이지 수정 API를 통해 PostgreSQL에 저장합니다. 반려동물 프로필 사진은 전용 업로드 API를 통해 PostgreSQL에 저장하며 JPG, PNG, WEBP 형식을 최대 5MB까지 지원합니다. 활동량 집계 및 알림 설정 API는 백엔드 구현 후 추가 연동이 필요합니다. 학습된 건강 위험도 모델이 준비된 뒤에는 문진부터 예측 결과까지 실제 데이터로 전체 흐름을 다시 검증해야 합니다.
+회원 주소는 회원가입과 마이페이지 수정 API를 통해 PostgreSQL에 저장합니다. 건강 다이어리의 산책 추천 카드는 Spring Boot를 통해 기상청 날씨, 에어코리아 대기질, 카카오 주소 좌표 변환 API를 조회하며 반려동물 상태는 추천 점수에 반영하지 않습니다. 외부 API 키는 `Backend/app/.env`에서만 관리합니다. 반려동물 프로필 사진은 전용 업로드 API를 통해 PostgreSQL에 저장하며 JPG, PNG, WEBP 형식을 최대 5MB까지 지원합니다. 활동량 집계 및 알림 설정 API는 백엔드 구현 후 추가 연동이 필요합니다. 학습된 건강 위험도 모델이 준비된 뒤에는 문진부터 예측 결과까지 실제 데이터로 전체 흐름을 다시 검증해야 합니다.
 
 전체 진행 상태는 [`docs/frontend-progress.md`](docs/frontend-progress.md)에서 관리합니다.

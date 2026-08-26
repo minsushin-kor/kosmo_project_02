@@ -7,6 +7,7 @@ import {
   type ReactNode,
 } from 'react'
 
+import { isAbortError } from '../../../shared/api/apiClient'
 import { useAuth } from '../../auth/hooks/useAuth'
 import { usePets } from '../../pets/hooks/usePets'
 import { streamChat } from '../api/chatbotApi'
@@ -203,12 +204,7 @@ export function ChatProvider({
             controller.signal,
           )
         } catch (error) {
-          if (
-            error instanceof
-            DOMException &&
-            error.name ===
-            'AbortError'
-          ) {
+          if (isAbortError(error)) {
             return
           }
 

@@ -9,6 +9,7 @@ import { LoadingButton } from '../../../components/common/LoadingButton'
 import {
   ApiError,
   getApiErrorMessage,
+  isAbortError,
 } from '../../../shared/api/apiClient'
 import { useRoutePet } from '../../pets/hooks/useRoutePet'
 import {
@@ -110,12 +111,7 @@ export function ReportsListPage() {
         setReports(items)
       })
       .catch((loadError) => {
-        if (
-          loadError instanceof
-          DOMException &&
-          loadError.name ===
-          'AbortError'
-        ) {
+        if (isAbortError(loadError)) {
           return
         }
 

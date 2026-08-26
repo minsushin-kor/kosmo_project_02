@@ -42,6 +42,7 @@ describe('MyPage 관리 목록', () => {
 
     expect(screen.getByRole('link', { name: /회원정보 수정/ })).toHaveAttribute('href', '/mypage/profile')
     expect(screen.getByRole('link', { name: /반려동물 정보 수정/ })).toHaveAttribute('href', '/mypage/pets')
+    expect(screen.getByRole('link', { name: /실종 대비 QR 만들기/ })).toHaveAttribute('href', '/mypage/lost-qr')
     expect(screen.getByText(/총 1마리 · 초코/)).toBeInTheDocument()
   })
 })

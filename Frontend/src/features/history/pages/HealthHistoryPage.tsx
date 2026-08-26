@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { DataState } from '../../../components/common/DataState'
 import { LoadingButton } from '../../../components/common/LoadingButton'
-import { getApiErrorMessage } from '../../../shared/api/apiClient'
+import { getApiErrorMessage, isAbortError } from '../../../shared/api/apiClient'
 import { useRoutePet } from '../../pets/hooks/useRoutePet'
 import { getPredictions, type HealthPrediction, type RiskGrade } from '../../predictions/api/predictionApi'
 import { getHealthAlerts, markAllHealthAlertsRead, markHealthAlertRead, type HealthAlert } from '../api/healthHistoryApi'
@@ -56,7 +56,7 @@ export function HealthHistoryPage() {
         setHistory(predictions)
       })
       .catch((loadError) => {
-        if (!(loadError instanceof DOMException && loadError.name === 'AbortError')) {
+        if (!isAbortError(loadError)) {
           setError(getApiErrorMessage(loadError, '건강 이력을 불러오지 못했습니다.'))
         }
       })

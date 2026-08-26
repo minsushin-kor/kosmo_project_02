@@ -23,6 +23,13 @@ import { MainLayout } from '../layouts/MainLayout'
 
 export const router = createBrowserRouter([
   {
+    path: '/lost-pet/:publicToken',
+    lazy: async () => {
+      const { PublicLostPetPage } = await import('../features/lostPetQr/pages/PublicLostPetPage')
+      return { Component: PublicLostPetPage }
+    },
+  },
+  {
     element: <MainLayout />,
     children: [
       { path: '/', element: <LandingPage /> },
@@ -37,6 +44,13 @@ export const router = createBrowserRouter([
           { path: '/mypage', element: <MyPage /> },
           { path: '/mypage/profile', element: <MemberProfileEditPage /> },
           { path: '/mypage/pets', element: <PetListPage /> },
+          {
+            path: '/mypage/lost-qr',
+            lazy: async () => {
+              const { LostPetQrManagementPage } = await import('../features/lostPetQr/pages/LostPetQrManagementPage')
+              return { Component: LostPetQrManagementPage }
+            },
+          },
           { path: '/pets', element: <PetListPage /> },
           { path: '/pets/new', element: <PetRegisterPage /> },
           { path: '/pets/:petId/edit', element: <PetEditPage /> },
