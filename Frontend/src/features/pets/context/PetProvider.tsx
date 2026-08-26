@@ -1,7 +1,14 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { getApiErrorMessage } from '../../../shared/api/apiClient'
 import { useAuth } from '../../auth/hooks/useAuth'
-import { createPet, deletePet, getPets, updatePet as updatePetRequest } from '../api/petApi'
+import {
+  createPet,
+  deletePet,
+  deletePetProfileImage,
+  getPets,
+  updatePet as updatePetRequest,
+  uploadPetProfileImage,
+} from '../api/petApi'
 import type { Pet } from '../types'
 import { PetContext, type PetContextValue } from './PetContext'
 
@@ -58,7 +65,6 @@ export function PetProvider({ children }: PetProviderProps) {
     pets,
     selectedPet,
     isLoading,
-    isDemoMode: false,
     error,
     selectPet: setSelectedPetId,
     addPet: async (input) => {
@@ -69,6 +75,16 @@ export function PetProvider({ children }: PetProviderProps) {
     },
     updatePet: async (pet) => {
       const savedPet = await updatePetRequest(pet)
+      setPets((current) => current.map((item) => item.id === savedPet.id ? savedPet : item))
+      return savedPet
+    },
+    uploadPetProfileImage: async (petId, image) => {
+      const savedPet = await uploadPetProfileImage(petId, image)
+      setPets((current) => current.map((item) => item.id === savedPet.id ? savedPet : item))
+      return savedPet
+    },
+    deletePetProfileImage: async (petId) => {
+      const savedPet = await deletePetProfileImage(petId)
       setPets((current) => current.map((item) => item.id === savedPet.id ? savedPet : item))
       return savedPet
     },

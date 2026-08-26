@@ -279,8 +279,24 @@
   text-align: right;
 }
 
-.petCard button {
-  width: 100%;
+.cardActions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.55rem;
+}
+
+.uploadWarning {
+  border-color: rgba(168, 66, 66, 0.2);
+  background: var(--color-danger-soft);
+  color: var(--color-danger);
+}
+
+.uploadWarning > span {
+  background: var(--color-danger);
+}
+
+.petCard button,
+.editLink {
   min-height: 3rem;
   border: 0;
   border-radius: 999px;
@@ -289,6 +305,18 @@
   cursor: pointer;
   font-size: 0.82rem;
   font-weight: 800;
+}
+
+.editLink {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 1rem;
+  border: 1px solid var(--color-line);
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  text-decoration: none;
+  white-space: nowrap;
 }
 
 .petCard button:disabled {

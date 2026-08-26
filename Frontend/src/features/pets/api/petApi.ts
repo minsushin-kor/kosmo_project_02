@@ -120,3 +120,24 @@ export async function deletePet(petId: number) {
     },
   )
 }
+
+export async function uploadPetProfileImage(petId: number, image: File) {
+  const formData = new FormData()
+  formData.append('image', image)
+  const response = await apiRequest<PetResponse>(
+    `/pets/${petId}/profile-image`,
+    {
+      method: 'POST',
+      body: formData,
+    },
+  )
+  return toPet(response)
+}
+
+export async function deletePetProfileImage(petId: number) {
+  const response = await apiRequest<PetResponse>(
+    `/pets/${petId}/profile-image`,
+    { method: 'DELETE' },
+  )
+  return toPet(response)
+}

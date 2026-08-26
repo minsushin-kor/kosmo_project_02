@@ -10,7 +10,6 @@ import {
   ApiError,
   getApiErrorMessage,
 } from '../../../shared/api/apiClient'
-import { PetSectionNav } from '../../pets/components/PetSectionNav'
 import { useRoutePet } from '../../pets/hooks/useRoutePet'
 import {
   createWeeklyReport,
@@ -74,7 +73,6 @@ export function ReportsListPage() {
   const {
     selectedPet,
     routePetMissing,
-    isDemoMode,
   } = useRoutePet()
 
   const [reports, setReports] =
@@ -93,10 +91,7 @@ export function ReportsListPage() {
     useState('')
 
   useEffect(() => {
-    if (
-      !selectedPet ||
-      isDemoMode
-    ) {
+    if (!selectedPet) {
       setReports([])
       return
     }
@@ -138,10 +133,7 @@ export function ReportsListPage() {
     return () => {
       controller.abort()
     }
-  }, [
-    isDemoMode,
-    selectedPet,
-  ])
+  }, [selectedPet])
 
   if (
     !selectedPet ||
@@ -215,8 +207,6 @@ export function ReportsListPage() {
 
   return (
     <div className={common.page}>
-      <PetSectionNav />
-
       <header
         className={
           common.header
@@ -260,7 +250,6 @@ export function ReportsListPage() {
               isCreating
             }
             loadingText="생성 중..."
-            disabled={isDemoMode}
             onClick={() =>
               void handleCreate()
             }
@@ -280,15 +269,6 @@ export function ReportsListPage() {
           )}
         </div>
       </header>
-
-      {isDemoMode && (
-        <DataState title="리포트 API를 사용하려면 Spring Boot 연결이 필요합니다.">
-          PostgreSQL과 Spring Boot를
-          실행하면 저장된 주간
-          리포트를 조회하고 새
-          리포트를 생성할 수 있습니다.
-        </DataState>
-      )}
 
       {isLoading && (
         <DataState
@@ -477,7 +457,6 @@ export function ReportsListPage() {
         </>
       ) : (
         !isLoading &&
-        !isDemoMode &&
         !error && (
           <DataState title="생성된 주간 리포트가 없습니다.">
             이번 주 리포트 생성

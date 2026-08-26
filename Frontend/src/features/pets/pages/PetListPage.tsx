@@ -8,20 +8,24 @@ import styles from './PetListPage.module.css'
 type PetListLocationState = {
   createdPetName?: string
   updatedPetName?: string
+  imageUploadError?: string
 }
 
 export function PetListPage() {
-  const { pets, selectedPet, selectPet, isLoading, isDemoMode, error, reloadPets } = usePets()
+  const { pets, selectedPet, selectPet, isLoading, error, reloadPets } = usePets()
   const location = useLocation()
   const state = location.state as PetListLocationState | null
+  const isMyPagePetManagement = location.pathname === '/mypage/pets'
 
   return (
     <div className={styles.page}>
       <header className={styles.pageHeader}>
         <div>
-          <p className={styles.eyebrow}>MY PET FAMILY</p>
-          <h1>함께 관리할 반려동물</h1>
-          <p>건강 상태를 확인할 반려동물을 선택하거나 새로운 가족을 등록해 주세요.</p>
+          <p className={styles.eyebrow}>{isMyPagePetManagement ? 'MY PATPET' : 'MY PET FAMILY'}</p>
+          <h1>{isMyPagePetManagement ? '반려동물 정보 수정' : '함께 관리할 반려동물'}</h1>
+          <p>{isMyPagePetManagement
+            ? '수정할 반려동물을 선택하거나 새로운 가족을 등록해 주세요.'
+            : '건강 상태를 확인할 반려동물을 선택하거나 새로운 가족을 등록해 주세요.'}</p>
         </div>
         <Link className={styles.addButton} to="/pets/new">
           <span aria-hidden="true">＋</span> 반려동물 등록
@@ -40,19 +44,25 @@ export function PetListPage() {
           <p><strong>{state.updatedPetName}</strong>의 프로필 정보를 수정했어요.</p>
         </div>
       )}
+      {state?.imageUploadError && (
+        <div className={`${styles.successNotice} ${styles.uploadWarning}`} role="alert">
+          <span aria-hidden="true">!</span>
+          <p>반려동물 기본정보는 저장했지만 사진은 저장하지 못했습니다. {state.imageUploadError}</p>
+        </div>
+      )}
 
       {isLoading && <DataState title="반려동물 정보를 불러오는 중입니다." isLoading />}
-      {isDemoMode && error && (
+      {error && (
         <DataState
-          title="Spring Boot 연결 전이라 데모 데이터를 표시하고 있습니다."
+          title="반려동물 정보를 불러오지 못했습니다."
           tone="error"
-          action={<button type="button" onClick={() => void reloadPets()}>다시 연결</button>}
+          action={<button type="button" onClick={() => void reloadPets()}>다시 시도</button>}
         >
           {error}
         </DataState>
       )}
 
-      {!isLoading && !selectedPet && (
+      {!isLoading && !error && !selectedPet && (
         <DataState title="등록된 반려동물이 없습니다." action={<Link to="/pets/new">첫 반려동물 등록하기</Link>}>
           반려동물을 등록하면 생체정보와 건강 문진을 시작할 수 있습니다.
         </DataState>
@@ -77,7 +87,10 @@ export function PetListPage() {
           <div className={styles.selectedActions}>
             <p>우리 아이 상태와 문진은 현재 선택된 반려동물을 기준으로 표시됩니다.</p>
             <div className={styles.actionLinks}>
-              <Link to={`/pets/${selectedPet.id}/edit`}>프로필 수정</Link>
+              <Link
+                to={`/pets/${selectedPet.id}/edit`}
+                state={isMyPagePetManagement ? { returnTo: '/mypage/pets' } : undefined}
+              >프로필 수정</Link>
               <Link to="/dashboard">우리 아이 상태 보기 <span aria-hidden="true">→</span></Link>
             </div>
           </div>
@@ -113,13 +126,20 @@ export function PetListPage() {
                   <div><dt>성별</dt><dd>{sexLabel[pet.sex]}</dd></div>
                   <div><dt>몸무게</dt><dd>{pet.weight}kg</dd></div>
                 </dl>
-                <button
-                  type="button"
-                  disabled={isSelected}
-                  onClick={() => selectPet(pet.id)}
-                >
-                  {isSelected ? '선택되어 있어요' : `${pet.name} 선택하기`}
-                </button>
+                <div className={styles.cardActions}>
+                  <button
+                    type="button"
+                    disabled={isSelected}
+                    onClick={() => selectPet(pet.id)}
+                  >
+                    {isSelected ? '현재 선택' : `${pet.name} 선택`}
+                  </button>
+                  <Link
+                    className={styles.editLink}
+                    to={`/pets/${pet.id}/edit`}
+                    state={isMyPagePetManagement ? { returnTo: '/mypage/pets' } : undefined}
+                  >정보 수정</Link>
+                </div>
               </article>
             )
           })}

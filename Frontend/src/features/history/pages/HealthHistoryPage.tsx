@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom'
 import { DataState } from '../../../components/common/DataState'
 import { LoadingButton } from '../../../components/common/LoadingButton'
 import { getApiErrorMessage } from '../../../shared/api/apiClient'
-import { PetSectionNav } from '../../pets/components/PetSectionNav'
 import { useRoutePet } from '../../pets/hooks/useRoutePet'
 import { getPredictions, type HealthPrediction, type RiskGrade } from '../../predictions/api/predictionApi'
 import { getHealthAlerts, markAllHealthAlertsRead, markHealthAlertRead, type HealthAlert } from '../api/healthHistoryApi'
@@ -11,11 +10,6 @@ import common from '../../../styles/featurePage.module.css'
 import styles from './HealthHistoryPage.module.css'
 
 type Tab = 'alerts' | 'history'
-
-const demoAlerts: HealthAlert[] = [
-  { alertId: 1, petId: 0, predictionId: null, alertType: 'VITAL', severity: 'CAUTION', title: '휴식 중 심박수가 평소보다 높아요', message: '15분 뒤 안정된 상태에서 다시 측정해 주세요.', createdAt: '2026-08-18T13:20:00', isRead: false },
-  { alertId: 2, petId: 0, predictionId: null, alertType: 'PREDICTION', severity: 'WATCH', title: '수분 섭취 변화가 기록됐어요', message: '내일까지 변화가 이어지는지 관찰해 주세요.', createdAt: '2026-08-18T09:32:00', isRead: false },
-]
 
 const gradeLabels: Record<RiskGrade, string> = {
   NORMAL: '정상',
@@ -36,7 +30,7 @@ function alertTypeLabel(type: string) {
 }
 
 export function HealthHistoryPage() {
-  const { selectedPet, routePetMissing, isDemoMode } = useRoutePet()
+  const { selectedPet, routePetMissing } = useRoutePet()
   const [tab, setTab] = useState<Tab>('alerts')
   const [alerts, setAlerts] = useState<HealthAlert[]>([])
   const [history, setHistory] = useState<HealthPrediction[]>([])
@@ -46,13 +40,6 @@ export function HealthHistoryPage() {
 
   useEffect(() => {
     if (!selectedPet) {
-      return
-    }
-
-    if (isDemoMode) {
-      setAlerts(demoAlerts)
-      setHistory([])
-      setError('')
       return
     }
 
@@ -76,18 +63,13 @@ export function HealthHistoryPage() {
       .finally(() => setIsLoading(false))
 
     return () => controller.abort()
-  }, [isDemoMode, selectedPet])
+  }, [selectedPet])
 
   if (!selectedPet || routePetMissing) {
     return <div className={common.page}><DataState title="반려동물 정보를 찾을 수 없습니다." action={<Link to="/pets">반려동물 목록으로 이동</Link>} /></div>
   }
 
   const handleMarkAllRead = async () => {
-    if (isDemoMode) {
-      setAlerts((current) => current.map((alert) => ({ ...alert, isRead: true })))
-      return
-    }
-
     setIsMarkingAll(true)
     try {
       await markAllHealthAlertsRead(selectedPet.id)
@@ -103,7 +85,7 @@ export function HealthHistoryPage() {
     if (alert.isRead) return
 
     try {
-      const updated = isDemoMode ? { ...alert, isRead: true } : await markHealthAlertRead(alert.alertId)
+      const updated = await markHealthAlertRead(alert.alertId)
       setAlerts((current) => current.map((item) => item.alertId === updated.alertId ? updated : item))
     } catch (markError) {
       setError(getApiErrorMessage(markError, '알림을 읽음 처리하지 못했습니다.'))
@@ -114,7 +96,6 @@ export function HealthHistoryPage() {
 
   return (
     <div className={common.page}>
-      <PetSectionNav />
       <header className={common.header}>
         <div>
           <p className={common.eyebrow}>HEALTH TIMELINE</p>

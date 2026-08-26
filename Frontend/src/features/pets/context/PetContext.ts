@@ -6,13 +6,14 @@ export type PetContextValue = {
   selectedPet: Pet | null
 
   isLoading: boolean
-  isDemoMode: boolean
   error: string
 
   selectPet: (petId: number) => void
 
   addPet: (pet: CreatePetInput) => Promise<Pet>
   updatePet: (pet: Pet) => Promise<Pet>
+  uploadPetProfileImage: (petId: number, image: File) => Promise<Pet>
+  deletePetProfileImage: (petId: number) => Promise<Pet>
   removePet: (petId: number) => Promise<boolean>
 
   reloadPets: () => Promise<void>

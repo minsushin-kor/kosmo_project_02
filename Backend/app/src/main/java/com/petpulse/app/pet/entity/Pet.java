@@ -102,4 +102,8 @@ public class Pet {
         this.medicalHistory = medicalHistory;
         this.profileImageUrl = profileImageUrl;
     }
+
+    public void updateProfileImageUrl(String profileImageUrl) {
+        this.profileImageUrl = profileImageUrl;
+    }
 }

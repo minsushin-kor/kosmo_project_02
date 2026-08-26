@@ -38,6 +38,15 @@ public class User {
     @Column(name = "phone", length = 20)
     private String phone;
 
+    @Column(name = "postal_code", length = 20)
+    private String postalCode;
+
+    @Column(name = "address", length = 255)
+    private String address;
+
+    @Column(name = "detail_address", length = 255)
+    private String detailAddress;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "role", nullable = false, length = 20)
     private UserRole role;
@@ -63,5 +72,21 @@ public class User {
         this.userName = userName;
         this.phone = phone;
         this.role = role;
+    }
+
+    public void updateProfile(String userName, String email, String phone) {
+        this.userName = userName;
+        this.email = email;
+        this.phone = phone;
+    }
+
+    public void updateAddress(String postalCode, String address, String detailAddress) {
+        this.postalCode = postalCode;
+        this.address = address;
+        this.detailAddress = detailAddress;
+    }
+
+    public void changePassword(String encodedPassword) {
+        this.password = encodedPassword;
     }
 }

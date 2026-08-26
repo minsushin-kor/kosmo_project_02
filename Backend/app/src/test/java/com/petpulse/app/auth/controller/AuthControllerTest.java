@@ -17,6 +17,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -44,12 +45,16 @@ class AuthControllerTest {
                                   "password":"password123",
                                   "email":"user@example.com",
                                   "userName":"보호자",
-                                  "phone":"010-1234-5678"
+                                  "phone":"010-1234-5678",
+                                  "postalCode":"12345",
+                                  "address":"서울시 강남구",
+                                  "detailAddress":"101호"
                                 }
                                 """))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.loginId").value("guardian"))
+                .andExpect(jsonPath("$.data.address").value("서울시 강남구"))
                 .andExpect(jsonPath("$.data.password").doesNotExist());
     }
 
@@ -91,8 +96,33 @@ class AuthControllerTest {
                 .andExpect(jsonPath("$.data.loginId").value("guardian"));
     }
 
+    @Test
+    void updateMeUsesAuthenticatedLoginIdAndReturnsUser() throws Exception {
+        when(authService.updateCurrentUser(any(), any())).thenReturn(userResponse());
+
+        mockMvc.perform(put("/api/auth/me")
+                        .principal(new UsernamePasswordAuthenticationToken("guardian", null))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "userName":"보호자",
+                                  "email":"user@example.com",
+                                  "phone":"010-1234-5678",
+                                  "currentPassword":"password123",
+                                  "newPassword":"new-password123",
+                                  "postalCode":"12345",
+                                  "address":"서울시 강남구",
+                                  "detailAddress":"101호"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.userName").value("보호자"))
+                .andExpect(jsonPath("$.data.address").value("서울시 강남구"));
+    }
+
     private UserResponse userResponse() {
         return new UserResponse(1L, "guardian", "user@example.com",
-                "보호자", "010-1234-5678", UserRole.USER);
+                "보호자", "010-1234-5678", "12345", "서울시 강남구", "101호", UserRole.USER);
     }
 }

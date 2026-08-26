@@ -3,6 +3,7 @@ package com.petpulse.app.auth.controller;
 import com.petpulse.app.auth.dto.LoginRequest;
 import com.petpulse.app.auth.dto.LoginResponse;
 import com.petpulse.app.auth.dto.SignupRequest;
+import com.petpulse.app.auth.dto.UpdateUserRequest;
 import com.petpulse.app.auth.dto.UserResponse;
 import com.petpulse.app.auth.service.AuthService;
 import com.petpulse.app.global.response.ApiResponse;
@@ -36,5 +37,14 @@ public class AuthController {
     public ResponseEntity<ApiResponse<UserResponse>> me(Authentication authentication) {
         return ResponseEntity.ok(ApiResponse.success(
                 authService.getCurrentUser(authentication.getName())));
+    }
+
+    @PutMapping("/me")
+    public ResponseEntity<ApiResponse<UserResponse>> updateMe(
+            Authentication authentication,
+            @Valid @RequestBody UpdateUserRequest request) {
+        return ResponseEntity.ok(ApiResponse.success(
+                authService.updateCurrentUser(authentication.getName(), request),
+                "회원정보가 수정되었습니다."));
     }
 }

@@ -35,7 +35,7 @@ export async function apiRequest<T>(path: string, options: ApiRequestOptions = {
   const { skipAuth = false, suppressAuthFailure = false, ...init } = options
   const headers = new Headers(init.headers)
 
-  if (init.body && !headers.has('Content-Type')) {
+  if (init.body && !(init.body instanceof FormData) && !headers.has('Content-Type')) {
     headers.set('Content-Type', 'application/json')
   }
 

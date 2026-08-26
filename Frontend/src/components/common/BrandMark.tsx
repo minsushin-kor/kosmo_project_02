@@ -15,7 +15,7 @@ export function BrandMark({ inverse = false }: BrandMarkProps) {
           <path d="M20 16c-7 0-12 5.1-12 10.4 0 4.1 3.1 6.6 7 5.1 1.9-.7 3.2-1.2 5-1.2s3.1.5 5 1.2c3.9 1.5 7-1 7-5.1C32 21.1 27 16 20 16Z" />
         </svg>
       </span>
-      <span className={styles.name}>PetPulse</span>
+      <span className={styles.name}>PatPet</span>
     </span>
   )
 }

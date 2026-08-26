@@ -2,172 +2,413 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { DataState } from '../../../components/common/DataState'
 import { getApiErrorMessage } from '../../../shared/api/apiClient'
-import { PetSectionNav } from '../../pets/components/PetSectionNav'
 import { useRoutePet } from '../../pets/hooks/useRoutePet'
-import { getVitalRecords, type VitalRecord } from '../api/vitalApi'
 import {
-  buildVitalTrendPoints,
-  buildVitalTrendTicks,
-  filterVitalRecordsByPeriod,
-  formatVitalTrendTick,
-  getVitalTrendRange,
-  VITAL_TREND_PERIODS,
-  type VitalTrendPeriod,
-} from '../utils/vitalTrend'
+  getPredictions,
+  type HealthPrediction,
+  type RiskGrade,
+} from '../../predictions/api/predictionApi'
+import {
+  getQuestionnaires,
+  type QuestionnaireResponse,
+} from '../../questionnaire/api/questionnaireApi'
+import {
+  buildQuestionnaireTrendPoints,
+  buildQuestionnaireTrendTicks,
+  buildQuestionnaireValueTicks,
+  filterQuestionnairesByScale,
+  formatQuestionnaireTrendTick,
+  getQuestionnaireTrendRange,
+  TREND_VIEW_OPTIONS,
+  type TrendScale,
+} from '../utils/questionnaireTrend'
 import shared from '../../../styles/featurePage.module.css'
 import styles from './VitalMonitoringPage.module.css'
 
-const HOUR_MS = 60 * 60 * 1000
+type MetricKey = 'temperature' | 'heartRate' | 'respiratoryRate'
 
-function createDemoMeasurements(): VitalRecord[] {
-  const now = Date.now()
-  const measurements = [
-    { hoursAgo: 2, temperature: 38.4, heartRate: 92, respiratoryRate: 24, status: 'NORMAL' },
-    { hoursAgo: 10, temperature: 38.6, heartRate: 96, respiratoryRate: 25, status: 'NORMAL' },
-    { hoursAgo: 20, temperature: 38.5, heartRate: 94, respiratoryRate: 24, status: 'NORMAL' },
-    { hoursAgo: 48, temperature: 38.8, heartRate: 101, respiratoryRate: 28, status: 'WATCH' },
-    { hoursAgo: 120, temperature: 38.7, heartRate: 98, respiratoryRate: 26, status: 'NORMAL' },
-    { hoursAgo: 240, temperature: 38.3, heartRate: 90, respiratoryRate: 23, status: 'NORMAL' },
-    { hoursAgo: 528, temperature: 38.9, heartRate: 104, respiratoryRate: 29, status: 'WATCH' },
-  ] as const
-
-  return measurements.map((measurement, index) => ({
-    vitalRecordId: index + 1,
-    petId: 0,
-    temperature: measurement.temperature,
-    heartRate: measurement.heartRate,
-    respiratoryRate: measurement.respiratoryRate,
-    measuredAt: new Date(now - measurement.hoursAgo * HOUR_MS).toISOString(),
-    sourceType: 'MANUAL',
-    status: measurement.status,
-  }))
+const metricConfig: Record<MetricKey, {
+  label: string
+  unit: string
+  icon: string
+  decimals: number
+  color: string
+}> = {
+  temperature: {
+    label: '체온',
+    unit: '°C',
+    icon: '♨',
+    decimals: 1,
+    color: '#7f8a66',
+  },
+  heartRate: {
+    label: '심박수',
+    unit: 'bpm',
+    icon: '♥',
+    decimals: 0,
+    color: '#c18468',
+  },
+  respiratoryRate: {
+    label: '호흡수',
+    unit: '회/분',
+    icon: '⌁',
+    decimals: 0,
+    color: '#7695a0',
+  },
 }
 
-function formatMeasuredAt(value: string) {
-  return new Intl.DateTimeFormat('ko-KR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }).format(new Date(value))
+const riskLabels: Record<RiskGrade, string> = {
+  NORMAL: '정상',
+  WATCH: '관찰',
+  CAUTION: '주의',
+  DANGER: '위험',
+}
+
+const scaleLabels: Record<TrendScale, string> = {
+  DAY: '일 단위',
+  WEEK: '주 단위',
+  MONTH: '월 단위',
+}
+
+function formatSubmittedAt(value: string) {
+  return new Intl.DateTimeFormat('ko-KR', {
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(new Date(value))
+}
+
+function formatMetricValue(value: number, metric: MetricKey) {
+  return value.toFixed(metricConfig[metric].decimals)
+}
+
+function getRiskTone(grade?: RiskGrade) {
+  if (grade === 'NORMAL') return styles.normal
+  if (grade === 'DANGER') return styles.danger
+  return styles.watch
+}
+
+function isAbortError(error: unknown) {
+  return error instanceof DOMException && error.name === 'AbortError'
 }
 
 export function VitalMonitoringPage() {
-  const { selectedPet, routePetMissing, isDemoMode } = useRoutePet()
-  const [period, setPeriod] = useState<VitalTrendPeriod>('7일')
-  const [records, setRecords] = useState<VitalRecord[]>([])
+  const { selectedPet, routePetMissing } = useRoutePet()
+  const [scale, setScale] = useState<TrendScale>('DAY')
+  const [metric, setMetric] = useState<MetricKey>('temperature')
+  const [records, setRecords] = useState<QuestionnaireResponse[]>([])
+  const [predictions, setPredictions] = useState<HealthPrediction[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
+  const [predictionNotice, setPredictionNotice] = useState('')
 
   useEffect(() => {
     if (!selectedPet) {
-      return
-    }
-
-    if (isDemoMode) {
-      setRecords(createDemoMeasurements())
-      setError('')
+      setRecords([])
+      setPredictions([])
       return
     }
 
     const controller = new AbortController()
+    let isActive = true
+
     setIsLoading(true)
     setError('')
-    getVitalRecords(selectedPet.id, controller.signal)
-      .then((items) => setRecords([...items].sort((a, b) => Date.parse(b.measuredAt) - Date.parse(a.measuredAt))))
-      .catch((loadError) => {
-        if (!(loadError instanceof DOMException && loadError.name === 'AbortError')) {
-          setError(getApiErrorMessage(loadError, '생체정보를 불러오지 못했습니다.'))
+    setPredictionNotice('')
+
+    Promise.allSettled([
+      getQuestionnaires(selectedPet.id, controller.signal),
+      getPredictions(selectedPet.id, controller.signal),
+    ])
+      .then(([questionnaireResult, predictionResult]) => {
+        if (!isActive) return
+
+        if (questionnaireResult.status === 'rejected') {
+          if (!isAbortError(questionnaireResult.reason)) {
+            setError(getApiErrorMessage(questionnaireResult.reason, '건강 문진 기록을 불러오지 못했습니다.'))
+          }
+          setRecords([])
+        } else {
+          setRecords([...questionnaireResult.value].sort(
+            (left, right) => Date.parse(right.submittedAt) - Date.parse(left.submittedAt),
+          ))
+        }
+
+        if (predictionResult.status === 'rejected') {
+          setPredictions([])
+          if (!isAbortError(predictionResult.reason)) {
+            setPredictionNotice('AI 분석 결과는 불러오지 못했지만 입력한 건강 수치는 확인할 수 있습니다.')
+          }
+        } else {
+          setPredictions(predictionResult.value)
         }
       })
-      .finally(() => setIsLoading(false))
+      .finally(() => {
+        if (isActive) setIsLoading(false)
+      })
 
-    return () => controller.abort()
-  }, [isDemoMode, selectedPet])
-
-  const trend = useMemo(() => {
-    const rangeEnd = Date.now()
-    const range = getVitalTrendRange(period, rangeEnd)
-    return {
-      ...range,
-      records: filterVitalRecordsByPeriod(records, period, rangeEnd),
-      ticks: buildVitalTrendTicks(period, range.start, range.end),
+    return () => {
+      isActive = false
+      controller.abort()
     }
-  }, [period, records])
+  }, [selectedPet])
 
-  const visibleRecords = trend.records
+  const [rangeEnd] = useState(() => Date.now())
+  const range = useMemo(
+    () => getQuestionnaireTrendRange(scale, rangeEnd, records),
+    [rangeEnd, records, scale],
+  )
+  const visibleRecords = useMemo(
+    () => filterQuestionnairesByScale(records, scale, rangeEnd),
+    [rangeEnd, records, scale],
+  )
+  const predictionByQuestionnaireId = useMemo(
+    () => new Map(predictions.map((prediction) => [prediction.questionnaireId, prediction])),
+    [predictions],
+  )
+  const points = useMemo(
+    () => buildQuestionnaireTrendPoints(visibleRecords, (record) => record[metric], range.start, range.end),
+    [metric, range.end, range.start, visibleRecords],
+  )
+  const valueTicks = useMemo(
+    () => buildQuestionnaireValueTicks(visibleRecords, (record) => record[metric]),
+    [metric, visibleRecords],
+  )
+  const timeTicks = useMemo(
+    () => buildQuestionnaireTrendTicks(scale, range.start, range.end),
+    [range.end, range.start, scale],
+  )
 
   if (!selectedPet || routePetMissing) {
-    return <div className={shared.page}><DataState title="반려동물 정보를 찾을 수 없습니다." action={<Link to="/pets">반려동물 목록으로 이동</Link>} /></div>
+    return (
+      <div className={shared.page}>
+        <DataState
+          title="반려동물 정보를 찾을 수 없습니다."
+          action={<Link to="/pets">반려동물 목록으로 이동</Link>}
+        />
+      </div>
+    )
   }
 
-  const latest = visibleRecords[0] ?? records[0]
-  const previous = visibleRecords[1] ?? records[1]
-  const statusLabel = latest?.status === 'NORMAL' ? '정상' : latest?.status === 'WATCH' ? '관찰' : '주의'
-
-  const exportCsv = () => {
-    const rows = [
-      ['measuredAt', 'temperature', 'heartRate', 'respiratoryRate', 'status'],
-      ...visibleRecords.map((record) => [record.measuredAt, record.temperature, record.heartRate, record.respiratoryRate, record.status]),
-    ]
-    const csv = rows.map((row) => row.join(',')).join('\n')
-    const url = URL.createObjectURL(new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8' }))
-    const link = document.createElement('a')
-    link.href = url
-    link.download = `${selectedPet.name}-vitals.csv`
-    link.click()
-    URL.revokeObjectURL(url)
-  }
+  const latest = records[0]
+  const previous = records[1]
+  const latestPrediction = latest
+    ? predictionByQuestionnaireId.get(latest.questionnaireId)
+    : undefined
+  const statusLabel = latestPrediction
+    ? riskLabels[latestPrediction.riskGrade]
+    : '분석 전'
+  const selectedMetric = metricConfig[metric]
 
   return (
-    <>
-      <PetSectionNav />
-      <div className={shared.page}>
-        <header className={shared.header}>
-          <div><p className={shared.eyebrow}>VITAL MONITORING</p><h1 className={shared.title}>생체정보 모니터링</h1><p className={shared.description}>{selectedPet.name}의 체온·심박수·호흡수 변화를 시간순으로 확인합니다.</p></div>
-          <span className={shared.mockBadge}>{isDemoMode ? '데모 측정 기록' : latest ? `최근 측정 ${formatMeasuredAt(latest.measuredAt)}` : '측정 기록 없음'}</span>
-        </header>
+    <div className={shared.page}>
+      <header className={shared.header}>
+        <div>
+          <p className={shared.eyebrow}>HEALTH VALUE TREND</p>
+          <h1 className={shared.title}>건강 수치 변화</h1>
+          <p className={shared.description}>
+            {selectedPet.name}의 건강 문진에 입력한 체온·심박수·호흡수 변화를 확인합니다.
+          </p>
+        </div>
+        <span className={shared.statusBadge}>
+          {latest ? `최근 입력 ${formatSubmittedAt(latest.submittedAt)}` : '입력 기록 없음'}
+        </span>
+      </header>
 
-        {isLoading && <DataState title="생체정보를 불러오는 중입니다." isLoading />}
-        {error && <DataState title="생체정보를 불러오지 못했습니다." tone="error">{error}</DataState>}
-        {!isLoading && !error && !latest && <DataState title="아직 저장된 생체정보가 없습니다.">생체정보가 등록되면 최신값과 변화 그래프가 표시됩니다.</DataState>}
+      <aside className={styles.sourceNotice}>
+        <span aria-hidden="true">＋</span>
+        <p>
+          오늘의 건강 상태를 기록해 볼까요? 체온·심박수·호흡수를 입력하면 변화 그래프로 확인할 수 있어요.
+        </p>
+        <Link to={`/pets/${selectedPet.id}/questionnaire`}>오늘 기록 입력하기</Link>
+      </aside>
 
-        {latest && <>
-          <section className={shared.gridThree} aria-label="최신 생체정보">
-            <article className={styles.vitalCard}><div><span aria-hidden="true">♨</span><p>체온</p><small>{statusLabel}</small></div><strong>{latest.temperature}<em>°C</em></strong><p>{previous ? `이전 측정 대비 ${(latest.temperature - previous.temperature).toFixed(1)}°C` : '첫 측정 기록'}</p></article>
-            <article className={styles.vitalCard}><div><span aria-hidden="true">♥</span><p>심박수</p><small>{statusLabel}</small></div><strong>{latest.heartRate}<em>bpm</em></strong><p>{previous ? `이전 측정 대비 ${latest.heartRate - previous.heartRate} bpm` : '첫 측정 기록'}</p></article>
-            <article className={styles.vitalCard}><div><span aria-hidden="true">⌁</span><p>호흡수</p><small>{statusLabel}</small></div><strong>{latest.respiratoryRate}<em>회/분</em></strong><p>{previous ? `이전 측정 대비 ${latest.respiratoryRate - previous.respiratoryRate}회` : '첫 측정 기록'}</p></article>
+      {isLoading && <DataState title="건강 문진 기록을 불러오는 중입니다." isLoading />}
+      {error && (
+        <DataState title="건강 문진 기록을 불러오지 못했습니다." tone="error">
+          {error}
+        </DataState>
+      )}
+      {predictionNotice && <p className={styles.predictionNotice}>{predictionNotice}</p>}
+
+      {!isLoading && !error && latest && (
+        <>
+          <section className={shared.gridThree} aria-label="최근 입력한 건강 수치">
+            {(Object.keys(metricConfig) as MetricKey[]).map((metricKey) => {
+              const item = metricConfig[metricKey]
+              const difference = previous ? latest[metricKey] - previous[metricKey] : null
+
+              return (
+                <article className={styles.vitalCard} key={metricKey}>
+                  <div>
+                    <span aria-hidden="true">{item.icon}</span>
+                    <p>{item.label}</p>
+                    <small className={getRiskTone(latestPrediction?.riskGrade)}>{statusLabel}</small>
+                  </div>
+                  <strong>
+                    {formatMetricValue(latest[metricKey], metricKey)}
+                    <em>{item.unit}</em>
+                  </strong>
+                  <p>
+                    {difference === null
+                      ? '첫 문진 입력 기록'
+                      : `이전 문진 대비 ${difference > 0 ? '+' : ''}${difference.toFixed(item.decimals)} ${item.unit}`}
+                  </p>
+                </article>
+              )
+            })}
           </section>
 
           <section className={`${shared.panel} ${styles.chartPanel}`}>
             <div className={styles.panelHeader}>
-              <div><p>VITAL TREND</p><h2>최근 측정 흐름</h2></div>
-              <div className={styles.periodButtons} aria-label="조회 기간">
-                {VITAL_TREND_PERIODS.map((item) => <button type="button" className={period === item ? styles.active : ''} aria-pressed={period === item} onClick={() => setPeriod(item)} key={item}>{item}</button>)}
+              <div>
+                <p>QUESTIONNAIRE TREND</p>
+                <h2>문진 수치 변화</h2>
+              </div>
+              <div className={styles.periodButtons} aria-label="그래프 표시 단위">
+                {TREND_VIEW_OPTIONS.map((option) => (
+                  <button
+                    type="button"
+                    className={scale === option.value ? styles.active : ''}
+                    aria-pressed={scale === option.value}
+                    onClick={() => setScale(option.value)}
+                    key={option.value}
+                  >
+                    {option.label}
+                  </button>
+                ))}
               </div>
             </div>
+
             <div className={styles.chartMeta}>
-              <div className={styles.legend}><span><i className={styles.temperature} />체온</span><span><i className={styles.heart} />심박수</span><span><i className={styles.breath} />호흡수</span></div>
-              <span>{period} · 측정 {visibleRecords.length}건</span>
-            </div>
-            {visibleRecords.length > 0 ? (
-              <div className={styles.chart} role="img" aria-label={`${period} 동안의 생체정보 변화 그래프, 측정 ${visibleRecords.length}건`}>
-                <div className={styles.gridLines}>{[0, 1, 2, 3].map((line) => <span key={line} />)}</div>
-                <svg viewBox="0 0 800 220" preserveAspectRatio="none" aria-hidden="true">
-                  <polyline className={styles.temperatureLine} points={buildVitalTrendPoints(visibleRecords, (record) => record.temperature, trend.start, trend.end)} />
-                  <polyline className={styles.heartLine} points={buildVitalTrendPoints(visibleRecords, (record) => record.heartRate, trend.start, trend.end)} />
-                  <polyline className={styles.breathLine} points={buildVitalTrendPoints(visibleRecords, (record) => record.respiratoryRate, trend.start, trend.end)} />
-                </svg>
-                <div className={styles.xAxis}>{trend.ticks.map((tick) => <span key={tick}>{formatVitalTrendTick(tick, period)}</span>)}</div>
+              <div className={styles.metricButtons} aria-label="그래프 건강 항목">
+                {(Object.keys(metricConfig) as MetricKey[]).map((metricKey) => (
+                  <button
+                    type="button"
+                    aria-pressed={metric === metricKey}
+                    className={metric === metricKey ? styles.metricActive : ''}
+                    onClick={() => setMetric(metricKey)}
+                    key={metricKey}
+                  >
+                    <i style={{ backgroundColor: metricConfig[metricKey].color }} />
+                    {metricConfig[metricKey].label}
+                  </button>
+                ))}
               </div>
+              <span>{scaleLabels[scale]} · 입력 {visibleRecords.length}건</span>
+            </div>
+
+            {visibleRecords.length > 0 ? (
+              <>
+                <div
+                  className={styles.chartFrame}
+                  role="img"
+                  aria-label={`${scaleLabels[scale]} ${selectedMetric.label} 변화 그래프, 문진 입력 ${visibleRecords.length}건`}
+                >
+                  <div className={styles.yAxis} aria-hidden="true">
+                    {valueTicks.map((tick) => (
+                      <span key={tick}>{tick.toFixed(selectedMetric.decimals)}</span>
+                    ))}
+                    <small>{selectedMetric.unit}</small>
+                  </div>
+                  <div className={styles.chart}>
+                    <div className={styles.gridLines} aria-hidden="true">
+                      {valueTicks.map((tick) => <span key={tick} />)}
+                    </div>
+                    <svg viewBox="0 0 800 220" preserveAspectRatio="none" aria-hidden="true">
+                      {points.length > 1 && (
+                        <polyline
+                          className={styles.metricLine}
+                          style={{ stroke: selectedMetric.color }}
+                          points={points.map((point) => `${point.x},${point.y}`).join(' ')}
+                        />
+                      )}
+                      {points.map((point) => (
+                        <circle
+                          className={styles.metricPoint}
+                          style={{ fill: selectedMetric.color }}
+                          cx={point.x}
+                          cy={point.y}
+                          r="6"
+                          key={point.record.questionnaireId}
+                        >
+                          <title>
+                            {`${formatSubmittedAt(point.record.submittedAt)} · ${selectedMetric.label} ${formatMetricValue(point.record[metric], metric)}${selectedMetric.unit}`}
+                          </title>
+                        </circle>
+                      ))}
+                    </svg>
+                    <div className={styles.xAxis} aria-hidden="true">
+                      {timeTicks.map((tick) => (
+                        <span key={tick}>{formatQuestionnaireTrendTick(tick, scale)}</span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+                {visibleRecords.length === 1 && (
+                  <p className={styles.singleRecordNotice}>비교할 기록이 아직 부족해 입력값 한 건만 표시합니다.</p>
+                )}
+              </>
             ) : (
-              <div className={styles.emptyChart} role="status"><span aria-hidden="true">⌁</span><p>최근 {period} 동안 측정된 생체정보가 없습니다.</p></div>
+              <div className={styles.emptyChart} role="status">
+                <span aria-hidden="true">⌁</span>
+                <p>선택한 범위에 건강 문진 기록이 없습니다.</p>
+                <Link to={`/pets/${selectedPet.id}/questionnaire`}>건강 문진 입력하기</Link>
+              </div>
             )}
           </section>
 
           <section className={`${shared.panel} ${styles.historyPanel}`}>
-            <div className={styles.panelHeader}><div><p>RECENT RECORDS</p><h2>최근 측정 기록</h2></div><button type="button" onClick={exportCsv}>CSV 내보내기</button></div>
+            <div className={styles.panelHeader}>
+              <div>
+                <p>RECENT RECORDS</p>
+                <h2>문진 입력 기록</h2>
+              </div>
+            </div>
             <div className={styles.tableWrap}>
-              <table><thead><tr><th>측정 시각</th><th>체온</th><th>심박수</th><th>호흡수</th><th>상태</th></tr></thead><tbody>{visibleRecords.map((row) => <tr key={row.vitalRecordId}><td>{formatMeasuredAt(row.measuredAt)}</td><td>{row.temperature}°C</td><td>{row.heartRate} bpm</td><td>{row.respiratoryRate}회/분</td><td><span className={row.status === 'NORMAL' ? styles.normal : styles.watch}>{row.status === 'NORMAL' ? '정상' : '관찰'}</span></td></tr>)}</tbody></table>
+              <table>
+                <thead>
+                  <tr>
+                    <th>입력 시각</th>
+                    <th>체온</th>
+                    <th>심박수</th>
+                    <th>호흡수</th>
+                    <th>AI 분석</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {visibleRecords.map((row) => {
+                    const prediction = predictionByQuestionnaireId.get(row.questionnaireId)
+                    return (
+                      <tr key={row.questionnaireId}>
+                        <td>{formatSubmittedAt(row.submittedAt)}</td>
+                        <td>{row.temperature.toFixed(1)}°C</td>
+                        <td>{row.heartRate} bpm</td>
+                        <td>{row.respiratoryRate}회/분</td>
+                        <td>
+                          <span className={getRiskTone(prediction?.riskGrade)}>
+                            {prediction ? riskLabels[prediction.riskGrade] : '분석 전'}
+                          </span>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
             </div>
           </section>
-        </>}
-      </div>
-    </>
+        </>
+      )}
+
+      {!isLoading && !error && !latest && (
+        <DataState
+          title="아직 입력한 건강 문진이 없습니다."
+          action={<Link to={`/pets/${selectedPet.id}/questionnaire`}>첫 건강 문진 입력하기</Link>}
+        >
+          문진에 체온·심박수·호흡수를 입력하면 이곳에 변화 그래프가 표시됩니다.
+        </DataState>
+      )}
+    </div>
   )
 }

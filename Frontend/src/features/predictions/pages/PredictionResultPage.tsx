@@ -10,7 +10,6 @@ import {
 
 import { DataState } from '../../../components/common/DataState'
 import { getApiErrorMessage } from '../../../shared/api/apiClient'
-import { PetSectionNav } from '../../pets/components/PetSectionNav'
 import { usePets } from '../../pets/hooks/usePets'
 import {
   getQuestionnaire,
@@ -286,8 +285,6 @@ export function PredictionResultPage() {
 
   return (
     <div className={common.page}>
-      <PetSectionNav />
-
       <header className={common.header}>
         <div>
           <p className={common.eyebrow}>
@@ -310,7 +307,7 @@ export function PredictionResultPage() {
         </div>
 
         <span
-          className={common.mockBadge}
+          className={common.statusBadge}
         >
           실제 AI 분석 결과
         </span>

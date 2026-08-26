@@ -1,3 +1,60 @@
+.sourceNotice {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid var(--color-line);
+  border-radius: 1rem;
+  background: var(--color-sage-soft);
+}
+
+.sourceNotice > span {
+  display: grid;
+  width: 1.75rem;
+  height: 1.75rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--color-surface);
+  color: var(--color-primary);
+  font-size: 0.75rem;
+  font-weight: 850;
+}
+
+.sourceNotice p {
+  flex: 1;
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
+  line-height: 1.55;
+}
+
+.sourceNotice a,
+.emptyChart a {
+  color: var(--color-primary);
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-decoration: underline;
+  text-underline-offset: 0.25rem;
+  white-space: nowrap;
+}
+
+.predictionNotice,
+.singleRecordNotice {
+  margin: 0.75rem 0;
+  color: var(--color-text-soft);
+  font-size: 0.72rem;
+  line-height: 1.5;
+}
+
+.predictionNotice {
+  padding: 0.75rem 0.9rem;
+  border-radius: 0.8rem;
+  background: var(--color-watch-soft);
+  color: var(--color-watch);
+}
+
 .vitalCard {
   padding: 1.4rem;
   border: 1px solid var(--color-line);
@@ -30,7 +87,6 @@
 }
 
 .vitalCard > div small {
-  color: var(--color-success-strong);
   font-size: 0.68rem;
   font-weight: 800;
 }
@@ -98,8 +154,9 @@
 }
 
 .periodButtons button {
+  min-width: 2.65rem;
   min-height: 2.2rem;
-  padding: 0 0.8rem;
+  padding: 0 0.7rem;
   border: 0;
   border-radius: 999px;
   background: transparent;
@@ -127,35 +184,76 @@
   color: var(--color-text-soft);
   font-size: 0.68rem;
   font-weight: 750;
+  white-space: nowrap;
 }
 
-.legend {
+.metricButtons {
   display: flex;
-  gap: 1rem;
   flex-wrap: wrap;
+  gap: 0.4rem;
 }
 
-.legend span {
-  display: flex;
-  color: var(--color-text-soft);
+.metricButtons button {
+  display: inline-flex;
   align-items: center;
   gap: 0.4rem;
+  min-height: 2rem;
+  padding: 0 0.7rem;
+  border: 1px solid var(--color-line);
+  border-radius: 999px;
+  background: var(--color-surface);
+  color: var(--color-text-soft);
+  cursor: pointer;
   font-size: 0.68rem;
+  font-weight: 750;
 }
 
-.legend i {
-  width: 0.55rem;
-  height: 0.55rem;
+.metricButtons button:hover,
+.metricButtons .metricActive {
+  border-color: var(--color-primary);
+  background: var(--color-sage-soft);
+  color: var(--color-text-strong);
+}
+
+.metricButtons i {
+  width: 0.5rem;
+  height: 0.5rem;
   border-radius: 50%;
 }
 
-.temperature { background: #7f8a66; }
-.heart { background: #c18468; }
-.breath { background: #7695a0; }
+.chartFrame {
+  display: grid;
+  grid-template-columns: 3.6rem minmax(0, 1fr);
+  gap: 0.75rem;
+}
+
+.yAxis {
+  position: relative;
+  display: flex;
+  height: 13.8rem;
+  padding-bottom: 2rem;
+  flex-direction: column;
+  justify-content: space-between;
+  color: var(--color-text-soft);
+  text-align: right;
+}
+
+.yAxis span {
+  font-size: 0.62rem;
+  line-height: 1;
+}
+
+.yAxis small {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  font-size: 0.6rem;
+  font-weight: 750;
+}
 
 .chart {
   position: relative;
-  height: 17rem;
+  height: 15.8rem;
   padding-bottom: 2rem;
 }
 
@@ -165,9 +263,10 @@
   inset: 0 0 2rem;
   width: 100%;
   height: calc(100% - 2rem);
+  overflow: visible;
 }
 
-.chart polyline {
+.metricLine {
   fill: none;
   stroke-width: 4;
   stroke-linecap: round;
@@ -175,9 +274,11 @@
   vector-effect: non-scaling-stroke;
 }
 
-.temperatureLine { stroke: #7f8a66; }
-.heartLine { stroke: #c18468; }
-.breathLine { stroke: #7695a0; }
+.metricPoint {
+  stroke: var(--color-surface);
+  stroke-width: 3;
+  vector-effect: non-scaling-stroke;
+}
 
 .gridLines {
   position: absolute;
@@ -202,7 +303,11 @@
 
 .xAxis span {
   color: var(--color-text-soft);
-  font-size: 0.65rem;
+  font-size: 0.62rem;
+}
+
+.singleRecordNotice {
+  margin: 0.6rem 0 0 4.35rem;
 }
 
 .emptyChart {
@@ -235,17 +340,6 @@
   font-weight: 700;
 }
 
-.panelHeader > button {
-  border: 0;
-  background: none;
-  color: var(--color-text-muted);
-  cursor: pointer;
-  font-size: 0.72rem;
-  font-weight: 750;
-  text-decoration: underline;
-  text-underline-offset: 0.25rem;
-}
-
 .tableWrap {
   overflow-x: auto;
   margin-top: 1.25rem;
@@ -272,28 +366,77 @@
 }
 
 .normal,
-.watch {
+.watch,
+.danger {
   padding: 0.32rem 0.6rem;
   border-radius: 999px;
   font-size: 0.67rem;
   font-weight: 800;
 }
 
-.normal { background: var(--color-success-soft); color: var(--color-success-strong); }
-.watch { background: var(--color-watch-soft); color: var(--color-watch); }
+.normal {
+  background: var(--color-success-soft);
+  color: var(--color-success-strong);
+}
+
+.watch {
+  background: var(--color-watch-soft);
+  color: var(--color-watch);
+}
+
+.danger {
+  background: var(--color-danger-soft);
+  color: var(--color-danger);
+}
+
+@media (max-width: 720px) {
+  .sourceNotice {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .sourceNotice p {
+    flex-basis: calc(100% - 2.5rem);
+  }
+
+  .sourceNotice a {
+    margin-left: 2.5rem;
+  }
+}
 
 @media (max-width: 560px) {
-  .panelHeader {
+  .panelHeader,
+  .chartMeta {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .periodButtons {
+    width: 100%;
+  }
+
+  .periodButtons button {
+    flex: 1;
+  }
+
+  .chartFrame {
+    grid-template-columns: 2.8rem minmax(0, 1fr);
+    gap: 0.5rem;
   }
 
   .chart {
     height: 14rem;
   }
 
-  .chartMeta {
-    align-items: flex-start;
-    flex-direction: column;
+  .yAxis {
+    height: 12rem;
+  }
+
+  .xAxis span:nth-child(even) {
+    display: none;
+  }
+
+  .singleRecordNotice {
+    margin-left: 3.3rem;
   }
 }

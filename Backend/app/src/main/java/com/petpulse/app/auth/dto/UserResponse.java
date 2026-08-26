@@ -9,6 +9,9 @@ public record UserResponse(
         String email,
         String userName,
         String phone,
+        String postalCode,
+        String address,
+        String detailAddress,
         UserRole role) {
 
     public static UserResponse from(User user) {
@@ -18,6 +21,9 @@ public record UserResponse(
                 user.getEmail(),
                 user.getUserName(),
                 user.getPhone(),
+                user.getPostalCode(),
+                user.getAddress(),
+                user.getDetailAddress(),
                 user.getRole());
     }
 }

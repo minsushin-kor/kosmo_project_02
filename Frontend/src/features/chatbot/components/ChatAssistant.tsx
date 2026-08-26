@@ -136,18 +136,23 @@ export function ChatAssistant({ variant, isOpen, onOpen, onClose }: ChatAssistan
       )}
 
       {!isOpen ? (
-        <div className={styles.launcherGroup}>
-          <button type="button" className={styles.promptBubble} onClick={onOpen}>
-            AI에 궁금하신 점이 있나요?
-          </button>
-          <button type="button" className={styles.launcher} onClick={onOpen} aria-label="펫펄스 AI 챗봇 열기">
-            <span className={styles.launcherIcon} aria-hidden="true">✦</span>
-            <span className={styles.launcherText}>
-              <strong>AI 건강 도우미</strong>
-              <small>무엇이든 물어보세요</small>
-            </span>
-          </button>
-        </div>
+      <button
+        type="button"
+        className={styles.launcherGroup}
+        onClick={onOpen}
+        aria-label="펫펄스 AI 챗봇 열기"
+      >
+        <span className={styles.promptBubble} aria-hidden="true">
+          AI에 궁금하신 점이 있나요?
+        </span>
+        <span className={styles.launcher}>
+          <span className={styles.launcherIcon} aria-hidden="true">✦</span>
+          <span className={styles.launcherText}>
+            <strong>AI 건강 도우미</strong>
+            <small>무엇이든 물어보세요</small>
+          </span>
+        </span>
+      </button>
       ) : (
         <section className={styles.panel} aria-label="펫펄스 AI 건강 도우미">
           <header className={styles.panelHeader}>

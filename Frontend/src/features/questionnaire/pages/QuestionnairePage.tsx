@@ -1,12 +1,10 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { DataState } from '../../../components/common/DataState'
 import { LoadingButton } from '../../../components/common/LoadingButton'
 import { getApiErrorMessage } from '../../../shared/api/apiClient'
-import { PetSectionNav } from '../../pets/components/PetSectionNav'
 import { useRoutePet } from '../../pets/hooks/useRoutePet'
 import { createPrediction } from '../../predictions/api/predictionApi'
-import { getLatestVital } from '../../vitals/api/vitalApi'
 import {
   createQuestionnaire,
   type ActivityLevel,
@@ -52,9 +50,9 @@ const levelLabels = {
 } as const
 
 const initialData: QuestionnaireData = {
-  temperature: '38.4',
-  heartRate: '92',
-  respiratoryRate: '24',
+  temperature: '',
+  heartRate: '',
+  respiratoryRate: '',
   skinCondition: 'NORMAL',
   itching: false,
   hairLoss: false,
@@ -69,36 +67,56 @@ const initialData: QuestionnaireData = {
 
 export function QuestionnairePage() {
   const navigate = useNavigate()
-  const { selectedPet, routePetMissing, isDemoMode } = useRoutePet()
+  const { selectedPet, routePetMissing } = useRoutePet()
   const [currentStep, setCurrentStep] = useState(0)
   const [data, setData] = useState<QuestionnaireData>(initialData)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState('')
-
-  useEffect(() => {
-    if (!selectedPet || isDemoMode) {
-      return
-    }
-
-    const controller = new AbortController()
-    getLatestVital(selectedPet.id, controller.signal)
-      .then((vital) => {
-        setData((current) => ({
-          ...current,
-          temperature: String(vital.temperature),
-          heartRate: String(vital.heartRate),
-          respiratoryRate: String(vital.respiratoryRate),
-        }))
-      })
-      .catch(() => {
-        // 최신 생체정보가 없으면 사용자가 기본값을 직접 수정할 수 있습니다.
-      })
-
-    return () => controller.abort()
-  }, [isDemoMode, selectedPet])
+  const [vitalError, setVitalError] = useState('')
 
   const update = <Key extends keyof QuestionnaireData>(key: Key, value: QuestionnaireData[Key]) => {
     setData((current) => ({ ...current, [key]: value }))
+
+    if (key === 'temperature' || key === 'heartRate' || key === 'respiratoryRate') {
+      setVitalError('')
+    }
+  }
+
+  const validateVitals = () => {
+    const temperature = Number(data.temperature)
+    const heartRate = Number(data.heartRate)
+    const respiratoryRate = Number(data.respiratoryRate)
+
+    if (!data.temperature || !data.heartRate || !data.respiratoryRate) {
+      setVitalError('체온, 심박수, 호흡수를 모두 입력해 주세요.')
+      return false
+    }
+
+    if (temperature < 30 || temperature > 45) {
+      setVitalError('체온은 30°C 이상 45°C 이하로 입력해 주세요.')
+      return false
+    }
+
+    if (!Number.isInteger(heartRate) || heartRate < 30 || heartRate > 300) {
+      setVitalError('심박수는 30 이상 300 이하의 정수로 입력해 주세요.')
+      return false
+    }
+
+    if (!Number.isInteger(respiratoryRate) || respiratoryRate < 5 || respiratoryRate > 100) {
+      setVitalError('호흡수는 5 이상 100 이하의 정수로 입력해 주세요.')
+      return false
+    }
+
+    setVitalError('')
+    return true
+  }
+
+  const handleNextStep = () => {
+    if (currentStep === 0 && !validateVitals()) {
+      return
+    }
+
+    setCurrentStep((step) => step + 1)
   }
 
   const handleAnalyze = async () => {
@@ -106,10 +124,8 @@ export function QuestionnairePage() {
       return
     }
 
-    if (isDemoMode) {
-      setSubmitError(
-        '현재는 Spring Boot 연결 전 데모 반려동물입니다. 서버와 PostgreSQL을 실행한 뒤 실제 반려동물을 등록해 주세요.',
-      )
+    if (!validateVitals()) {
+      setCurrentStep(0)
       return
     }
 
@@ -189,12 +205,13 @@ export function QuestionnairePage() {
     if (currentStep === 0) {
       return (
         <div className={styles.stepContent}>
-          <div className={styles.stepHeading}><span aria-hidden="true">♨</span><div><p>STEP 01</p><h2>최근 생체정보를 확인해 주세요.</h2><small>저장된 최신 측정값을 불러오며, 필요한 경우 직접 수정할 수 있습니다.</small></div></div>
+          <div className={styles.stepHeading}><span aria-hidden="true">♨</span><div><p>STEP 01</p><h2>확인한 생체정보를 입력해 주세요.</h2><small>보다 정확한 결과를 위해 직접 측정하거나 확인한 값을 입력해 주세요.</small></div></div>
           <div className={styles.inputGrid}>
-            <label><span>체온</span><div><input type="number" step="0.1" min="30" max="45" value={data.temperature} onChange={(event) => update('temperature', event.target.value)} /><em>°C</em></div></label>
-            <label><span>심박수</span><div><input type="number" min="1" max="300" value={data.heartRate} onChange={(event) => update('heartRate', event.target.value)} /><em>bpm</em></div></label>
-            <label><span>호흡수</span><div><input type="number" min="1" max="150" value={data.respiratoryRate} onChange={(event) => update('respiratoryRate', event.target.value)} /><em>회/분</em></div></label>
+            <label><span>체온</span><div><input type="number" step="0.1" min="30" max="45" placeholder="예: 38.4" required aria-invalid={Boolean(vitalError)} value={data.temperature} onChange={(event) => update('temperature', event.target.value)} /><em>°C</em></div></label>
+            <label><span>심박수</span><div><input type="number" min="30" max="300" placeholder="예: 92" required aria-invalid={Boolean(vitalError)} value={data.heartRate} onChange={(event) => update('heartRate', event.target.value)} /><em>bpm</em></div></label>
+            <label><span>호흡수</span><div><input type="number" min="5" max="100" placeholder="예: 24" required aria-invalid={Boolean(vitalError)} value={data.respiratoryRate} onChange={(event) => update('respiratoryRate', event.target.value)} /><em>회/분</em></div></label>
           </div>
+          {vitalError && <p className={styles.validationError} role="alert">{vitalError}</p>}
         </div>
       )
     }
@@ -284,14 +301,13 @@ export function QuestionnairePage() {
 
   return (
     <>
-      <PetSectionNav />
       <div className={shared.page}>
-        <header className={shared.header}><div><p className={shared.eyebrow}>HEALTH QUESTIONNAIRE</p><h1 className={shared.title}>건강 문진</h1><p className={shared.description}>{selectedPet.name}의 오늘 상태를 5단계로 기록합니다. 이전 단계로 돌아가도 입력값이 유지됩니다.</p></div><span className={shared.mockBadge}>약 2분 소요</span></header>
+        <header className={shared.header}><div><p className={shared.eyebrow}>HEALTH QUESTIONNAIRE</p><h1 className={shared.title}>건강 문진</h1><p className={shared.description}>{selectedPet.name}의 오늘 상태를 5단계로 기록합니다. 이전 단계로 돌아가도 입력값이 유지됩니다.</p></div><span className={shared.statusBadge}>약 2분 소요</span></header>
         <ol className={styles.progress} aria-label="건강 문진 진행 단계">{steps.map((step, index) => <li className={index === currentStep ? styles.current : index < currentStep ? styles.complete : ''} key={step}><span>{index < currentStep ? '✓' : index + 1}</span><p>{step}</p></li>)}</ol>
         <section className={styles.formCard}>{renderStep()}<div className={styles.actions}>
           {currentStep > 0 ? <button className={styles.backButton} type="button" disabled={isSubmitting} onClick={() => setCurrentStep((step) => step - 1)}>이전</button> : <span />}
           {currentStep < steps.length - 1
-            ? <button className={styles.nextButton} type="button" onClick={() => setCurrentStep((step) => step + 1)}>다음 단계</button>
+            ? <button className={styles.nextButton} type="button" onClick={handleNextStep}>다음 단계</button>
             : <LoadingButton className={styles.nextButton} type="button" isLoading={isSubmitting} loadingText="AI 분석 중..." onClick={() => void handleAnalyze()}>AI 분석 요청하기</LoadingButton>}
         </div></section>
       </div>

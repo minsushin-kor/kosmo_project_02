@@ -13,10 +13,8 @@ vi.mock('../../pets/hooks/useRoutePet', () => ({
   useRoutePet: () => ({
     selectedPet,
     routePetMissing: false,
-    isDemoMode: false,
   }),
 }))
-vi.mock('../../pets/components/PetSectionNav', () => ({ PetSectionNav: () => null }))
 vi.mock('../api/healthHistoryApi', () => ({
   getHealthAlerts: api.getHealthAlerts,
   markAllHealthAlertsRead: vi.fn(),

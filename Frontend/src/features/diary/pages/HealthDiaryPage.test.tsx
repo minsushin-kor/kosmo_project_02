@@ -11,7 +11,6 @@ const apiMocks = vi.hoisted(() => ({
   upsertDiaryEntry: vi.fn(),
   deleteDiaryEntry: vi.fn(),
   getMonthlyPredictions: vi.fn(),
-  getVitalRecords: vi.fn(),
   getQuestionnaires: vi.fn(),
   getHealthAlerts: vi.fn(),
   getWeeklyReports: vi.fn(),
@@ -27,7 +26,6 @@ vi.mock('../../predictions/api/predictionApi', () => ({
   getMonthlyPredictions: apiMocks.getMonthlyPredictions,
 }))
 
-vi.mock('../../vitals/api/vitalApi', () => ({ getVitalRecords: apiMocks.getVitalRecords }))
 vi.mock('../../questionnaire/api/questionnaireApi', () => ({ getQuestionnaires: apiMocks.getQuestionnaires }))
 vi.mock('../../history/api/healthHistoryApi', () => ({ getHealthAlerts: apiMocks.getHealthAlerts }))
 vi.mock('../../reports/api/reportApi', () => ({ getWeeklyReports: apiMocks.getWeeklyReports }))
@@ -54,11 +52,12 @@ function petContext(selectedPet: Pet): PetContextValue {
     pets,
     selectedPet,
     isLoading: false,
-    isDemoMode: false,
     error: '',
     selectPet: vi.fn(),
     addPet: vi.fn(),
     updatePet: vi.fn(),
+    uploadPetProfileImage: vi.fn(),
+    deletePetProfileImage: vi.fn(),
     removePet: vi.fn(),
     reloadPets: vi.fn(),
   }
@@ -80,7 +79,6 @@ describe('HealthDiaryPage backend integration flow', () => {
     vi.setSystemTime(new Date(2026, 7, 18, 12))
     apiMocks.getDiaryEntries.mockResolvedValue([])
     apiMocks.getMonthlyPredictions.mockResolvedValue([])
-    apiMocks.getVitalRecords.mockResolvedValue([])
     apiMocks.getQuestionnaires.mockResolvedValue([])
     apiMocks.getHealthAlerts.mockResolvedValue([])
     apiMocks.getWeeklyReports.mockResolvedValue([])

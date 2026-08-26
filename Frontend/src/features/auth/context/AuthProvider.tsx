@@ -1,12 +1,11 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import {
   clearAuthToken,
-  clearLegacyDemoAuth,
   getAuthToken,
   saveAuthToken,
   subscribeUnauthorized,
 } from '../../../shared/auth/authTokenStorage'
-import { getMe, login as loginRequest, signup } from '../api/authApi'
+import { getMe, login as loginRequest, signup, updateMe } from '../api/authApi'
 import type { AuthUser } from '../types'
 import { AuthContext, type AuthContextValue } from './AuthContext'
 
@@ -24,7 +23,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
   useEffect(() => subscribeUnauthorized(clearAuthentication), [clearAuthentication])
 
   useEffect(() => {
-    clearLegacyDemoAuth()
     const token = getAuthToken()
     if (!token) {
       setIsAuthLoading(false)
@@ -54,6 +52,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
       saveAuthToken(result.accessToken, remember)
       setCurrentUser(result.user)
       return result.user
+    },
+    updateProfile: async (input) => {
+      const user = await updateMe(input)
+      setCurrentUser(user)
+      return user
     },
     logout: clearAuthentication,
   }), [clearAuthentication, currentUser, isAuthLoading])

@@ -92,7 +92,7 @@
   color: var(--color-text-strong);
 }
 
-.mockBadge {
+.statusBadge {
   display: inline-flex;
   min-height: 1.9rem;
   align-items: center;

@@ -148,6 +148,23 @@
   font-weight: 800;
 }
 
+.inputGrid input::placeholder {
+  color: var(--color-text-soft);
+  font-weight: 650;
+  opacity: 0.58;
+}
+
+.inputGrid label > div:has(input[aria-invalid='true']) {
+  border-color: var(--color-danger);
+}
+
+.validationError {
+  margin: 0.8rem 0 0;
+  color: var(--color-danger);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
 .inputGrid em,
 .daysField em {
   padding-right: 1rem;

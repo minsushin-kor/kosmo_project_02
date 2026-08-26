@@ -5,9 +5,18 @@ import { AuthContext, type AuthContextValue } from '../../auth/context/AuthConte
 import { usePets } from '../hooks/usePets'
 import { PetProvider } from './PetProvider'
 
-const apiMocks = vi.hoisted(() => ({ getPets: vi.fn(), createPet: vi.fn(), updatePet: vi.fn(), deletePet: vi.fn() }))
+const apiMocks = vi.hoisted(() => ({
+  getPets: vi.fn(),
+  createPet: vi.fn(),
+  updatePet: vi.fn(),
+  deletePet: vi.fn(),
+  uploadPetProfileImage: vi.fn(),
+  deletePetProfileImage: vi.fn(),
+}))
 vi.mock('../api/petApi', () => ({
   getPets: apiMocks.getPets, createPet: apiMocks.createPet, updatePet: apiMocks.updatePet, deletePet: apiMocks.deletePet,
+  uploadPetProfileImage: apiMocks.uploadPetProfileImage,
+  deletePetProfileImage: apiMocks.deletePetProfileImage,
 }))
 
 const user = { userId: 1, name: '보호자', username: 'guardian', email: 'user@example.com', phone: '', role: 'USER' as const }
@@ -21,7 +30,7 @@ function Probe() {
 function Harness() {
   const [currentUser, setCurrentUser] = useState<AuthContextValue['currentUser']>(user)
   const value: AuthContextValue = {
-    currentUser, isAuthLoading: false, register: vi.fn(), login: vi.fn(), logout: () => setCurrentUser(null),
+    currentUser, isAuthLoading: false, register: vi.fn(), login: vi.fn(), updateProfile: vi.fn(), logout: () => setCurrentUser(null),
   }
   return <AuthContext.Provider value={value}><PetProvider><Probe /><button onClick={() => setCurrentUser(null)}>logout</button></PetProvider></AuthContext.Provider>
 }

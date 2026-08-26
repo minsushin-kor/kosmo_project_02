@@ -1,5 +1,5 @@
 import { apiRequest } from '../../../shared/api/apiClient'
-import type { AuthUser, SignupInput } from '../types'
+import type { AuthUser, SignupInput, UpdateProfileInput } from '../types'
 
 type ApiResponse<T> = { success: boolean; data: T; message?: string; error?: string }
 type BackendUser = {
@@ -8,6 +8,9 @@ type BackendUser = {
   email: string
   userName: string
   phone: string | null
+  postalCode: string | null
+  address: string | null
+  detailAddress: string | null
   role: AuthUser['role']
 }
 type LoginResponse = {
@@ -24,6 +27,9 @@ function toAuthUser(user: BackendUser): AuthUser {
     username: user.loginId,
     email: user.email,
     phone: user.phone ?? '',
+    postalCode: user.postalCode ?? '',
+    address: user.address ?? '',
+    detailAddress: user.detailAddress ?? '',
     role: user.role,
   }
 }
@@ -44,5 +50,14 @@ export async function login(loginId: string, password: string) {
 
 export async function getMe(signal?: AbortSignal) {
   const response = await apiRequest<ApiResponse<BackendUser>>('/auth/me', { signal })
+  return toAuthUser(response.data)
+}
+
+export async function updateMe(request: UpdateProfileInput) {
+  const response = await apiRequest<ApiResponse<BackendUser>>('/auth/me', {
+    method: 'PUT',
+    body: JSON.stringify(request),
+    suppressAuthFailure: true,
+  })
   return toAuthUser(response.data)
 }

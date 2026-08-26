@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { BrandMark } from '../components/common/BrandMark'
 import { useAuth } from '../features/auth/hooks/useAuth'
@@ -25,16 +25,51 @@ function MainLayoutContent() {
   const isQuickPrediction = pathname === '/quick-prediction'
   const isFoodRecommendation = pathname === '/food-recommendation'
   const hidesFloatingChat = isHome || isQuickPrediction || isFoodRecommendation || pathname === '/login' || pathname === '/signup' || pathname.endsWith('/diary')
-  const healthRecordsPath = selectedPet ? `/pets/${selectedPet.id}/vitals` : '/pets'
+  const petRecordBase = selectedPet ? `/pets/${selectedPet.id}` : '/pets'
+  const petRecordLinks = [
+    { label: '우리 아이 상태', to: '/dashboard' },
+    { label: '건강 수치 기록', to: selectedPet ? `${petRecordBase}/vitals` : '/pets' },
+    { label: '건강 문진', to: selectedPet ? `${petRecordBase}/questionnaire` : '/pets' },
+    { label: '알림·이력', to: selectedPet ? `${petRecordBase}/history` : '/pets' },
+    { label: '주간 리포트', to: selectedPet ? `${petRecordBase}/reports` : '/pets' },
+    { label: '건강 다이어리', to: selectedPet ? `${petRecordBase}/diary` : '/pets' },
+  ]
   const isHealthRecords = isDashboard || /^\/pets\/[^/]+\/(vitals|questionnaire|history|alerts|reports|diary)$/.test(pathname) ||
     pathname.startsWith('/predictions/') || pathname.startsWith('/reports/')
-  const isMyPage = pathname === '/mypage' || pathname === '/pets' || pathname === '/pets/new' ||
+  const isMyPage = pathname.startsWith('/mypage') || pathname === '/pets' || pathname === '/pets/new' ||
     /^\/pets\/[^/]+\/edit$/.test(pathname)
   const [isChatOpen, setIsChatOpen] = useState(() => (
     window.location.pathname === '/dashboard' &&
     shouldAutoOpenDashboardChat()
   ))
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false)
+  const [isRecordMenuOpen, setIsRecordMenuOpen] = useState(false)
+  const recordMenuCloseTimer = useRef<number | null>(null)
+
+  const cancelRecordMenuClose = () => {
+    if (recordMenuCloseTimer.current !== null) {
+      window.clearTimeout(recordMenuCloseTimer.current)
+      recordMenuCloseTimer.current = null
+    }
+  }
+
+  const openRecordMenu = () => {
+    cancelRecordMenuClose()
+    setIsRecordMenuOpen(true)
+  }
+
+  const closeRecordMenu = () => {
+    cancelRecordMenuClose()
+    setIsRecordMenuOpen(false)
+  }
+
+  const scheduleRecordMenuClose = () => {
+    cancelRecordMenuClose()
+    recordMenuCloseTimer.current = window.setTimeout(() => {
+      setIsRecordMenuOpen(false)
+      recordMenuCloseTimer.current = null
+    }, 120)
+  }
 
   useEffect(() => {
     if (!hash) {
@@ -72,7 +107,10 @@ function MainLayoutContent() {
 
   useEffect(() => {
     setIsMobileNavOpen(false)
+    closeRecordMenu()
   }, [pathname])
+
+  useEffect(() => () => cancelRecordMenuClose(), [])
 
   const openChat = () => {
     if (isDashboard) {
@@ -98,7 +136,7 @@ function MainLayoutContent() {
       <a className={styles.skipLink} href="#main-content">본문으로 바로가기</a>
       <header className={styles.header}>
         <div className={styles.headerInner}>
-          <Link className={styles.brandLink} to="/" aria-label="PetPulse 홈">
+          <Link className={styles.brandLink} to="/" aria-label="PatPet 홈">
             <BrandMark />
           </Link>
 
@@ -121,14 +159,44 @@ function MainLayoutContent() {
             >
               사료 추천
             </NavLink>
-            <NavLink
-              to={healthRecordsPath}
-              className={() => (isHealthRecords ? styles.active : undefined)}
-              aria-current={isHealthRecords ? 'page' : undefined}
-              onClick={() => setIsMobileNavOpen(false)}
+            <div
+              className={`${styles.recordMenu} ${isRecordMenuOpen ? styles.recordMenuOpen : ''}`}
+              onPointerEnter={openRecordMenu}
+              onPointerLeave={scheduleRecordMenuClose}
+              onFocus={openRecordMenu}
+              onBlur={(event) => {
+                if (!event.currentTarget.contains(event.relatedTarget)) {
+                  scheduleRecordMenuClose()
+                }
+              }}
             >
-              우리 아이 기록
-            </NavLink>
+              <NavLink
+                to="/dashboard"
+                className={() => (isHealthRecords ? styles.active : undefined)}
+                aria-current={isHealthRecords ? 'page' : undefined}
+                aria-expanded={isRecordMenuOpen}
+                onClick={() => {
+                  setIsMobileNavOpen(false)
+                  closeRecordMenu()
+                }}
+              >
+                우리 아이 기록
+              </NavLink>
+              <div className={styles.recordDropdown} aria-label="우리 아이 기록 하위 메뉴">
+                {petRecordLinks.map((item) => (
+                  <NavLink
+                    key={item.label}
+                    to={item.to}
+                    onClick={() => {
+                      setIsMobileNavOpen(false)
+                      closeRecordMenu()
+                    }}
+                  >
+                    {item.label}
+                  </NavLink>
+                ))}
+              </div>
+            </div>
             <NavLink
               to="/mypage"
               className={() => (isMyPage ? styles.active : undefined)}
@@ -201,10 +269,10 @@ function MainLayoutContent() {
         <div className={styles.footerInner}>
           <BrandMark inverse />
           <p>
-            PetPulse의 분석 결과는 건강관리를 위한 참고 정보이며,
+            PatPet의 분석 결과는 건강관리를 위한 참고 정보이며,
             수의사의 진단을 대신하지 않습니다.
           </p>
-          <small>© 2026 PetPulse. All rights reserved.</small>
+          <small>© 2026 PatPet. All rights reserved.</small>
         </div>
       </footer>
     </div>

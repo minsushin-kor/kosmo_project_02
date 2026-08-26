@@ -1,4 +1,5 @@
 import {
+  type CSSProperties,
   useEffect,
   useMemo,
   useState,
@@ -6,61 +7,26 @@ import {
 import { Link } from 'react-router-dom'
 
 import { DataState } from '../../../components/common/DataState'
-import { ApiError } from '../../../shared/api/apiClient'
+import { TodayStatusRecorder } from '../../diary/components/TodayStatusRecorder'
 import {
   getHealthAlerts,
   type HealthAlert,
 } from '../../history/api/healthHistoryApi'
-import { PetSelector } from '../../pets/components/PetSelector'
+import { PetProfileStrip } from '../../pets/components/PetProfileStrip'
 import { usePets } from '../../pets/hooks/usePets'
 import {
   getPredictions,
   type HealthPrediction,
 } from '../../predictions/api/predictionApi'
 import {
+  getQuestionnaires,
+  type QuestionnaireResponse,
+} from '../../questionnaire/api/questionnaireApi'
+import {
   getWeeklyReports,
   type WeeklyReport,
 } from '../../reports/api/reportApi'
-import {
-  getLatestVital,
-  type VitalRecord,
-  type VitalStatus,
-} from '../../vitals/api/vitalApi'
 import styles from './DashboardPage.module.css'
-
-const demoVitals = [
-  {
-    label: '체온',
-    value: '38.4',
-    unit: '°C',
-    note: '평소 범위예요',
-    icon: '♨',
-  },
-  {
-    label: '심박수',
-    value: '92',
-    unit: 'bpm',
-    note: '안정적으로 보여요',
-    icon: '♥',
-  },
-  {
-    label: '호흡수',
-    value: '24',
-    unit: '회/분',
-    note: '최근 측정 기준',
-    icon: '⌁',
-  },
-]
-
-const weeklyData = [
-  48,
-  56,
-  53,
-  68,
-  72,
-  64,
-  78,
-]
 
 const weekLabels = [
   '월',
@@ -72,53 +38,55 @@ const weekLabels = [
   '일',
 ]
 
-function getStatusLabel(
-  status: VitalStatus,
-) {
-  switch (status) {
-    case 'NORMAL':
-      return '정상'
-
-    case 'WATCH':
-      return '관찰'
-
-    case 'CAUTION':
-      return '주의'
-
-    case 'DANGER':
-      return '위험'
-  }
+const levelLabels: Record<string, string> = {
+  DECREASED: '평소보다 적음',
+  LOW: '평소보다 적음',
+  NORMAL: '평소와 같음',
+  INCREASED: '평소보다 많음',
+  HIGH: '평소보다 많음',
 }
 
-function getStatusMessage(
-  status: VitalStatus,
-) {
-  switch (status) {
-    case 'NORMAL':
-      return '전반적으로 안정적이에요'
+const skinLabels: Record<string, string> = {
+  NORMAL: '평소와 같음',
+  REDNESS: '붉어짐',
+  DRY: '건조함',
+  RASH: '발진',
+  OTHER: '기타 증상',
+}
 
-    case 'WATCH':
-      return '조금 더 관찰이 필요해요'
+function getObservationSummary(questionnaire: QuestionnaireResponse) {
+  return [
+    skinLabels[questionnaire.skinCondition],
+    questionnaire.itching ? '가려움' : null,
+    questionnaire.hairLoss ? '탈모' : null,
+    questionnaire.vomiting ? '구토' : null,
+    questionnaire.diarrhea ? '설사' : null,
+  ].filter(Boolean).join(' · ')
+}
 
-    case 'CAUTION':
-      return '건강 상태에 주의가 필요해요'
+function formatQuestionnaireDate(submittedAt: string) {
+  const date = new Date(submittedAt)
 
-    case 'DANGER':
-      return '빠른 상태 확인이 필요해요'
+  if (Number.isNaN(date.getTime())) {
+    return '최근 문진'
   }
+
+  return new Intl.DateTimeFormat('ko-KR', {
+    month: 'long',
+    day: 'numeric',
+  }).format(date)
 }
 
 export function DashboardPage() {
   const {
     selectedPet,
     isLoading,
-    isDemoMode,
   } = usePets()
 
   const [
-    latestVital,
-    setLatestVital,
-  ] = useState<VitalRecord | null>(
+    latestQuestionnaire,
+    setLatestQuestionnaire,
+  ] = useState<QuestionnaireResponse | null>(
     null,
   )
 
@@ -144,11 +112,8 @@ export function DashboardPage() {
   const [dashboardError, setDashboardError] = useState('')
 
   useEffect(() => {
-    if (
-      !selectedPet ||
-      isDemoMode
-    ) {
-      setLatestVital(null)
+    if (!selectedPet) {
+      setLatestQuestionnaire(null)
       setAlerts([])
       setLatestPrediction(null)
       setLatestReport(null)
@@ -162,7 +127,7 @@ export function DashboardPage() {
 
     async function loadDashboard() {
       const results = await Promise.allSettled([
-        getLatestVital(petId, controller.signal),
+        getQuestionnaires(petId, controller.signal),
         getHealthAlerts(petId, controller.signal),
         getPredictions(petId, controller.signal),
         getWeeklyReports(petId, controller.signal),
@@ -174,17 +139,20 @@ export function DashboardPage() {
         return
       }
 
-      const [vitalResult, alertResult, predictionResult, reportResult] = results
-      const vitalRecordMissing = vitalResult.status === 'rejected'
-        && vitalResult.reason instanceof ApiError
-        && vitalResult.reason.status === 404
-      setLatestVital(vitalResult.status === 'fulfilled' ? vitalResult.value : null)
+      const [questionnaireResult, alertResult, predictionResult, reportResult] = results
+      const questionnaires = questionnaireResult.status === 'fulfilled' ? questionnaireResult.value : []
+      const newestPrediction = predictionResult.status === 'fulfilled' ? predictionResult.value[0] ?? null : null
+      const predictionQuestionnaire = newestPrediction
+        ? questionnaires.find((item) => item.questionnaireId === newestPrediction.questionnaireId)
+        : null
+
+      setLatestQuestionnaire(predictionQuestionnaire ?? questionnaires[0] ?? null)
       setAlerts(alertResult.status === 'fulfilled' ? alertResult.value : [])
-      setLatestPrediction(predictionResult.status === 'fulfilled' ? predictionResult.value[0] ?? null : null)
+      setLatestPrediction(newestPrediction)
       setLatestReport(reportResult.status === 'fulfilled' ? reportResult.value[0] ?? null : null)
 
       const failedSections = [
-        vitalResult.status === 'rejected' && !vitalRecordMissing ? '생체정보' : null,
+        questionnaireResult.status === 'rejected' ? '건강 문진' : null,
         alertResult.status === 'rejected' ? '건강 알림' : null,
         predictionResult.status === 'rejected' ? 'AI 예측' : null,
         reportResult.status === 'rejected' ? '주간 리포트' : null,
@@ -199,10 +167,7 @@ export function DashboardPage() {
     return () => {
       controller.abort()
     }
-  }, [
-    isDemoMode,
-    selectedPet,
-  ])
+  }, [selectedPet])
 
   const unreadAlerts =
     useMemo(
@@ -252,62 +217,59 @@ export function DashboardPage() {
   const petBase =
     `/pets/${selectedPet.id}`
 
-  const vitals = latestVital
+  const healthRecords = latestQuestionnaire
     ? [
       {
-        label: '체온',
-        value:
-          latestVital.temperature.toFixed(
-            1,
-          ),
-        unit: '°C',
-        note: '최근 측정값',
-        icon: '♨',
+        label: '식욕',
+        value: levelLabels[latestQuestionnaire.appetiteLevel],
+        note: '문진에서 기록한 식욕 상태',
+        icon: '●',
       },
       {
-        label: '심박수',
-        value: String(
-          latestVital.heartRate,
-        ),
-        unit: 'bpm',
-        note: '최근 측정값',
-        icon: '♥',
+        label: '수분 섭취',
+        value: levelLabels[latestQuestionnaire.waterIntakeLevel],
+        note: '문진에서 기록한 수분 섭취 상태',
+        icon: '◇',
       },
       {
-        label: '호흡수',
-        value: String(
-          latestVital.respiratoryRate,
-        ),
-        unit: '회/분',
-        note: '최근 측정값',
-        icon: '⌁',
+        label: '활동량',
+        value: levelLabels[latestQuestionnaire.activityLevel],
+        note: '문진에서 기록한 활동 상태',
+        icon: '↗',
+      },
+      {
+        label: '관찰 증상',
+        value: getObservationSummary(latestQuestionnaire),
+        note: latestQuestionnaire.additionalSymptoms || '추가로 작성한 증상이 없습니다.',
+        icon: '✦',
       },
     ]
-    : isDemoMode
-      ? demoVitals
-      : [
-        {
-          label: '체온',
-          value: '-',
-          unit: '°C',
-          note: '측정 기록 없음',
-          icon: '♨',
-        },
-        {
-          label: '심박수',
-          value: '-',
-          unit: 'bpm',
-          note: '측정 기록 없음',
-          icon: '♥',
-        },
-        {
-          label: '호흡수',
-          value: '-',
-          unit: '회/분',
-          note: '측정 기록 없음',
-          icon: '⌁',
-        },
-      ]
+    : [
+      {
+        label: '식욕',
+        value: '-',
+        note: '문진 기록 없음',
+        icon: '●',
+      },
+      {
+        label: '수분 섭취',
+        value: '-',
+        note: '문진 기록 없음',
+        icon: '◇',
+      },
+      {
+        label: '활동량',
+        value: '-',
+        note: '문진 기록 없음',
+        icon: '↗',
+      },
+      {
+        label: '관찰 증상',
+        value: '-',
+        note: '문진 기록 없음',
+        icon: '✦',
+      },
+    ]
 
   const riskPercent =
     latestPrediction
@@ -321,24 +283,13 @@ export function DashboardPage() {
   const healthScore =
     riskPercent == null
       ? null
-      : Math.max(
-        0,
-        100 - riskPercent,
+      : Math.min(
+        100,
+        Math.max(
+          0,
+          100 - riskPercent,
+        ),
       )
-
-  const statusLabel =
-    latestVital
-      ? getStatusLabel(
-        latestVital.status,
-      )
-      : '기록 없음'
-
-  const statusMessage =
-    latestVital
-      ? getStatusMessage(
-        latestVital.status,
-      )
-      : '최근 생체정보를 확인해 주세요'
 
   const overallTitle =
     latestPrediction
@@ -346,12 +297,14 @@ export function DashboardPage() {
         'NORMAL'
         ? '최근 기록은 정상 범위예요'
         : '최근 건강 신호를 관찰해 주세요'
-      : statusMessage
+      : latestQuestionnaire
+        ? '최근 문진의 AI 분석을 확인해 주세요'
+        : '오늘의 건강 기록을 시작해 주세요'
 
   const overallDescription =
     latestPrediction?.aiSummary ??
-    (latestVital
-      ? '가장 최근에 측정된 생체정보를 기준으로 현재 상태를 보여드리고 있어요.'
+    (latestQuestionnaire
+      ? '최근 문진은 저장됐지만 연결된 AI 분석 결과가 없습니다.'
       : '오늘의 건강 문진을 완료하면 AI 위험도 분석 결과가 표시됩니다.')
 
   const insightTitle =
@@ -363,16 +316,9 @@ export function DashboardPage() {
   const insightCopy =
     latestReport?.reportContent ??
     latestPrediction?.aiSummary ??
-    '문진과 생체정보가 쌓이면 AI 건강 인사이트가 표시됩니다.'
+    '문진과 건강 기록이 쌓이면 AI 건강 인사이트가 표시됩니다.'
 
-  /*
-   * 아직 실제 활동량 API는 없으므로
-   * 데모 모드에서만 샘플 그래프를 표시합니다.
-   */
-  const chartData =
-    isDemoMode
-      ? weeklyData
-      : [0, 0, 0, 0, 0, 0, 0]
+  const chartData = [0, 0, 0, 0, 0, 0, 0]
 
   return (
     <div className={styles.page}>
@@ -381,34 +327,25 @@ export function DashboardPage() {
           {dashboardError}
         </DataState>
       )}
+      <PetProfileStrip />
       <section
         className={
           styles.welcome
         }
       >
         <div>
-          <p
-            className={
-              styles.eyebrow
-            }
-          >
-            TODAY&apos;S PET
-            WELLNESS
-          </p>
-
           <h1>
-            안녕하세요, 보호자님.
+            <span className={styles.eyebrow}>
+              TODAY&apos;S PET WELLNESS
+            </span>
+            <span className={styles.welcomeTitle}>
+              오늘 {selectedPet.name}의 하루를 살펴볼까요?
+            </span>
           </h1>
-
-          <p>
-            {selectedPet.name}의
-            오늘 건강 신호를
-            차분하게 살펴볼까요?
-          </p>
         </div>
-
-        <PetSelector />
       </section>
+
+      <TodayStatusRecorder />
 
       <section
         className={
@@ -443,7 +380,9 @@ export function DashboardPage() {
             >
               {latestPrediction
                 ? latestPrediction.riskGrade
-                : statusLabel}
+                : latestQuestionnaire
+                  ? '문진 완료'
+                  : '기록 없음'}
             </span>
           </div>
 
@@ -461,6 +400,9 @@ export function DashboardPage() {
                   ? '건강 점수 없음'
                   : `건강 점수 ${healthScore}점`
               }
+              style={{
+                '--score-progress': `${healthScore ?? 0}%`,
+              } as CSSProperties}
             >
               <strong>
                 {healthScore ??
@@ -544,18 +486,18 @@ export function DashboardPage() {
         >
           <div>
             <p>
-              LIVE HEALTH SIGNALS
+              LATEST HEALTH RECORD
             </p>
 
             <h2>
-              최근 생체정보
+              최근 건강 기록
             </h2>
           </div>
 
           <Link
-            to={`${petBase}/vitals`}
+            to={`${petBase}/questionnaire`}
           >
-            전체 기록 보기{' '}
+            새 문진 작성{' '}
             <span
               aria-hidden="true"
             >
@@ -569,14 +511,14 @@ export function DashboardPage() {
             styles.vitalGrid
           }
         >
-          {vitals.map(
-            (vital) => (
+          {healthRecords.map(
+            (record) => (
               <article
                 className={
                   styles.vitalCard
                 }
                 key={
-                  vital.label
+                  record.label
                 }
               >
                 <div
@@ -587,34 +529,26 @@ export function DashboardPage() {
                   <span
                     aria-hidden="true"
                   >
-                    {vital.icon}
+                    {record.icon}
                   </span>
 
                   <p>
-                    {vital.label}
+                    {record.label}
                   </p>
 
                   <small>
-                    {latestVital
-                      ? statusLabel
-                      : isDemoMode
-                        ? '데모'
-                        : '기록 전'}
+                    {latestQuestionnaire
+                      ? formatQuestionnaireDate(latestQuestionnaire.submittedAt)
+                      : '기록 전'}
                   </small>
                 </div>
 
                 <div
-                  className={
-                    styles.vitalValue
-                  }
+                  className={styles.observationValue}
                 >
                   <strong>
-                    {vital.value}
+                    {record.value}
                   </strong>
-
-                  <span>
-                    {vital.unit}
-                  </span>
                 </div>
 
                 <p
@@ -622,7 +556,7 @@ export function DashboardPage() {
                     styles.vitalNote
                   }
                 >
-                  {vital.note}
+                  {record.note}
                 </p>
               </article>
             ),
@@ -657,11 +591,9 @@ export function DashboardPage() {
 
             <button
               type="button"
-              disabled={!isDemoMode}
+              disabled
             >
-              {isDemoMode
-                ? '최근 7일 ⌄'
-                : '활동 API 준비 필요'}
+              활동 API 준비 필요
             </button>
           </div>
 

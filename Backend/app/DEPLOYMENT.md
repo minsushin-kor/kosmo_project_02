@@ -5,8 +5,13 @@
 1. Create an empty PostgreSQL 17 database and application account.
 2. Set `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`, `JWT_SECRET`, and
    `SPRING_PROFILES_ACTIVE=prod`.
+   For a hosted database with a small session limit, keep
+   `DB_POOL_MAX_SIZE=3` and `DB_POOL_MIN_IDLE=0` or tune them within the
+   provider's connection allowance.
 3. Keep `FLYWAY_BASELINE_ON_MIGRATE` unset or set it to `false`.
-4. Start Spring Boot. Flyway applies `V1__initial_schema.sql` automatically.
+4. Start Spring Boot. Flyway applies `V1__initial_schema.sql` and later
+   migrations such as `V2__add_user_address.sql` and
+   `V3__add_pet_profile_images.sql` automatically.
 5. Hibernate starts with `ddl-auto=validate` and verifies the migrated schema.
 6. Create the first user through `/api/auth/signup`; no seed data is required.
 
@@ -22,7 +27,8 @@ Before baselining any existing production database:
 2. Compare every table, column, constraint, and index with V1.
 3. Start once with `SPRING_PROFILES_ACTIVE=prod` and
    `FLYWAY_BASELINE_ON_MIGRATE=true`.
-4. Confirm that Hibernate validation succeeds and Flyway reports version 1.
+4. Confirm that Hibernate validation succeeds and Flyway reports the latest
+   migration version.
 5. Remove `FLYWAY_BASELINE_ON_MIGRATE` (or set it back to `false`) for later starts.
 
 Do not baseline an unknown or partially initialized schema: a baseline records

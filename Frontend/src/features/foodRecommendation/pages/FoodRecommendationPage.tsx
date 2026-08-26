@@ -160,7 +160,7 @@ export function FoodRecommendationPage() {
         ) : currentUser ? (
           <div className={styles.guestStatus}>
             <span>
-              PetPulse에 등록된 반려동물이 없어요. 혹시 키우시는 반려동물이 있다면 아래 버튼을 눌러 등록해 주세요.
+              PatPet에 등록된 반려동물이 없어요. 혹시 키우시는 반려동물이 있다면 아래 버튼을 눌러 등록해 주세요.
             </span>
             <Link to="/pets/new">반려동물 등록</Link>
           </div>

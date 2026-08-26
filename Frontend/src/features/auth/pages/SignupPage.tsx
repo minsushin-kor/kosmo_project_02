@@ -59,6 +59,9 @@ export function SignupPage() {
         email: String(data.get('email')),
         userName: String(data.get('name')),
         phone,
+        postalCode,
+        address,
+        detailAddress: detailAddress.trim(),
       })
       navigate('/login', {
         replace: true,
@@ -86,7 +89,7 @@ export function SignupPage() {
       <section className={styles.formPanel}>
         <div className={styles.formWrap}>
           <p className={styles.eyebrow}>CREATE ACCOUNT</p>
-          <h2>PetPulse 시작하기</h2>
+          <h2>PatPet 시작하기</h2>
           <p className={styles.description}>보호자 정보를 입력하고 첫 반려동물을 등록해 보세요.</p>
 
           <form onSubmit={handleSubmit}>
@@ -168,7 +171,7 @@ export function SignupPage() {
               onChange={(event) => setDetailAddress(event.target.value)}
               placeholder="동·호수 등 상세 주소를 입력해 주세요"
             />
-            <p className={styles.description}>주소는 현재 회원 계정에 저장되지 않으며 추후 주소 기능 연동 시 사용됩니다.</p>
+            <p className={styles.description}>주소는 회원 계정에 저장되며 마이페이지에서 변경할 수 있습니다.</p>
             <TextField containerClassName={styles.field} label="비밀번호" name="password" type="password" required autoComplete="new-password" placeholder="비밀번호를 입력해 주세요" />
             <TextField containerClassName={styles.field} label="비밀번호 확인" name="passwordConfirm" type="password" required autoComplete="new-password" placeholder="비밀번호를 다시 입력해 주세요" />
             {error && <div className={styles.errorMessage} role="alert">{error}</div>}

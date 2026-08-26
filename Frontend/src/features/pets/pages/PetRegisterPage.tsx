@@ -2,6 +2,7 @@ import { useState, type ChangeEvent, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { LoadingButton } from '../../../components/common/LoadingButton'
 import { TextField } from '../../../components/common/TextField'
+import { getApiErrorMessage } from '../../../shared/api/apiClient'
 import { usePets } from '../hooks/usePets'
 import { getPetEmoji, type Sex, type Species } from '../types'
 import styles from './PetRegisterPage.module.css'
@@ -10,10 +11,11 @@ const today = new Date().toISOString().slice(0, 10)
 
 export function PetRegisterPage() {
   const navigate = useNavigate()
-  const { addPet, isDemoMode } = usePets()
+  const { addPet, uploadPetProfileImage } = usePets()
   const [previewName, setPreviewName] = useState('새로운 가족')
   const [previewSpecies, setPreviewSpecies] = useState<Species>('DOG')
   const [imageUrl, setImageUrl] = useState<string>()
+  const [imageFile, setImageFile] = useState<File>()
   const [imageError, setImageError] = useState('')
   const [submitError, setSubmitError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -23,16 +25,28 @@ export function PetRegisterPage() {
 
     if (!file) {
       setImageUrl(undefined)
+      setImageFile(undefined)
       setImageError('')
       return
     }
 
     if (file.size > 5 * 1024 * 1024) {
       event.target.value = ''
+      setImageFile(undefined)
+      setImageUrl(undefined)
       setImageError('이미지는 5MB 이하만 등록할 수 있어요.')
       return
     }
 
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+      event.target.value = ''
+      setImageFile(undefined)
+      setImageUrl(undefined)
+      setImageError('JPG, PNG, WEBP 형식의 이미지만 등록할 수 있어요.')
+      return
+    }
+
+    setImageFile(file)
     const reader = new FileReader()
     reader.addEventListener('load', () => {
       setImageUrl(typeof reader.result === 'string' ? reader.result : undefined)
@@ -58,12 +72,21 @@ export function PetRegisterPage() {
         weight: Number(formData.get('weight')),
         neutered: formData.get('neutered') === 'true',
         medicalHistory: String(formData.get('medicalHistory')).trim(),
-        imageUrl,
+        imageUrl: undefined,
       })
+
+      let imageUploadError = ''
+      if (imageFile) {
+        try {
+          await uploadPetProfileImage(newPet.id, imageFile)
+        } catch (error) {
+          imageUploadError = getApiErrorMessage(error, '프로필 사진을 저장하지 못했습니다.')
+        }
+      }
 
       navigate('/pets', {
         replace: true,
-        state: { createdPetName: newPet.name },
+        state: { createdPetName: newPet.name, imageUploadError },
       })
     } catch (error) {
       setSubmitError(error instanceof Error ? error.message : '반려동물 정보를 등록하지 못했습니다.')
@@ -97,7 +120,10 @@ export function PetRegisterPage() {
             사진 선택
             <input type="file" accept="image/png,image/jpeg,image/webp" onChange={handleImageChange} />
           </label>
-          <small>JPG, PNG, WEBP · 최대 5MB</small>
+          <small>
+            <span>JPG, PNG, WEBP 형식을 지원해요.</span>
+            <span>최대 5MB까지 저장 가능해요!</span>
+          </small>
           {imageError && <p className={styles.imageError} role="alert">{imageError}</p>}
         </aside>
 
@@ -183,9 +209,9 @@ export function PetRegisterPage() {
             </div>
           </section>
 
-          <div className={styles.mockNotice}>
+          <div className={styles.infoNotice}>
             <span aria-hidden="true">i</span>
-            <p>{isDemoMode ? 'Spring Boot 연결 전에는 등록 정보가 새로고침 전까지만 유지됩니다.' : '등록 정보는 Spring Boot API와 PostgreSQL에 저장됩니다. 프로필 사진 파일 저장은 별도 파일 API가 필요합니다.'}</p>
+            <p>등록 정보와 프로필 사진은 Spring Boot API를 통해 PostgreSQL에 저장됩니다.</p>
           </div>
 
           {submitError && <div className={styles.imageError} role="alert">{submitError}</div>}

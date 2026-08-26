@@ -3,6 +3,7 @@ package com.petpulse.app.auth.service;
 import com.petpulse.app.auth.dto.LoginRequest;
 import com.petpulse.app.auth.dto.LoginResponse;
 import com.petpulse.app.auth.dto.SignupRequest;
+import com.petpulse.app.auth.dto.UpdateUserRequest;
 import com.petpulse.app.auth.dto.UserResponse;
 import com.petpulse.app.auth.security.JwtTokenProvider;
 import com.petpulse.app.global.exception.BusinessException;
@@ -36,6 +37,8 @@ public class AuthService {
 
         User user = new User(loginId, passwordEncoder.encode(request.password()), email,
                 request.userName().trim(), normalizeNullable(request.phone()), UserRole.USER);
+        user.updateAddress(normalizeNullable(request.postalCode()),
+                normalizeNullable(request.address()), normalizeNullable(request.detailAddress()));
         return UserResponse.from(userRepository.save(user));
     }
 
@@ -53,6 +56,35 @@ public class AuthService {
         return userRepository.findByLoginId(loginId)
                 .map(UserResponse::from)
                 .orElseThrow(this::authenticationFailed);
+    }
+
+    @Transactional
+    public UserResponse updateCurrentUser(String loginId, UpdateUserRequest request) {
+        User user = userRepository.findByLoginId(loginId)
+                .orElseThrow(this::authenticationFailed);
+        String email = request.email().trim().toLowerCase();
+
+        if (!user.getEmail().equals(email) && userRepository.existsByEmail(email)) {
+            throw new BusinessException(ErrorCode.DUPLICATE_RESOURCE,
+                    "이미 사용 중인 이메일입니다.");
+        }
+
+        if (request.newPassword() != null && !request.newPassword().isBlank()) {
+            if (request.currentPassword() == null || request.currentPassword().isBlank()) {
+                throw new BusinessException(ErrorCode.INVALID_REQUEST,
+                        "비밀번호 변경을 위해 현재 비밀번호를 입력해 주세요.");
+            }
+            if (!passwordEncoder.matches(request.currentPassword(), user.getPassword())) {
+                throw new BusinessException(ErrorCode.AUTHENTICATION_FAILED,
+                        "현재 비밀번호가 올바르지 않습니다.");
+            }
+            user.changePassword(passwordEncoder.encode(request.newPassword()));
+        }
+
+        user.updateProfile(request.userName().trim(), email, normalizeNullable(request.phone()));
+        user.updateAddress(normalizeNullable(request.postalCode()),
+                normalizeNullable(request.address()), normalizeNullable(request.detailAddress()));
+        return UserResponse.from(user);
     }
 
     private BusinessException authenticationFailed() {

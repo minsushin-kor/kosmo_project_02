@@ -9,6 +9,7 @@ import { LoginPage } from '../features/auth/pages/LoginPage'
 import { SignupPage } from '../features/auth/pages/SignupPage'
 import { ProtectedRoute } from '../features/auth/components/ProtectedRoute'
 import { MyPage } from '../features/profile/pages/MyPage'
+import { MemberProfileEditPage } from '../features/profile/pages/MemberProfileEditPage'
 import { PredictionResultPage } from '../features/predictions/pages/PredictionResultPage'
 import { PetListPage } from '../features/pets/pages/PetListPage'
 import { PetEditPage } from '../features/pets/pages/PetEditPage'
@@ -34,6 +35,8 @@ export const router = createBrowserRouter([
         children: [
           { path: '/dashboard', element: <DashboardPage /> },
           { path: '/mypage', element: <MyPage /> },
+          { path: '/mypage/profile', element: <MemberProfileEditPage /> },
+          { path: '/mypage/pets', element: <PetListPage /> },
           { path: '/pets', element: <PetListPage /> },
           { path: '/pets/new', element: <PetRegisterPage /> },
           { path: '/pets/:petId/edit', element: <PetEditPage /> },

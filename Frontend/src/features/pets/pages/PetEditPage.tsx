@@ -1,15 +1,19 @@
 import {
+  useRef,
   useState,
+  type ChangeEvent,
   type FormEvent,
 } from 'react'
 import {
   Link,
+  useLocation,
   useNavigate,
   useParams,
 } from 'react-router-dom'
 
 import { LoadingButton } from '../../../components/common/LoadingButton'
 import { TextField } from '../../../components/common/TextField'
+import { getApiErrorMessage } from '../../../shared/api/apiClient'
 import { usePets } from '../hooks/usePets'
 import {
   getPetEmoji,
@@ -25,12 +29,23 @@ const today = new Date()
 export function PetEditPage() {
   const { petId } = useParams()
   const navigate = useNavigate()
+  const location = useLocation()
+  const returnTo = (location.state as { returnTo?: string } | null)?.returnTo === '/mypage/pets'
+    ? '/mypage/pets'
+    : '/pets'
 
   const {
     pets,
     updatePet,
-    isDemoMode,
+    uploadPetProfileImage,
+    deletePetProfileImage,
   } = usePets()
+
+  const imageInputRef = useRef<HTMLInputElement>(null)
+  const [imageFile, setImageFile] = useState<File>()
+  const [imagePreview, setImagePreview] = useState<string>()
+  const [imageError, setImageError] = useState('')
+  const [isImageRemoving, setIsImageRemoving] = useState(false)
 
   const [
     submitError,
@@ -48,6 +63,36 @@ export function PetEditPage() {
     (candidate) =>
       candidate.id === parsedPetId,
   )
+
+  const handleImageChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+
+    if (!file) return
+
+    if (file.size > 5 * 1024 * 1024) {
+      event.target.value = ''
+      setImageFile(undefined)
+      setImagePreview(undefined)
+      setImageError('이미지는 5MB 이하만 등록할 수 있어요.')
+      return
+    }
+
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+      event.target.value = ''
+      setImageFile(undefined)
+      setImagePreview(undefined)
+      setImageError('JPG, PNG, WEBP 형식의 이미지만 등록할 수 있어요.')
+      return
+    }
+
+    setImageFile(file)
+    const reader = new FileReader()
+    reader.addEventListener('load', () => {
+      setImagePreview(typeof reader.result === 'string' ? reader.result : undefined)
+      setImageError('')
+    })
+    reader.readAsDataURL(file)
+  }
 
   if (!pet) {
     return (
@@ -78,11 +123,33 @@ export function PetEditPage() {
           </p>
         </header>
 
-        <Link to="/pets">
+        <Link to={returnTo}>
           반려동물 목록으로 돌아가기
         </Link>
       </div>
     )
+  }
+
+  const handleRemoveImage = async () => {
+    setImageError('')
+
+    if (imageFile) {
+      setImageFile(undefined)
+      setImagePreview(undefined)
+      if (imageInputRef.current) imageInputRef.current.value = ''
+      return
+    }
+
+    if (!pet.imageUrl) return
+
+    setIsImageRemoving(true)
+    try {
+      await deletePetProfileImage(pet.id)
+    } catch (error) {
+      setImageError(getApiErrorMessage(error, '프로필 사진을 삭제하지 못했습니다.'))
+    } finally {
+      setIsImageRemoving(false)
+    }
   }
 
   const handleSubmit = async (
@@ -144,8 +211,19 @@ export function PetEditPage() {
             ).trim(),
         })
 
+      if (imageFile) {
+        try {
+          await uploadPetProfileImage(savedPet.id, imageFile)
+        } catch (error) {
+          setSubmitError(
+            `기본정보는 저장했지만 ${getApiErrorMessage(error, '프로필 사진을 저장하지 못했습니다.')}`,
+          )
+          return
+        }
+      }
+
       navigate(
-        '/pets',
+        returnTo,
         {
           replace: true,
           state: {
@@ -172,8 +250,8 @@ export function PetEditPage() {
           styles.breadcrumb
         }
       >
-        <Link to="/pets">
-          반려동물 관리
+        <Link to={returnTo}>
+          {returnTo === '/mypage/pets' ? '반려동물 정보 수정' : '반려동물 관리'}
         </Link>
 
         <span aria-hidden="true">
@@ -225,9 +303,9 @@ export function PetEditPage() {
               styles.previewAvatar
             }
           >
-            {pet.imageUrl ? (
+            {imagePreview || pet.imageUrl ? (
               <img
-                src={pet.imageUrl}
+                src={imagePreview ?? pet.imageUrl}
                 alt={`${pet.name} 프로필`}
               />
             ) : (
@@ -247,10 +325,43 @@ export function PetEditPage() {
             {pet.name}
           </h2>
 
+          <div className={styles.photoActions}>
+            <label className={styles.photoButton}>
+              {pet.imageUrl || imageFile ? '사진 변경' : '사진 선택'}
+              <input
+                ref={imageInputRef}
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                onChange={handleImageChange}
+              />
+            </label>
+
+            {(imageFile || pet.imageUrl) && (
+              <button
+                className={styles.photoRemoveButton}
+                type="button"
+                disabled={isImageRemoving || isSubmitting}
+                onClick={() => void handleRemoveImage()}
+              >
+                {isImageRemoving
+                  ? '삭제 중...'
+                  : imageFile
+                    ? '선택 취소'
+                    : '현재 사진 삭제'}
+              </button>
+            )}
+          </div>
+
           <small>
-            사진 변경은 실제 파일 API
-            연결 후 제공됩니다.
+            <span>JPG, PNG, WEBP 형식을 지원해요.</span>
+            <span>최대 5MB까지 저장 가능해요!</span>
           </small>
+
+          {imageError && (
+            <p className={styles.imageError} role="alert">
+              {imageError}
+            </p>
+          )}
         </aside>
 
         <div
@@ -537,7 +648,7 @@ export function PetEditPage() {
 
           <div
             className={
-              styles.mockNotice
+              styles.infoNotice
             }
           >
             <span
@@ -547,9 +658,7 @@ export function PetEditPage() {
             </span>
 
             <p>
-              {isDemoMode
-                ? 'Spring Boot 연결 전에는 수정 내용이 새로고침 전까지만 유지됩니다.'
-                : '수정 내용은 Spring Boot API와 PostgreSQL에 저장됩니다.'}
+              수정 내용은 Spring Boot API와 PostgreSQL에 저장됩니다.
             </p>
           </div>
 
@@ -569,7 +678,7 @@ export function PetEditPage() {
               styles.formActions
             }
           >
-            <Link to="/pets">
+            <Link to={returnTo}>
               취소
             </Link>
 

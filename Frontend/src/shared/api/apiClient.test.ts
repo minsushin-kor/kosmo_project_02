@@ -25,6 +25,22 @@ describe('apiRequest', () => {
     expect((init.headers as Headers).get('Content-Type')).toBe('application/json')
   })
 
+  it('파일 업로드는 브라우저가 multipart 경계를 설정하도록 Content-Type을 추가하지 않는다', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ ok: true }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    }))
+    vi.stubGlobal('fetch', fetchMock)
+    const formData = new FormData()
+    formData.append('image', new File(['image'], 'choco.png', { type: 'image/png' }))
+
+    await apiRequest('/pets/1/profile-image', { method: 'POST', body: formData })
+
+    const [, init] = fetchMock.mock.calls[0]
+    expect((init.headers as Headers).has('Content-Type')).toBe(false)
+    expect(init.body).toBe(formData)
+  })
+
   it('204 응답은 JSON 파싱 없이 undefined를 반환한다', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(null, { status: 204 })))
 

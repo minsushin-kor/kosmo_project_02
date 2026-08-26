@@ -6,7 +6,7 @@ import { ProtectedRoute } from './ProtectedRoute'
 
 function renderRoute(currentUser: AuthContextValue['currentUser'], isAuthLoading = false) {
   const value: AuthContextValue = {
-    currentUser, isAuthLoading, register: vi.fn(), login: vi.fn(), logout: vi.fn(),
+    currentUser, isAuthLoading, register: vi.fn(), login: vi.fn(), updateProfile: vi.fn(), logout: vi.fn(),
   }
   return render(<AuthContext.Provider value={value}><MemoryRouter initialEntries={['/dashboard']}><Routes>
     <Route path="/login" element={<div>login-page</div>} />

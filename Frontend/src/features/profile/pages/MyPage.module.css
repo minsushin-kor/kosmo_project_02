@@ -1,46 +1,138 @@
-.layout {
+.managementList {
   display: grid;
-  grid-template-columns: minmax(0, 1.3fr) minmax(19rem, 0.7fr);
   gap: 1rem;
 }
 
-.profileHeading {
-  display: flex;
-  margin-bottom: 2rem;
+.managementItem {
+  display: grid;
+  min-height: 10rem;
+  padding: 1.5rem;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  color: inherit;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
-  gap: 0.85rem;
+  gap: 1.25rem;
+  text-decoration: none;
+  transition: border-color 140ms ease, transform 140ms ease, box-shadow 140ms ease;
 }
 
-.profileHeading > span {
+.managementItem:hover,
+.managementItem:focus-visible {
+  border-color: rgba(64, 70, 45, 0.45);
+  box-shadow: 0 0.8rem 2rem rgba(64, 70, 45, 0.08);
+  transform: translateY(-2px);
+}
+
+.itemIcon {
   display: grid;
-  width: 3.25rem;
-  height: 3.25rem;
+  width: 4.25rem;
+  height: 4.25rem;
   place-items: center;
+  overflow: hidden;
   border-radius: 50%;
   background: var(--color-sage-soft);
-  font-size: 1.4rem;
+  font-size: 1.65rem;
 }
 
-.profileHeading h2,
-.profileHeading p,
-.panelHeader h2,
-.panelHeader p {
-  margin: 0;
+.petIcon {
+  background: var(--color-sand-soft);
 }
 
-.profileHeading h2,
-.panelHeader h2 {
+.itemContent strong,
+.itemContent small,
+.itemContent em {
+  display: block;
+}
+
+.itemContent strong {
   color: var(--color-text-strong);
   font-family: var(--font-display);
-  font-size: 1.35rem;
+  font-size: 1.45rem;
   letter-spacing: -0.04em;
 }
 
-.profileHeading p,
-.panelHeader p {
+.itemContent small {
+  margin-top: 0.35rem;
+  color: var(--color-text-muted);
+  font-size: 0.78rem;
+}
+
+.itemContent em {
+  margin-top: 1rem;
+  color: var(--color-text-soft);
+  font-size: 0.72rem;
+  font-style: normal;
+  line-height: 1.6;
+}
+
+.itemArrow {
+  display: grid;
+  width: 2.6rem;
+  height: 2.6rem;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--color-sand-soft);
+  color: var(--color-primary);
+  font-size: 1.1rem;
+}
+
+.backLink {
+  align-self: center;
+  color: var(--color-text-muted);
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-decoration: underline;
+  text-underline-offset: 0.25rem;
+}
+
+.profileForm {
+  max-width: 58rem;
+}
+
+.formSection + .formSection {
+  margin-top: 2rem;
+  padding-top: 2rem;
+  border-top: 1px solid var(--color-line);
+}
+
+.sectionHeading {
+  display: flex;
+  margin-bottom: 1.35rem;
+  align-items: center;
+  gap: 0.8rem;
+}
+
+.sectionHeading > span {
+  display: grid;
+  width: 2.4rem;
+  height: 2.4rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--color-sage-soft);
+  color: var(--color-primary);
+  font-size: 0.7rem;
+  font-weight: 850;
+}
+
+.sectionHeading h2,
+.sectionHeading p {
+  margin: 0;
+}
+
+.sectionHeading h2 {
+  color: var(--color-text-strong);
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  letter-spacing: -0.04em;
+}
+
+.sectionHeading p {
   margin-top: 0.25rem;
   color: var(--color-text-soft);
-  font-size: 0.74rem;
+  font-size: 0.72rem;
 }
 
 .fieldGrid {
@@ -63,8 +155,13 @@
   padding: 0 0.9rem;
   border: 1px solid var(--color-line);
   border-radius: 0.8rem;
-  background: #fbfaf5;
+  background: var(--color-surface);
   color: var(--color-text-strong);
+}
+
+.fieldGrid input:focus {
+  border-color: var(--color-primary);
+  outline: 3px solid rgba(127, 138, 102, 0.14);
 }
 
 .fieldGrid input:read-only {
@@ -76,17 +173,25 @@
   grid-column: 1 / -1;
 }
 
-.toggle {
-  display: flex;
-  margin: 1.5rem 0;
-  color: var(--color-text-muted);
-  align-items: center;
+.postcodeField {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   gap: 0.55rem;
-  font-size: 0.78rem;
 }
 
-.savedMessage {
-  margin-bottom: 1rem;
+.postcodeField button {
+  padding: 0 1rem;
+  border: 1px solid var(--color-primary);
+  border-radius: 0.8rem;
+  background: var(--color-surface);
+  color: var(--color-primary);
+  cursor: pointer;
+  font-size: 0.74rem;
+  font-weight: 800;
+}
+
+.formMessage {
+  margin: 1.5rem 0 0;
   padding: 0.8rem 1rem;
   border-radius: 0.8rem;
   background: var(--color-success-soft);
@@ -94,115 +199,51 @@
   font-size: 0.76rem;
 }
 
-.panelHeader {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 1rem;
-}
-
-.panelHeader > a {
-  color: var(--color-text-strong);
-  font-size: 0.75rem;
-  font-weight: 800;
-}
-
-.petList {
-  margin-top: 1.25rem;
-}
-
-.petRow {
-  display: grid;
-  padding: 0.85rem 0;
-  border-top: 1px solid var(--color-line);
-  grid-template-columns: auto 1fr auto;
-  align-items: center;
-  gap: 0.7rem;
-}
-
-.petSummary {
-  display: grid;
-  min-width: 0;
-  color: var(--color-text);
-  grid-column: 1 / 3;
-  grid-template-columns: auto minmax(0, 1fr);
-  align-items: center;
-  gap: 0.7rem;
-  text-decoration: none;
-}
-
-.petList strong,
-.petList small {
-  display: block;
-}
-
-.petActions {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 0.35rem;
-}
-
-.petActions a,
-.petActions button {
-  display: inline-flex;
-  min-height: 2rem;
-  align-items: center;
-  padding: 0 0.6rem;
-  border: 1px solid var(--color-line);
-  border-radius: 999px;
-  background: var(--color-surface);
-  color: var(--color-text-muted);
-  cursor: pointer;
-  font-size: 0.66rem;
-  font-weight: 800;
-  text-decoration: none;
-  white-space: nowrap;
-}
-
-.petActions .deleteButton {
-  border-color: rgba(171, 77, 63, 0.25);
+.errorMessage {
+  background: var(--color-danger-soft);
   color: var(--color-danger);
 }
 
-.petMessage {
-  margin-top: 1rem;
-  padding: 0.75rem 0.85rem;
-  border-radius: 0.75rem;
-  background: var(--color-sand-soft);
-  color: var(--color-text-muted);
-  font-size: 0.72rem;
-  line-height: 1.5;
+.formActions {
+  display: flex;
+  margin-top: 1.5rem;
+  justify-content: flex-end;
+  gap: 0.65rem;
 }
 
-.petList strong {
-  color: var(--color-text-strong);
-  font-size: 0.82rem;
-}
-
-.petList small {
-  margin-top: 0.15rem;
-  color: var(--color-text-soft);
-  font-size: 0.68rem;
-}
-
-.manageLink {
-  display: block;
-  margin-top: 1rem;
-  color: var(--color-text-strong);
+.formActions > a,
+.formActions > button {
+  display: inline-flex;
+  min-height: 3rem;
+  align-items: center;
+  justify-content: center;
+  padding: 0 1.2rem;
+  border: 0;
+  border-radius: 999px;
   font-size: 0.78rem;
   font-weight: 800;
-  text-align: center;
-  text-underline-offset: 0.25rem;
+  text-decoration: none;
 }
 
-@media (max-width: 850px) {
-  .layout {
-    grid-template-columns: 1fr;
+.formActions > a {
+  border: 1px solid var(--color-line);
+  color: var(--color-text-muted);
+}
+
+.formActions > button {
+  background: var(--color-primary);
+  color: var(--color-cream);
+}
+
+@media (max-width: 620px) {
+  .managementItem {
+    grid-template-columns: auto minmax(0, 1fr);
   }
-}
 
-@media (max-width: 560px) {
+  .itemArrow {
+    display: none;
+  }
+
   .fieldGrid {
     grid-template-columns: 1fr;
   }
@@ -211,16 +252,11 @@
     grid-column: auto;
   }
 
-  .petRow {
-    grid-template-columns: minmax(0, 1fr);
+  .postcodeField {
+    grid-template-columns: 1fr;
   }
 
-  .petSummary {
-    grid-column: 1;
-  }
-
-  .petActions {
-    margin-top: 0.3rem;
-    justify-content: flex-start;
+  .postcodeField button {
+    min-height: 2.8rem;
   }
 }

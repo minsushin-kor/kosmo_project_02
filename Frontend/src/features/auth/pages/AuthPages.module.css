@@ -253,7 +253,7 @@
   text-underline-offset: 0.25rem;
 }
 
-.mockNotice,
+.infoNotice,
 .successMessage,
 .errorMessage {
   margin-top: 1.25rem;
@@ -263,7 +263,7 @@
   line-height: 1.55;
 }
 
-.mockNotice {
+.infoNotice {
   background: var(--color-sand-soft);
   color: var(--color-text-muted);
   text-align: center;

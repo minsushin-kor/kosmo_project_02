@@ -9,7 +9,6 @@ import {
 
 import { DataState } from '../../../components/common/DataState'
 import { getApiErrorMessage } from '../../../shared/api/apiClient'
-import { PetSectionNav } from '../../pets/components/PetSectionNav'
 import { usePets } from '../../pets/hooks/usePets'
 import {
   getWeeklyReport,
@@ -285,8 +284,6 @@ export function ReportDetailPage() {
 
   return (
     <div className={common.page}>
-      <PetSectionNav />
-
       <Link
         className={
           styles.backLink

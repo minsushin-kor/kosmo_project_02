@@ -23,11 +23,12 @@ const petContext: PetContextValue = {
   pets: [pet],
   selectedPet: pet,
   isLoading: false,
-  isDemoMode: false,
   error: '',
   selectPet: vi.fn(),
   addPet: vi.fn(),
   updatePet: vi.fn(),
+  uploadPetProfileImage: vi.fn(),
+  deletePetProfileImage: vi.fn(),
   removePet: vi.fn(),
   reloadPets: vi.fn(),
 }
@@ -41,6 +42,7 @@ function renderPage(
     isAuthLoading: false,
     register: vi.fn(),
     login: vi.fn(),
+    updateProfile: vi.fn(),
     logout: vi.fn(),
   }
 
@@ -97,7 +99,7 @@ describe('FoodRecommendationPage 로그인별 초기값', () => {
       selectedPet: null,
     })
 
-    expect(screen.getByText(/PetPulse에 등록된 반려동물이 없어요/)).toBeInTheDocument()
+    expect(screen.getByText(/PatPet에 등록된 반려동물이 없어요/)).toBeInTheDocument()
     expect(screen.getByRole('link', { name: '반려동물 등록' })).toHaveAttribute('href', '/pets/new')
     expect(screen.queryByText('추천 대상')).not.toBeInTheDocument()
   })
