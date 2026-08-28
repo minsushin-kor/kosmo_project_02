@@ -1,6 +1,6 @@
 import type { DiaryEntries } from '../types'
 
-export type CalendarDay = {
+type CalendarDay = {
   date: Date
   dateKey: string
   isCurrentMonth: boolean
@@ -22,6 +22,18 @@ export function dateValueToKey(value: string) {
 export function parseDateKey(dateKey: string) {
   const [year, month, day] = dateKey.split('-').map(Number)
   return new Date(year, month - 1, day, 12)
+}
+
+export function normalizeDiaryDateKey(value: string | null, today = new Date()) {
+  const todayKey = toDateKey(today)
+  if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return todayKey
+
+  const parsed = parseDateKey(value)
+  if (Number.isNaN(parsed.getTime()) || toDateKey(parsed) !== value || value > todayKey) {
+    return todayKey
+  }
+
+  return value
 }
 
 export function isSameMonth(left: Date, right: Date) {
@@ -54,7 +66,7 @@ export function buildCalendarDays(month: Date, today = new Date()): CalendarDay[
   })
 }
 
-export function getEligibleDayCount(month: Date, today = new Date()) {
+function getEligibleDayCount(month: Date, today = new Date()) {
   const daysInMonth = new Date(month.getFullYear(), month.getMonth() + 1, 0).getDate()
 
   if (month.getFullYear() > today.getFullYear() ||

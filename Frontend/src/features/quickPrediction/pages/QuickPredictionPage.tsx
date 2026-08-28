@@ -309,7 +309,7 @@ export function QuickPredictionPage() {
     } catch (predictionError) {
       setError(predictionError instanceof Error
         ? predictionError.message
-        : '예측 서버에 연결하지 못했습니다.')
+        : '건강 예측 결과를 불러오지 못했습니다.')
     } finally {
       setIsPredicting(false)
     }
@@ -414,7 +414,7 @@ export function QuickPredictionPage() {
           </section>
 
           <button className={styles.predictButton} type="submit" disabled={isPredicting}>
-            {isPredicting ? <><span className={styles.spinner} aria-hidden="true" />AI 모델이 확인하고 있습니다.</> : <>예측 시작 <span aria-hidden="true">→</span></>}
+            {isPredicting ? <><span className={styles.spinner} aria-hidden="true" />건강 상태를 확인하고 있습니다.</> : <>예측 시작 <span aria-hidden="true">→</span></>}
           </button>
         </form>
 

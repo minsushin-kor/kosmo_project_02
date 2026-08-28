@@ -211,11 +211,11 @@ export function ChatProvider({
           const errorMessage =
             error instanceof
               TypeError
-              ? '챗봇 서버에 연결하지 못했습니다. 잠시 후 다시 시도해 주세요.'
+              ? 'AI 건강 도우미의 답변을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.'
               : error instanceof
                 Error
                 ? error.message
-                : '챗봇 서버에 연결하지 못했습니다.'
+                : 'AI 건강 도우미의 답변을 불러오지 못했습니다.'
 
           setMessages(
             (current) =>

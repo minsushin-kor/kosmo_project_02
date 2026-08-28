@@ -22,7 +22,7 @@ export type ActivityLevel =
     | 'LOW'
     | 'HIGH'
 
-export type QuestionnaireRequest = {
+type QuestionnaireRequest = {
     temperature: number
     heartRate: number
     respiratoryRate: number
@@ -58,24 +58,26 @@ export function createQuestionnaire(
     )
 }
 
-export function getQuestionnaire(
-    questionnaireId: number,
-    signal?: AbortSignal,
-) {
-    return apiRequest<QuestionnaireResponse>(
-        `/questionnaires/${questionnaireId}`,
-        {
-            signal,
-        },
-    )
-}
-
 export function getQuestionnaires(
     petId: number,
     signal?: AbortSignal,
 ) {
     return apiRequest<QuestionnaireResponse[]>(
         `/pets/${petId}/questionnaires`,
+        {
+            signal,
+        },
+    )
+}
+
+export function getMonthlyQuestionnaires(
+    petId: number,
+    year: number,
+    month: number,
+    signal?: AbortSignal,
+) {
+    return apiRequest<QuestionnaireResponse[]>(
+        `/pets/${petId}/questionnaires?year=${year}&month=${month}`,
         {
             signal,
         },

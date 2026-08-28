@@ -74,7 +74,7 @@ describe('apiRequest', () => {
 describe('getApiErrorMessage', () => {
   it('네트워크 연결 실패를 사용자가 이해할 수 있는 문구로 바꾼다', () => {
     expect(getApiErrorMessage(new TypeError('Failed to fetch'), '기본 오류'))
-      .toContain('Spring Boot 서버에 연결하지 못했습니다.')
+      .toBe('서비스에 연결하지 못했습니다. 잠시 후 다시 시도해 주세요.')
   })
 })
 

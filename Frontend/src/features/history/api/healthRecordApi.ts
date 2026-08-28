@@ -4,7 +4,7 @@ import type { QuestionnaireResponse } from '../../questionnaire/api/questionnair
 
 export type HealthRecordStatus = 'ALL' | 'ANALYZED' | 'PENDING'
 
-export type HealthRecordSummary = {
+type HealthRecordSummary = {
   questionnaireId: number
   submittedAt: string
   temperature: number

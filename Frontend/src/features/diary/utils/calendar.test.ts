@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { DiaryEntries } from '../types'
-import { buildCalendarDays, getMonthStatusCounts, shiftMonth, toDateKey } from './calendar'
+import { buildCalendarDays, getMonthStatusCounts, normalizeDiaryDateKey, shiftMonth, toDateKey } from './calendar'
 
 describe('health diary calendar', () => {
   const today = new Date(2026, 7, 18, 12)
@@ -32,5 +32,11 @@ describe('health diary calendar', () => {
 
   it('shifts months without carrying an invalid day', () => {
     expect(toDateKey(shiftMonth(new Date(2026, 0, 31, 12), 1))).toBe('2026-02-01')
+  })
+
+  it('keeps a valid past query date and rejects invalid or future dates', () => {
+    expect(normalizeDiaryDateKey('2026-08-10', today)).toBe('2026-08-10')
+    expect(normalizeDiaryDateKey('2026-02-31', today)).toBe('2026-08-18')
+    expect(normalizeDiaryDateKey('2026-08-19', today)).toBe('2026-08-18')
   })
 })

@@ -1,13 +1,14 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useBlocker, useNavigate, useSearchParams } from 'react-router-dom'
 import { ConfirmModal } from '../../../components/common/ConfirmModal'
 import { DataState } from '../../../components/common/DataState'
-import { getApiErrorMessage } from '../../../shared/api/apiClient'
+import { getApiErrorMessage, isAbortError } from '../../../shared/api/apiClient'
+import { DiaryAttentionSummary } from '../components/DiaryAttentionSummary'
+import { DiaryEditorModal } from '../components/DiaryEditorModal'
 import { useRoutePet } from '../../pets/hooks/useRoutePet'
-import { getHealthAlerts, type HealthAlert } from '../../history/api/healthHistoryApi'
 import { getMonthlyPredictions, type HealthPrediction, type RiskGrade } from '../../predictions/api/predictionApi'
-import { getQuestionnaires, type QuestionnaireResponse } from '../../questionnaire/api/questionnaireApi'
-import { getWeeklyReports, type WeeklyReport } from '../../reports/api/reportApi'
+import { getMonthlyQuestionnaires, type QuestionnaireResponse } from '../../questionnaire/api/questionnaireApi'
+import { PetProfileCarousel } from '../../pets/components/PetProfileCarousel'
 import { WalkAdviceWidget } from '../../walkAdvice/components/WalkAdviceWidget'
 import { deleteDiaryEntry, getDiaryEntries, upsertDiaryEntry } from '../api/healthDiaryApi'
 import type { DiaryEntries, DiaryStatus } from '../types'
@@ -18,6 +19,7 @@ import {
   formatSelectedDate,
   getMonthStatusCounts,
   isSameMonth,
+  normalizeDiaryDateKey,
   parseDateKey,
   shiftMonth,
   toDateKey,
@@ -42,7 +44,6 @@ const riskLabels: Record<RiskGrade, string> = {
 
 function getDistinctHealthRecordCount(
   questionnaires: QuestionnaireResponse[],
-  alerts: HealthAlert[],
   predictions: HealthPrediction[] = [],
 ) {
   const recordKeys = new Set<string>()
@@ -53,35 +54,46 @@ function getDistinctHealthRecordCount(
   predictions.forEach((prediction) => {
     recordKeys.add(`questionnaire-${prediction.questionnaireId}`)
   })
-  alerts.forEach((alert) => {
-    recordKeys.add(alert.questionnaireId != null
-      ? `questionnaire-${alert.questionnaireId}`
-      : `alert-${alert.alertId}`)
-  })
-
   return recordKeys.size
 }
 
+type PendingDiaryNavigation =
+  | { type: 'date'; date: string }
+  | { type: 'month'; amount: number }
+  | { type: 'today' }
+
 export function HealthDiaryPage() {
-  const { selectedPet, routePetMissing } = useRoutePet()
+  const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const { pets, selectedPet, routePetMissing } = useRoutePet()
   const today = useMemo(() => new Date(), [])
   const todayKey = toDateKey(today)
-  const [displayMonth, setDisplayMonth] = useState(() => new Date(today.getFullYear(), today.getMonth(), 1, 12))
-  const [selectedDate, setSelectedDate] = useState(todayKey)
+  const initialDateKey = normalizeDiaryDateKey(searchParams.get('date'), today)
+  const [displayMonth, setDisplayMonth] = useState(() => {
+    const initialDate = parseDateKey(initialDateKey)
+    return new Date(initialDate.getFullYear(), initialDate.getMonth(), 1, 12)
+  })
+  const [selectedDate, setSelectedDate] = useState(initialDateKey)
   const [diaryEntries, setDiaryEntries] = useState<DiaryEntries>({})
   const [monthlyPredictions, setMonthlyPredictions] = useState<HealthPrediction[]>([])
   const [draftStatus, setDraftStatus] = useState<DiaryStatus | ''>('')
   const [draftNote, setDraftNote] = useState('')
   const [saveMessage, setSaveMessage] = useState('')
   const [isDeleteOpen, setIsDeleteOpen] = useState(false)
+  const [isEditorOpen, setIsEditorOpen] = useState(false)
+  const [isEditorDiscardOpen, setIsEditorDiscardOpen] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const [isDiaryLoading, setIsDiaryLoading] = useState(false)
-  const [diaryNotice, setDiaryNotice] = useState('')
+  const [diaryError, setDiaryError] = useState('')
+  const [diaryReloadKey, setDiaryReloadKey] = useState(0)
   const [questionnaires, setQuestionnaires] = useState<QuestionnaireResponse[]>([])
-  const [alerts, setAlerts] = useState<HealthAlert[]>([])
-  const [reports, setReports] = useState<WeeklyReport[]>([])
-  const [isLoading, setIsLoading] = useState(false)
+  const [isQuestionnaireDataAvailable, setIsQuestionnaireDataAvailable] = useState(false)
+  const [isPredictionDataAvailable, setIsPredictionDataAvailable] = useState(false)
+  const [isHealthRecordsLoading, setIsHealthRecordsLoading] = useState(false)
+  const [healthRecordError, setHealthRecordError] = useState('')
+  const [healthRecordReloadKey, setHealthRecordReloadKey] = useState(0)
+  const [pendingNavigation, setPendingNavigation] = useState<PendingDiaryNavigation | null>(null)
 
   const predictionsByDate = useMemo(
     () => getLatestPredictionsByDate(monthlyPredictions),
@@ -90,6 +102,10 @@ export function HealthDiaryPage() {
   const calendarDays = useMemo(() => buildCalendarDays(displayMonth, today), [displayMonth, today])
   const monthCounts = useMemo(() => getMonthStatusCounts(diaryEntries, displayMonth, today), [diaryEntries, displayMonth, today])
   const selectedEntry = diaryEntries[selectedDate]
+  const hasUnsavedChanges = isEditorOpen && (
+    draftStatus !== (selectedEntry?.status ?? '') || draftNote !== (selectedEntry?.note ?? '')
+  )
+  const routeBlocker = useBlocker(hasUnsavedChanges)
 
   useEffect(() => {
     if (!selectedPet) return
@@ -98,106 +114,133 @@ export function HealthDiaryPage() {
     const year = displayMonth.getFullYear()
     const month = displayMonth.getMonth() + 1
     setIsDiaryLoading(true)
-    setDiaryNotice('')
+    setDiaryError('')
     setDiaryEntries({})
-    setMonthlyPredictions([])
 
-    Promise.allSettled([
-      getDiaryEntries(selectedPet.id, year, month, controller.signal),
-      getMonthlyPredictions(selectedPet.id, year, month, controller.signal),
-    ]).then(([diaryResult, predictionResult]) => {
-      if (controller.signal.aborted) return
-
-      if (diaryResult.status === 'fulfilled') {
-        setDiaryEntries(Object.fromEntries(
-          diaryResult.value.map((entry) => [entry.date, entry]),
-        ))
-      }
-
-      if (predictionResult.status === 'fulfilled') {
-        setMonthlyPredictions(predictionResult.value)
-      }
-
-      if (diaryResult.status === 'rejected' || predictionResult.status === 'rejected') {
-        const rejected = diaryResult.status === 'rejected'
-          ? diaryResult.reason
-          : predictionResult.status === 'rejected'
-            ? predictionResult.reason
-            : null
-        setDiaryNotice(getApiErrorMessage(rejected, '월별 다이어리 정보를 불러오지 못했습니다.'))
-      }
-    }).finally(() => {
-      if (!controller.signal.aborted) setIsDiaryLoading(false)
-    })
+    getDiaryEntries(selectedPet.id, year, month, controller.signal)
+      .then((entries) => {
+        setDiaryEntries(Object.fromEntries(entries.map((entry) => [entry.date, entry])))
+      })
+      .catch((loadError) => {
+        if (!isAbortError(loadError)) {
+          setDiaryError(getApiErrorMessage(loadError, '월별 다이어리를 불러오지 못했습니다.'))
+        }
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setIsDiaryLoading(false)
+      })
 
     return () => controller.abort()
-  }, [displayMonth, selectedPet])
+  }, [diaryReloadKey, displayMonth, selectedPet])
 
   useEffect(() => {
     setDraftStatus(selectedEntry?.status ?? '')
     setDraftNote(selectedEntry?.note ?? '')
-  }, [selectedEntry])
+  }, [selectedDate, selectedEntry])
 
   useEffect(() => {
     setSaveMessage('')
   }, [selectedDate])
 
   useEffect(() => {
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (!hasUnsavedChanges) return
+      event.preventDefault()
+      event.returnValue = ''
+    }
+
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload)
+  }, [hasUnsavedChanges])
+
+  useEffect(() => {
     if (!selectedPet) return
 
     const controller = new AbortController()
-    setIsLoading(true)
+    setIsHealthRecordsLoading(true)
+    setHealthRecordError('')
+    setMonthlyPredictions([])
+    setQuestionnaires([])
+    setIsQuestionnaireDataAvailable(false)
+    setIsPredictionDataAvailable(false)
 
     Promise.allSettled([
-      getQuestionnaires(selectedPet.id, controller.signal),
-      getHealthAlerts(selectedPet.id, controller.signal),
-      getWeeklyReports(selectedPet.id, controller.signal),
-    ]).then(([questionnaireResult, alertResult, reportResult]) => {
-      setQuestionnaires(questionnaireResult.status === 'fulfilled' ? questionnaireResult.value : [])
-      setAlerts(alertResult.status === 'fulfilled' ? alertResult.value : [])
-      setReports(reportResult.status === 'fulfilled' ? reportResult.value : [])
-    }).finally(() => setIsLoading(false))
+      getMonthlyPredictions(
+        selectedPet.id,
+        displayMonth.getFullYear(),
+        displayMonth.getMonth() + 1,
+        controller.signal,
+      ),
+      getMonthlyQuestionnaires(
+        selectedPet.id,
+        displayMonth.getFullYear(),
+        displayMonth.getMonth() + 1,
+        controller.signal,
+      ),
+    ]).then(([predictionResult, questionnaireResult]) => {
+      if (controller.signal.aborted) return
+
+      if (predictionResult.status === 'fulfilled') {
+        setMonthlyPredictions(predictionResult.value)
+        setIsPredictionDataAvailable(true)
+      }
+      if (questionnaireResult.status === 'fulfilled') {
+        setQuestionnaires(questionnaireResult.value)
+        setIsQuestionnaireDataAvailable(true)
+      }
+
+      const failedLabels = [
+        questionnaireResult.status === 'rejected' && !isAbortError(questionnaireResult.reason) ? '건강 문진' : '',
+        predictionResult.status === 'rejected' && !isAbortError(predictionResult.reason) ? 'AI 분석 결과' : '',
+      ].filter(Boolean)
+      if (failedLabels.length > 0) {
+        const failedSubject = failedLabels.length > 1
+          ? `${failedLabels.join('과 ')}를`
+          : failedLabels[0] === '건강 문진'
+            ? '건강 문진을'
+            : 'AI 분석 결과를'
+        setHealthRecordError(`${failedSubject} 불러오지 못했습니다.`)
+      }
+    }).finally(() => {
+      if (!controller.signal.aborted) setIsHealthRecordsLoading(false)
+    })
 
     return () => controller.abort()
-  }, [selectedPet])
+  }, [displayMonth, healthRecordReloadKey, selectedPet])
 
   const healthDataDates = useMemo(() => new Set([
     ...questionnaires.map((item) => dateValueToKey(item.submittedAt)),
-    ...alerts.map((item) => dateValueToKey(item.createdAt)),
-    ...reports.map((item) => item.endDate.slice(0, 10)),
     ...Object.keys(predictionsByDate),
-  ]), [alerts, predictionsByDate, questionnaires, reports])
+  ]), [predictionsByDate, questionnaires])
 
   const selectedQuestionnaires = useMemo(() => questionnaires
     .filter((item) => dateValueToKey(item.submittedAt) === selectedDate)
     .sort((left, right) => Date.parse(right.submittedAt) - Date.parse(left.submittedAt)), [questionnaires, selectedDate])
-  const selectedAlerts = alerts.filter((item) => dateValueToKey(item.createdAt) === selectedDate)
-  const selectedReport = reports.find((item) => item.startDate.slice(0, 10) <= selectedDate && item.endDate.slice(0, 10) >= selectedDate)
   const selectedPrediction = predictionsByDate[selectedDate]
   const latestQuestionnaire = selectedQuestionnaires[0]
-  const monthPrefix = `${displayMonth.getFullYear()}-${String(displayMonth.getMonth() + 1).padStart(2, '0')}`
-  const monthQuestionnaires = questionnaires.filter((item) => dateValueToKey(item.submittedAt).startsWith(monthPrefix))
-  const monthAlerts = alerts.filter((item) => dateValueToKey(item.createdAt).startsWith(monthPrefix))
+  const monthQuestionnaires = questionnaires
   const selectedHealthRecordCount = getDistinctHealthRecordCount(
     selectedQuestionnaires,
-    selectedAlerts,
     selectedPrediction ? [selectedPrediction] : [],
   )
-  const monthHealthRecordCount = getDistinctHealthRecordCount(
-    monthQuestionnaires,
-    monthAlerts,
-    monthlyPredictions,
-  )
-  const monthEntries = Object.values(diaryEntries)
-    .filter((entry) => entry.date.startsWith(monthPrefix) && entry.date <= todayKey)
-    .sort((left, right) => right.date.localeCompare(left.date))
+  const monthAnalyzedCount = new Set(monthlyPredictions.map((prediction) => prediction.questionnaireId)).size
   const isCurrentMonth = isSameMonth(displayMonth, today)
+  const isSelectedToday = selectedDate === todayKey
+  const isDiaryUnavailable = isDiaryLoading || Boolean(diaryError)
+  const selectedPetTodayData = isCurrentMonth
+    ? {
+        entry: diaryEntries[todayKey],
+        prediction: predictionsByDate[todayKey],
+        isLoading: isDiaryLoading || isHealthRecordsLoading,
+        hasError: Boolean(diaryError) || (!isHealthRecordsLoading && !isPredictionDataAvailable),
+      }
+    : undefined
 
   if (!selectedPet || routePetMissing) {
     return <div className={common.page}><DataState title="반려동물 정보를 찾을 수 없습니다." action={<Link to="/pets">반려동물 목록으로 이동</Link>} /></div>
   }
 
-  const changeMonth = (amount: number) => {
+  const performMonthChange = (amount: number) => {
     const nextMonth = shiftMonth(displayMonth, amount)
     if (nextMonth.getTime() > new Date(today.getFullYear(), today.getMonth(), 1, 12).getTime()) return
 
@@ -205,15 +248,68 @@ export function HealthDiaryPage() {
     setSelectedDate(isSameMonth(nextMonth, today) ? todayKey : toDateKey(nextMonth))
   }
 
-  const goToday = () => {
+  const performGoToday = () => {
     setDisplayMonth(new Date(today.getFullYear(), today.getMonth(), 1, 12))
     setSelectedDate(todayKey)
+  }
+
+  const requestNavigation = (navigation: PendingDiaryNavigation) => {
+    if (isSaving || isDeleting) return
+    if (hasUnsavedChanges) {
+      setPendingNavigation(navigation)
+      return
+    }
+
+    if (navigation.type === 'date') setSelectedDate(navigation.date)
+    if (navigation.type === 'month') performMonthChange(navigation.amount)
+    if (navigation.type === 'today') performGoToday()
+  }
+
+  const confirmPendingNavigation = () => {
+    if (pendingNavigation) {
+      if (pendingNavigation.type === 'date') setSelectedDate(pendingNavigation.date)
+      if (pendingNavigation.type === 'month') performMonthChange(pendingNavigation.amount)
+      if (pendingNavigation.type === 'today') performGoToday()
+      setPendingNavigation(null)
+      return
+    }
+
+    if (routeBlocker.state === 'blocked') routeBlocker.proceed()
+  }
+
+  const cancelPendingNavigation = () => {
+    setPendingNavigation(null)
+    if (routeBlocker.state === 'blocked') routeBlocker.reset()
+  }
+
+  const openDiaryEditor = () => {
+    if (isDiaryUnavailable) return
+    setDraftStatus(selectedEntry?.status ?? '')
+    setDraftNote(selectedEntry?.note ?? '')
+    setSaveMessage('')
+    setIsEditorOpen(true)
+  }
+
+  const requestEditorClose = () => {
+    if (isSaving || isDeleting) return
+    if (hasUnsavedChanges) {
+      setIsEditorDiscardOpen(true)
+      return
+    }
+    setIsEditorOpen(false)
+  }
+
+  const discardEditorChanges = () => {
+    setDraftStatus(selectedEntry?.status ?? '')
+    setDraftNote(selectedEntry?.note ?? '')
+    setIsEditorDiscardOpen(false)
+    window.setTimeout(() => setIsEditorOpen(false), 0)
   }
 
   const handleSave = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     if (!draftStatus) {
-      setSaveMessage('오늘 상태를 선택해 주세요.')
+      setSaveMessage('선택한 날의 상태를 선택해 주세요.')
       return
     }
 
@@ -227,7 +323,9 @@ export function HealthDiaryPage() {
       })
 
       setDiaryEntries((current) => ({ ...current, [selectedDate]: savedEntry }))
-      setSaveMessage(`${formatSelectedDate(selectedDate)} 기록을 저장했습니다.`)
+      setSaveMessage(`${formatSelectedDate(selectedDate)}의 하루를 기록했어요.`)
+      setIsEditorOpen(false)
+      setDiaryReloadKey((key) => key + 1)
     } catch (error) {
       setSaveMessage(getApiErrorMessage(error, '다이어리 기록을 저장하지 못했습니다.'))
     } finally {
@@ -248,8 +346,12 @@ export function HealthDiaryPage() {
         delete next[selectedDate]
         return next
       })
+      setDraftStatus('')
+      setDraftNote('')
       setIsDeleteOpen(false)
       setSaveMessage('작성한 다이어리 기록을 삭제했습니다.')
+      setDiaryReloadKey((key) => key + 1)
+      window.setTimeout(() => setIsEditorOpen(false), 0)
     } catch (error) {
       setIsDeleteOpen(false)
       setSaveMessage(getApiErrorMessage(error, '다이어리 기록을 삭제하지 못했습니다.'))
@@ -259,11 +361,11 @@ export function HealthDiaryPage() {
   }
 
   return (
-    <div className={common.page}>
+    <div className={`${common.page} ${styles.diaryPage}`}>
       <header className={`${common.header} ${styles.pageHeader}`}>
         <div className={styles.headerCopy}>
           <p className={common.eyebrow}>PET WELLNESS DIARY</p>
-          <h1 className={`${common.title} ${styles.pageTitle}`}>건강 다이어리</h1>
+          <h1 className={`${common.title} ${styles.pageTitle}`}>{selectedPet.name}의 건강 다이어리</h1>
           <p className={common.description}>{selectedPet.name}의 하루 상태와 건강 기록을 달력에서 함께 확인해 보세요.</p>
         </div>
         <div className={styles.headerAside} id="walk-advice">
@@ -271,9 +373,33 @@ export function HealthDiaryPage() {
         </div>
       </header>
 
-      {isLoading && <DataState title="다이어리에 표시할 건강 기록을 불러오는 중입니다." isLoading />}
-      {isDiaryLoading && <DataState title="월별 다이어리와 AI 예측을 불러오는 중입니다." isLoading />}
-      {diaryNotice && <DataState title="월별 다이어리 정보를 불러오지 못했습니다." tone="error">{diaryNotice}</DataState>}
+      <div className={styles.diaryOverviewBar}>
+        <PetProfileCarousel
+          pets={pets}
+          selectedPet={selectedPet}
+          maxVisibleItems={3}
+          headingLabel="다이어리 대상"
+          ariaLabel="건강 다이어리에서 확인할 반려동물 선택"
+          onSelect={(petId) => navigate(`/pets/${petId}/diary?date=${selectedDate}`)}
+        />
+        <DiaryAttentionSummary
+          pets={pets}
+          selectedPetId={selectedPet.id}
+          todayKey={todayKey}
+          selectedPetTodayData={selectedPetTodayData}
+        />
+      </div>
+
+      {isDiaryLoading && <DataState title="월별 다이어리를 불러오는 중입니다." isLoading />}
+      {diaryError && (
+        <DataState
+          title="월별 다이어리를 불러오지 못했습니다."
+          tone="error"
+          action={<button type="button" onClick={() => setDiaryReloadKey((key) => key + 1)}>다시 불러오기</button>}
+        >
+          {diaryError} 기존 기록을 확인할 때까지 작성 기능을 잠시 사용할 수 없습니다.
+        </DataState>
+      )}
 
       <section className={styles.diaryLayout}>
         <div className={styles.calendarCard}>
@@ -283,18 +409,18 @@ export function HealthDiaryPage() {
               <h2>{formatMonthTitle(displayMonth)}</h2>
             </div>
             <div className={styles.monthControls}>
-              <button type="button" onClick={() => changeMonth(-1)} aria-label="이전 달">←</button>
-              <button type="button" onClick={goToday}>오늘</button>
-              <button type="button" onClick={() => changeMonth(1)} aria-label="다음 달" disabled={isCurrentMonth}>→</button>
+              <button type="button" onClick={() => requestNavigation({ type: 'month', amount: -1 })} aria-label="이전 달">←</button>
+              <button type="button" onClick={() => requestNavigation({ type: 'today' })}>오늘</button>
+              <button type="button" onClick={() => requestNavigation({ type: 'month', amount: 1 })} aria-label="다음 달" disabled={isCurrentMonth}>→</button>
             </div>
           </div>
 
           <div className={styles.legend} aria-label="다이어리 상태 안내">
             <span><i className={styles.goodDot} />좋음</span>
             <span><i className={styles.watchDot} />관찰 필요</span>
-            <span className={styles.healthRecordLegend} aria-label="연결된 건강 기록 표시" title="문진·알림 등 연결된 건강 기록">
+            <span className={styles.healthRecordLegend} aria-label="건강 기록 표시" title="건강 문진 또는 AI 분석 결과가 있는 날">
               <i className={styles.dataStar} aria-hidden="true">☆</i>
-              입력한 건강 기록 있음
+              건강 기록
             </span>
           </div>
 
@@ -321,7 +447,7 @@ export function HealthDiaryPage() {
                   disabled={!day.isCurrentMonth || day.isFuture}
                   aria-pressed={selectedDate === day.dateKey}
                   aria-label={`${day.date.getMonth() + 1}월 ${day.date.getDate()}일${entry ? `, ${statusLabels[entry.status]}` : ''}${hasData ? ', 연결된 건강 기록' : ''}`}
-                  onClick={() => setSelectedDate(day.dateKey)}
+                  onClick={() => requestNavigation({ type: 'date', date: day.dateKey })}
                 >
                   <span>{day.date.getDate()}</span>
                   {entry && day.isCurrentMonth && !day.isFuture && <small>{statusLabels[entry.status]}</small>}
@@ -345,34 +471,39 @@ export function HealthDiaryPage() {
             )}
           </div>
 
-          <form className={styles.diaryForm} onSubmit={handleSave}>
-            <fieldset>
-              <legend>{selectedPet.name}의 오늘 상태</legend>
-              <div className={styles.statusChoices}>
-                <label className={draftStatus === 'GOOD' ? styles.checkedGood : ''}>
-                  <input type="radio" name="diaryStatus" value="GOOD" checked={draftStatus === 'GOOD'} onChange={() => setDraftStatus('GOOD')} />
-                  <span aria-hidden="true">●</span> 좋음
-                </label>
-                <label className={draftStatus === 'WATCH' ? styles.checkedWatch : ''}>
-                  <input type="radio" name="diaryStatus" value="WATCH" checked={draftStatus === 'WATCH'} onChange={() => setDraftStatus('WATCH')} />
-                  <span aria-hidden="true">●</span> 관찰 필요
-                </label>
-              </div>
-            </fieldset>
-            <label className={styles.noteField}>
-              <span>오늘의 {selectedPet.name}는 어땠나요?</span>
-              <textarea value={draftNote} maxLength={300} rows={4} onChange={(event) => setDraftNote(event.target.value)} placeholder={`${selectedPet.name}의 식사, 활동, 수면 등 오늘 있었던 일을 남겨주세요.`} />
-              <small>{draftNote.length} / 300자</small>
-            </label>
-            {saveMessage && <p className={styles.saveMessage} role="status">{saveMessage}</p>}
-            <div className={styles.formActions}>
-              <button className={styles.saveButton} type="submit" disabled={isSaving || isDeleting}>{isSaving ? '저장 중…' : selectedEntry ? '기록 수정' : '기록 저장'}</button>
-              {selectedEntry && <button className={styles.deleteButton} type="button" disabled={isSaving || isDeleting} onClick={() => setIsDeleteOpen(true)}>기록 삭제</button>}
-            </div>
-          </form>
+          <div className={styles.diaryPreview}>
+            {selectedEntry ? (
+              <>
+                <p className={selectedEntry.note ? styles.savedNote : styles.emptyNote}>
+                  {selectedEntry.note || '이 날은 상태만 기록했어요.'}
+                </p>
+                <button className={styles.openDiaryButton} type="button" disabled={isDiaryUnavailable} onClick={openDiaryEditor}>
+                  다이어리 열기
+                </button>
+              </>
+            ) : (
+              <>
+                <p className={styles.emptyNote}>{selectedPet.name}의 {isSelectedToday ? '오늘' : '이날'} 하루는 아직 기록하지 않았어요.</p>
+                <button className={styles.openDiaryButton} type="button" disabled={isDiaryUnavailable} onClick={openDiaryEditor}>
+                  {isSelectedToday ? '오늘의 하루 기록하기' : '이날의 하루 기록하기'}
+                </button>
+              </>
+            )}
+            {saveMessage && !isEditorOpen && <p className={styles.saveMessage} role="status">{saveMessage}</p>}
+          </div>
 
           <div className={styles.connectedRecords}>
-            <div className={styles.connectedHeading}><h3>연결된 건강 기록</h3><span>{selectedHealthRecordCount + (selectedReport ? 1 : 0)}건</span></div>
+            <div className={styles.connectedHeading}>
+              <h3>연결된 건강 기록</h3>
+              <span>{isHealthRecordsLoading ? '확인 중' : healthRecordError ? '일부 확인' : `${selectedHealthRecordCount}건`}</span>
+            </div>
+            {isHealthRecordsLoading && <p className={styles.emptyRecords}>건강 기록을 불러오는 중입니다.</p>}
+            {healthRecordError && (
+              <div className={styles.connectedError} role="alert">
+                <p>{healthRecordError} 기록 없음으로 처리하지 않았습니다.</p>
+                <button type="button" onClick={() => setHealthRecordReloadKey((key) => key + 1)}>다시 불러오기</button>
+              </div>
+            )}
             {latestQuestionnaire && (
               <div className={styles.recordItem}>
                 <span aria-hidden="true">♥</span>
@@ -380,32 +511,17 @@ export function HealthDiaryPage() {
                 <Link to={`/pets/${selectedPet.id}/vitals`} aria-label="건강 수치 기록 보기">→</Link>
               </div>
             )}
-            {selectedAlerts.length > 0 && (
-              <div className={styles.recordItem}>
-                <span aria-hidden="true">!</span>
-                <div><strong>건강 알림 {selectedAlerts.length}건</strong><small>{selectedAlerts[0].title}</small></div>
-                <Link to={`/pets/${selectedPet.id}/history`} aria-label="건강 알림 보기">→</Link>
-              </div>
-            )}
-            {selectedReport && (
-              <div className={styles.recordItem}>
-                <span aria-hidden="true">▤</span>
-                <div><strong>주간 리포트</strong><small>{selectedReport.oneLineSummary || '이 날짜가 포함된 주간 리포트가 있어요.'}</small></div>
-                <Link to={`/reports/${selectedReport.reportId}`} aria-label="주간 리포트 보기">→</Link>
-              </div>
-            )}
             {selectedPrediction && (
               <div className={styles.recordItem}>
                 <span aria-hidden="true">AI</span>
-                <div><strong>AI 예측: {riskLabels[selectedPrediction.riskGrade]}</strong><small>{selectedPrediction.aiSummary || selectedPrediction.primaryRiskFactor || 'AI 건강 예측 결과가 있어요.'}</small></div>
-                <Link to={`/predictions/${selectedPrediction.predictionId}`} aria-label="AI 예측 결과 보기">→</Link>
+                <div><strong>AI 분석 결과 · {riskLabels[selectedPrediction.riskGrade]}</strong><small>건강 기록 상세에서 분석 내용을 확인할 수 있어요.</small></div>
+                <Link to={`/pets/${selectedPet.id}/health-records/${selectedPrediction.questionnaireId}`} aria-label="AI 분석이 포함된 건강 기록 보기">→</Link>
               </div>
             )}
-            {!latestQuestionnaire && selectedAlerts.length === 0 && !selectedReport && !selectedPrediction && (
-              <p className={styles.emptyRecords}>이 날짜에 연결된 문진·알림 기록이 없습니다.</p>
+            {!isHealthRecordsLoading && !healthRecordError && !latestQuestionnaire && !selectedPrediction && (
+              <p className={styles.emptyRecords}>이 날짜에 건강 문진이나 AI 분석 결과가 없습니다.</p>
             )}
           </div>
-          <p className={styles.localNotice}>보호자가 작성한 상태와 관찰 메모는 계정의 반려동물 기록으로 저장됩니다.</p>
         </aside>
       </section>
 
@@ -414,36 +530,39 @@ export function HealthDiaryPage() {
           <div><p>MONTHLY SUMMARY</p><h2 id="month-summary-title">{formatMonthTitle(displayMonth)} 기록 요약</h2></div>
         </div>
 
-        <div className={styles.summaryGrid}>
-          <article className={styles.goodSummary}><span>좋음</span><strong>{monthCounts.good}<small>일</small></strong><p>보호자가 좋음으로 남긴 날</p></article>
-          <article className={styles.watchSummary}><span>관찰 필요</span><strong>{monthCounts.watch}<small>일</small></strong><p>한 번 더 살펴보기로 한 날</p></article>
-          <article className={styles.recordSummary}><span>건강 기록</span><strong>{monthHealthRecordCount}<small>건</small></strong><p>연결된 분석과 알림은 한 건으로 계산</p></article>
-        </div>
-
         <div className={styles.coverageCard}>
-          <div><strong>이번 달 기록률</strong><span>{monthCounts.eligible ? Math.round((monthCounts.recorded / monthCounts.eligible) * 100) : 0}%</span></div>
-          <div className={styles.coverageTrack}><span style={{ width: `${monthCounts.eligible ? (monthCounts.recorded / monthCounts.eligible) * 100 : 0}%` }} /></div>
-          <p>{monthCounts.recorded}일 기록 · 건강 기록 {monthHealthRecordCount}건 · 주의 알림 {monthAlerts.length}건</p>
-        </div>
-
-        <div className={styles.monthRecordSection}>
-          <div className={styles.monthRecordHeading}>
-            <div><h3>이번 달 다이어리</h3><p>병원 방문 전 보호자가 관찰한 변화를 날짜순으로 확인할 수 있어요.</p></div>
-            <Link to={`/pets/${selectedPet.id}/vitals`}>건강 수치 변화 보기 →</Link>
+          <div className={styles.coverageHeading}>
+            <div><strong>이번 달 기록률</strong><span>{monthCounts.eligible ? Math.round((monthCounts.recorded / monthCounts.eligible) * 100) : 0}%</span></div>
+            <dl className={styles.coverageMetrics}>
+              <div><dt>기록한 날</dt><dd>{monthCounts.recorded} / {monthCounts.eligible}일</dd></div>
+              <div><dt>건강 기록</dt><dd>{isHealthRecordsLoading ? '확인 중' : isQuestionnaireDataAvailable ? `${monthQuestionnaires.length}건` : '확인 불가'}</dd></div>
+              <div><dt>AI 분석 완료</dt><dd>{isHealthRecordsLoading ? '확인 중' : isPredictionDataAvailable ? `${monthAnalyzedCount}건` : '확인 불가'}</dd></div>
+            </dl>
           </div>
-          {monthEntries.length > 0 ? (
-            <div className={styles.monthRecordList}>
-              {monthEntries.map((entry) => (
-                <button type="button" key={entry.date} onClick={() => setSelectedDate(entry.date)}>
-                  <time>{new Intl.DateTimeFormat('ko-KR', { month: 'short', day: 'numeric', weekday: 'short' }).format(parseDateKey(entry.date))}</time>
-                  <span className={entry.status === 'GOOD' ? styles.goodBadge : styles.watchBadge}>{statusLabels[entry.status]}</span>
-                  <p>{entry.note || '작성된 관찰 메모가 없습니다.'}</p>
-                </button>
-              ))}
-            </div>
-          ) : <DataState title="이번 달에 작성한 다이어리가 없습니다.">날짜를 선택하고 첫 상태 기록을 남겨보세요.</DataState>}
+          <div className={styles.coverageTrack}><span style={{ width: `${monthCounts.eligible ? (monthCounts.recorded / monthCounts.eligible) * 100 : 0}%` }} /></div>
+          <p>날짜별 내용은 위 달력에서 바로 선택해 확인할 수 있습니다.</p>
         </div>
       </section>
+
+      {isEditorOpen && (
+        <DiaryEditorModal
+          dateLabel={formatSelectedDate(selectedDate)}
+          petName={selectedPet.name}
+          isToday={isSelectedToday}
+          hasExistingEntry={Boolean(selectedEntry)}
+          status={draftStatus}
+          note={draftNote}
+          saveMessage={saveMessage}
+          isSaving={isSaving}
+          isDeleting={isDeleting}
+          isUnavailable={isDiaryUnavailable}
+          onStatusChange={setDraftStatus}
+          onNoteChange={setDraftNote}
+          onSubmit={handleSave}
+          onDelete={() => setIsDeleteOpen(true)}
+          onRequestClose={requestEditorClose}
+        />
+      )}
 
       {isDeleteOpen && (
         <ConfirmModal
@@ -454,6 +573,28 @@ export function HealthDiaryPage() {
           confirmText={isDeleting ? '삭제 중…' : '기록 삭제'}
           onConfirm={handleDelete}
           onCancel={() => setIsDeleteOpen(false)}
+        />
+      )}
+      {isEditorDiscardOpen && (
+        <ConfirmModal
+          eyebrow="UNSAVED DIARY"
+          closeLabel="작성 중인 일기장 닫기 확인창 닫기"
+          title="작성 중인 내용이 저장되지 않았습니다."
+          description="일기장을 닫으면 선택한 상태와 메모가 사라집니다."
+          confirmText="저장하지 않고 닫기"
+          onConfirm={discardEditorChanges}
+          onCancel={() => setIsEditorDiscardOpen(false)}
+        />
+      )}
+      {(pendingNavigation || routeBlocker.state === 'blocked') && (
+        <ConfirmModal
+          eyebrow="UNSAVED DIARY"
+          closeLabel="작성 중인 다이어리 이동 확인창 닫기"
+          title="작성 중인 내용이 저장되지 않았습니다."
+          description="이동하면 선택한 상태와 메모가 사라집니다. 그래도 이동할까요?"
+          confirmText="저장하지 않고 이동"
+          onConfirm={confirmPendingNavigation}
+          onCancel={cancelPendingNavigation}
         />
       )}
     </div>

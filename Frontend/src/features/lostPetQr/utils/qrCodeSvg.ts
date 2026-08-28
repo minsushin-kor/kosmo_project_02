@@ -4,7 +4,7 @@ const QUIET_ZONE = 4
 export const QR_DARK_COLOR = '#40462d'
 export const QR_LIGHT_COLOR = '#fffdf8'
 
-export type QrSvgData = {
+type QrSvgData = {
   path: string
   viewBoxSize: number
 }

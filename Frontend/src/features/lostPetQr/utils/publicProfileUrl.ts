@@ -6,7 +6,7 @@ function getConfiguredBaseUrl(configuredUrl: string | undefined) {
   return trimTrailingSlash(configuredUrl?.trim() || window.location.origin)
 }
 
-export function getQrPublicBaseUrl() {
+function getQrPublicBaseUrl() {
   return getConfiguredBaseUrl(import.meta.env.VITE_PUBLIC_BASE_URL)
 }
 

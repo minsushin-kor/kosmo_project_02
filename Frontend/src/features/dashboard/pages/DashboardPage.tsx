@@ -8,10 +8,7 @@ import { Link } from 'react-router-dom'
 
 import { DataState } from '../../../components/common/DataState'
 import { TodayStatusRecorder } from '../../diary/components/TodayStatusRecorder'
-import {
-  getHealthAlerts,
-  type HealthAlert,
-} from '../../history/api/healthHistoryApi'
+import { useHealthAlerts } from '../../history/hooks/useHealthAlerts'
 import { PetProfileStrip } from '../../pets/components/PetProfileStrip'
 import { usePets } from '../../pets/hooks/usePets'
 import {
@@ -142,6 +139,10 @@ export function DashboardPage() {
     selectedPet,
     isLoading,
   } = usePets()
+  const {
+    alerts,
+    error: alertError,
+  } = useHealthAlerts()
 
   const [
     latestQuestionnaire,
@@ -149,9 +150,6 @@ export function DashboardPage() {
   ] = useState<QuestionnaireResponse | null>(
     null,
   )
-
-  const [alerts, setAlerts] =
-    useState<HealthAlert[]>([])
 
   const [
     latestPrediction,
@@ -174,7 +172,6 @@ export function DashboardPage() {
   useEffect(() => {
     if (!selectedPet) {
       setLatestQuestionnaire(null)
-      setAlerts([])
       setLatestPrediction(null)
       setLatestReport(null)
       setDashboardError('')
@@ -188,7 +185,6 @@ export function DashboardPage() {
     async function loadDashboard() {
       const results = await Promise.allSettled([
         getQuestionnaires(petId, controller.signal),
-        getHealthAlerts(petId, controller.signal),
         getPredictions(petId, controller.signal),
         getWeeklyReports(petId, controller.signal),
       ])
@@ -199,7 +195,7 @@ export function DashboardPage() {
         return
       }
 
-      const [questionnaireResult, alertResult, predictionResult, reportResult] = results
+      const [questionnaireResult, predictionResult, reportResult] = results
       const questionnaires = questionnaireResult.status === 'fulfilled' ? questionnaireResult.value : []
       const newestPrediction = predictionResult.status === 'fulfilled' ? predictionResult.value[0] ?? null : null
       const predictionQuestionnaire = newestPrediction
@@ -207,18 +203,16 @@ export function DashboardPage() {
         : null
 
       setLatestQuestionnaire(predictionQuestionnaire ?? questionnaires[0] ?? null)
-      setAlerts(alertResult.status === 'fulfilled' ? alertResult.value : [])
       setLatestPrediction(newestPrediction)
       setLatestReport(reportResult.status === 'fulfilled' ? reportResult.value[0] ?? null : null)
 
       const failedSections = [
         questionnaireResult.status === 'rejected' ? '건강 문진' : null,
-        alertResult.status === 'rejected' ? '건강 알림' : null,
         predictionResult.status === 'rejected' ? 'AI 예측' : null,
         reportResult.status === 'rejected' ? '주간 리포트' : null,
       ].filter(Boolean)
       setDashboardError(failedSections.length > 0
-        ? `${failedSections.join(', ')} 데이터를 불러오지 못했습니다. 다른 정보는 정상적으로 표시됩니다.`
+        ? `${failedSections.join(', ')} 정보를 불러오지 못했습니다. 다른 내용은 정상적으로 표시됩니다.`
         : '')
     }
 
@@ -243,6 +237,10 @@ export function DashboardPage() {
     unreadAlerts[0] ??
     alerts[0] ??
     null
+
+  const displayedDashboardError = [dashboardError, alertError]
+    .filter(Boolean)
+    .join(' ')
 
   if (isLoading) {
     return (
@@ -380,9 +378,9 @@ export function DashboardPage() {
 
   return (
     <div className={styles.page}>
-      {dashboardError && (
+      {displayedDashboardError && (
         <DataState title="일부 대시보드 정보를 불러오지 못했습니다." tone="error">
-          {dashboardError}
+          {displayedDashboardError}
         </DataState>
       )}
       <PetProfileStrip />

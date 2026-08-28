@@ -5,9 +5,12 @@ import { DashboardPage } from './DashboardPage'
 
 const api = vi.hoisted(() => ({
   getQuestionnaires: vi.fn(),
-  getHealthAlerts: vi.fn(),
   getPredictions: vi.fn(),
   getWeeklyReports: vi.fn(),
+}))
+const alertState = vi.hoisted(() => ({
+  alerts: [] as Array<{ isRead: boolean }>,
+  error: '',
 }))
 
 vi.mock('../../pets/hooks/usePets', () => ({
@@ -19,12 +22,18 @@ vi.mock('../../pets/hooks/usePets', () => ({
 vi.mock('../../pets/components/PetProfileStrip', () => ({ PetProfileStrip: () => null }))
 vi.mock('../../diary/components/TodayStatusRecorder', () => ({ TodayStatusRecorder: () => null }))
 vi.mock('../../questionnaire/api/questionnaireApi', () => ({ getQuestionnaires: api.getQuestionnaires }))
-vi.mock('../../history/api/healthHistoryApi', () => ({ getHealthAlerts: api.getHealthAlerts }))
+vi.mock('../../history/hooks/useHealthAlerts', () => ({
+  useHealthAlerts: () => alertState,
+}))
 vi.mock('../../predictions/api/predictionApi', () => ({ getPredictions: api.getPredictions }))
 vi.mock('../../reports/api/reportApi', () => ({ getWeeklyReports: api.getWeeklyReports }))
 
 describe('DashboardPage API 오류 상태', () => {
-  beforeEach(() => vi.clearAllMocks())
+  beforeEach(() => {
+    vi.clearAllMocks()
+    alertState.alerts = []
+    alertState.error = ''
+  })
 
   const questionnaire = {
     questionnaireId: 11,
@@ -47,7 +56,7 @@ describe('DashboardPage API 오류 상태', () => {
 
   it('한 API가 실패해도 성공한 데이터와 명시적인 오류를 함께 표시한다', async () => {
     api.getQuestionnaires.mockResolvedValue([questionnaire])
-    api.getHealthAlerts.mockRejectedValue(new Error('alerts unavailable'))
+    alertState.error = '건강 알림 데이터를 불러오지 못했습니다.'
     api.getPredictions.mockResolvedValue([])
     api.getWeeklyReports.mockResolvedValue([])
 
@@ -62,7 +71,6 @@ describe('DashboardPage API 오류 상태', () => {
 
   it('최근 문진이 없으면 기록 없음으로 표시한다', async () => {
     api.getQuestionnaires.mockResolvedValue([])
-    api.getHealthAlerts.mockResolvedValue([])
     api.getPredictions.mockResolvedValue([])
     api.getWeeklyReports.mockResolvedValue([])
 
@@ -77,7 +85,6 @@ describe('DashboardPage API 오류 상태', () => {
 
   it('건강 점수만큼 원형 그래프의 진행 구간을 표시한다', async () => {
     api.getQuestionnaires.mockResolvedValue([questionnaire])
-    api.getHealthAlerts.mockResolvedValue([])
     api.getPredictions.mockResolvedValue([{
       questionnaireId: 11,
       abnormalProbability: 0.3,

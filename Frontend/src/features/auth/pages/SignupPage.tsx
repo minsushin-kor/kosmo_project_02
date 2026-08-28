@@ -83,7 +83,7 @@ export function SignupPage() {
           <h1>함께하는 오늘부터<br />건강한 기록을 시작해요.</h1>
           <span>생체정보와 문진을 한곳에 모아 건강 변화를 꾸준히 확인할 수 있어요.</span>
         </div>
-        <small>비밀번호는 서버에서 암호화하여 저장합니다.</small>
+        <small>비밀번호는 안전하게 보호됩니다.</small>
       </section>
 
       <section className={styles.formPanel}>

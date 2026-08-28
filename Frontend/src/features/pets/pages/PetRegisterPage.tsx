@@ -106,7 +106,7 @@ export function PetRegisterPage() {
       <header className={styles.pageHeader}>
         <p className={styles.eyebrow}>NEW PET PROFILE</p>
         <h1>새로운 가족을<br />소개해 주세요.</h1>
-        <p>기본정보는 건강 데이터와 예측 결과를 정확하게 구분하는 데 사용됩니다.</p>
+        <p>기본정보는 아이별 건강 기록과 예측 결과를 구분하는 데 사용됩니다.</p>
       </header>
 
       <form className={styles.form} onSubmit={handleSubmit}>
@@ -211,7 +211,7 @@ export function PetRegisterPage() {
 
           <div className={styles.infoNotice}>
             <span aria-hidden="true">i</span>
-            <p>등록 정보와 프로필 사진은 Spring Boot API를 통해 PostgreSQL에 저장됩니다.</p>
+            <p>입력한 정보와 프로필 사진을 안전하게 저장합니다.</p>
           </div>
 
           {submitError && <div className={styles.imageError} role="alert">{submitError}</div>}

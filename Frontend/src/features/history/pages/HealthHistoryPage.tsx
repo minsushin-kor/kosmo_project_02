@@ -11,11 +11,9 @@ import {
   type HealthRecordStatus,
 } from '../api/healthRecordApi'
 import {
-  getHealthAlerts,
-  markAllHealthAlertsRead,
-  markHealthAlertRead,
   type HealthAlert,
 } from '../api/healthHistoryApi'
+import { useHealthAlerts } from '../hooks/useHealthAlerts'
 import common from '../../../styles/featurePage.module.css'
 import styles from './HealthHistoryPage.module.css'
 
@@ -107,54 +105,30 @@ function gradeTone(grade: RiskGrade | null) {
 
 export function HealthHistoryPage() {
   const { selectedPet, routePetMissing } = useRoutePet()
+  const {
+    alerts,
+    unreadCount,
+    isLoading: isAlertsLoading,
+    error: alertLoadError,
+    markAlertRead,
+    markAllAlertsRead,
+  } = useHealthAlerts()
   const [searchParams, setSearchParams] = useSearchParams()
   const tab: Tab = searchParams.get('tab') === 'history' ? 'history' : 'alerts'
   const status = parseStatus(searchParams.get('status'))
   const page = parsePage(searchParams.get('page'))
-  const [alerts, setAlerts] = useState<HealthAlert[]>([])
   const [recordPage, setRecordPage] = useState<HealthRecordPage>(emptyPage)
-  const [isAlertsLoading, setIsAlertsLoading] = useState(false)
   const [isRecordsLoading, setIsRecordsLoading] = useState(false)
-  const [alertError, setAlertError] = useState('')
+  const [alertActionError, setAlertActionError] = useState('')
   const [recordError, setRecordError] = useState('')
   const [isMarkingAll, setIsMarkingAll] = useState(false)
-
-  useEffect(() => {
-    if (!selectedPet) {
-      setAlerts([])
-      return
-    }
-
-    const controller = new AbortController()
-    let isActive = true
-    setAlerts([])
-    setAlertError('')
-    setIsAlertsLoading(true)
-
-    getHealthAlerts(selectedPet.id, controller.signal)
-      .then((loadedAlerts) => {
-        if (isActive) setAlerts(loadedAlerts)
-      })
-      .catch((loadError) => {
-        if (isActive && !isAbortError(loadError)) {
-          setAlertError(getApiErrorMessage(loadError, '건강 알림을 불러오지 못했습니다.'))
-        }
-      })
-      .finally(() => {
-        if (isActive) setIsAlertsLoading(false)
-      })
-
-    return () => {
-      isActive = false
-      controller.abort()
-    }
-  }, [selectedPet])
 
   useEffect(() => {
     if (!selectedPet) {
       setRecordPage(emptyPage)
       return
     }
+    if (tab !== 'history') return
 
     const controller = new AbortController()
     let isActive = true
@@ -191,7 +165,7 @@ export function HealthHistoryPage() {
       isActive = false
       controller.abort()
     }
-  }, [page, selectedPet, setSearchParams, status])
+  }, [page, selectedPet, setSearchParams, status, tab])
 
   const paginationItems = useMemo(
     () => getPaginationItems(recordPage.page, recordPage.totalPages),
@@ -231,11 +205,11 @@ export function HealthHistoryPage() {
 
   const handleMarkAllRead = async () => {
     setIsMarkingAll(true)
+    setAlertActionError('')
     try {
-      await markAllHealthAlertsRead(selectedPet.id)
-      setAlerts((current) => current.map((alert) => ({ ...alert, isRead: true })))
+      await markAllAlertsRead()
     } catch (markError) {
-      setAlertError(getApiErrorMessage(markError, '알림을 읽음 처리하지 못했습니다.'))
+      setAlertActionError(getApiErrorMessage(markError, '알림을 읽음 처리하지 못했습니다.'))
     } finally {
       setIsMarkingAll(false)
     }
@@ -245,12 +219,10 @@ export function HealthHistoryPage() {
     if (alert.isRead) return
 
     try {
-      const updated = await markHealthAlertRead(alert.alertId)
-      setAlerts((current) => current.map(
-        (item) => item.alertId === updated.alertId ? updated : item,
-      ))
+      setAlertActionError('')
+      await markAlertRead(alert.alertId)
     } catch (markError) {
-      setAlertError(getApiErrorMessage(markError, '알림을 읽음 처리하지 못했습니다.'))
+      setAlertActionError(getApiErrorMessage(markError, '알림을 읽음 처리하지 못했습니다.'))
     }
   }
 
@@ -258,11 +230,10 @@ export function HealthHistoryPage() {
     if (alert.questionnaireId != null) {
       return `/pets/${selectedPet.id}/health-records/${alert.questionnaireId}`
     }
-    if (alert.predictionId !== null) return `/predictions/${alert.predictionId}`
     return `/pets/${selectedPet.id}/vitals`
   }
 
-  const unreadCount = alerts.filter((alert) => !alert.isRead).length
+  const alertError = alertActionError || alertLoadError
   return (
     <div className={common.page}>
       <header className={common.header}>

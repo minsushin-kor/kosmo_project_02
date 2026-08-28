@@ -26,7 +26,7 @@ export class ApiError extends Error {
   }
 }
 
-export type ApiRequestOptions = RequestInit & {
+type ApiRequestOptions = RequestInit & {
   skipAuth?: boolean
   suppressAuthFailure?: boolean
 }
@@ -79,7 +79,7 @@ export function getApiErrorMessage(error: unknown, fallback: string) {
   }
 
   if (error instanceof TypeError) {
-    return 'Spring Boot 서버에 연결하지 못했습니다. 서버와 데이터베이스 실행 상태를 확인해 주세요.'
+    return '서비스에 연결하지 못했습니다. 잠시 후 다시 시도해 주세요.'
   }
 
   return error instanceof Error ? error.message : fallback

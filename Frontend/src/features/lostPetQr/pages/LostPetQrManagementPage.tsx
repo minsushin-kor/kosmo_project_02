@@ -284,7 +284,7 @@ export function LostPetQrManagementPage() {
           <div className={styles.sectionHeadingRow}>
             <div className={styles.sectionHeading}>
               <span>02</span>
-              <div><h2 id="public-info-heading">공개 정보 확인</h2><p>회원과 반려동물 DB에 저장된 현재 정보입니다.</p></div>
+              <div><h2 id="public-info-heading">공개 정보 확인</h2><p>현재 등록된 보호자와 반려동물 정보입니다.</p></div>
             </div>
             {!isEditingVisibility && (
               <button
@@ -325,7 +325,7 @@ export function LostPetQrManagementPage() {
             <form onSubmit={handleSaveVisibility}>
               <fieldset className={styles.visibilityPanel}>
                 <legend>개인정보 공개 목록</legend>
-                <p>체크를 해제한 정보는 공개 API에서도 전달되지 않습니다.</p>
+                <p>체크를 해제한 정보는 QR을 통해 공개되지 않습니다.</p>
                 <label><input type="checkbox" checked disabled /><span>반려동물 이름 <small>필수</small></span></label>
                 <label><input type="checkbox" checked disabled /><span>보호자 연락처 <small>필수</small></span></label>
                 <label>

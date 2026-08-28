@@ -76,14 +76,6 @@ export async function getPets() {
   return response.map(toPet)
 }
 
-export async function getPet(petId: number) {
-  const response = await apiRequest<PetResponse>(
-    `/pets/${petId}`,
-  )
-
-  return toPet(response)
-}
-
 export async function createPet(
   input: CreatePetInput,
 ) {

@@ -2,11 +2,19 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { HealthRecordPage } from '../api/healthRecordApi'
+import type { HealthAlert } from '../api/healthHistoryApi'
 import { HealthHistoryPage } from './HealthHistoryPage'
 
 const api = vi.hoisted(() => ({
-  getHealthAlerts: vi.fn(),
   getHealthRecords: vi.fn(),
+  markAlertRead: vi.fn(),
+  markAllAlertsRead: vi.fn(),
+}))
+const alertState = vi.hoisted(() => ({
+  alerts: [] as HealthAlert[],
+  unreadCount: 0,
+  isLoading: false,
+  error: '',
 }))
 const selectedPet = vi.hoisted(() => ({ id: 1, name: '초코' }))
 
@@ -16,10 +24,12 @@ vi.mock('../../pets/hooks/useRoutePet', () => ({
     routePetMissing: false,
   }),
 }))
-vi.mock('../api/healthHistoryApi', () => ({
-  getHealthAlerts: api.getHealthAlerts,
-  markAllHealthAlertsRead: vi.fn(),
-  markHealthAlertRead: vi.fn(),
+vi.mock('../hooks/useHealthAlerts', () => ({
+  useHealthAlerts: () => ({
+    ...alertState,
+    markAlertRead: api.markAlertRead,
+    markAllAlertsRead: api.markAllAlertsRead,
+  }),
 }))
 vi.mock('../api/healthRecordApi', () => ({
   getHealthRecords: api.getHealthRecords,
@@ -42,27 +52,22 @@ function pageResponse(overrides: Partial<HealthRecordPage> = {}): HealthRecordPa
 describe('HealthHistoryPage 건강 기록 페이징', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    api.getHealthAlerts.mockResolvedValue([])
+    alertState.alerts = []
+    alertState.unreadCount = 0
+    alertState.isLoading = false
+    alertState.error = ''
     api.getHealthRecords.mockResolvedValue(pageResponse())
   })
 
-  it('알림과 첫 건강 기록 페이지를 각각 조회한다', async () => {
+  it('알림 탭에서는 건강 기록 API를 호출하지 않는다', async () => {
     render(<MemoryRouter><HealthHistoryPage /></MemoryRouter>)
 
-    await waitFor(() => expect(api.getHealthRecords).toHaveBeenCalledTimes(1))
-    expect(api.getHealthAlerts).toHaveBeenCalledWith(1, expect.any(AbortSignal))
-    expect(api.getHealthRecords).toHaveBeenCalledWith(
-      1,
-      0,
-      6,
-      'ALL',
-      expect.any(AbortSignal),
-    )
     expect(await screen.findByText('도착한 건강 알림이 없습니다.')).toBeInTheDocument()
+    expect(api.getHealthRecords).not.toHaveBeenCalled()
   })
 
   it('알림 단계와 상세 기록 링크를 표시하고 미분석 안내는 알림 탭에서 숨긴다', async () => {
-    api.getHealthAlerts.mockResolvedValue([
+    alertState.alerts = [
       {
         alertId: 1,
         petId: 1,
@@ -99,7 +104,8 @@ describe('HealthHistoryPage 건강 기록 페이징', () => {
         isRead: false,
         createdAt: '2026-08-26T10:00:00+09:00',
       },
-    ])
+    ]
+    alertState.unreadCount = 2
     api.getHealthRecords.mockResolvedValue(pageResponse({ unanalyzedCount: 2 }))
 
     render(<MemoryRouter><HealthHistoryPage /></MemoryRouter>)

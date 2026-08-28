@@ -1,0 +1,66 @@
+.alertButton {
+  position: relative;
+  display: grid;
+  width: 2.75rem;
+  height: 2.75rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid var(--color-line);
+  border-radius: 0.85rem;
+  background: var(--color-surface);
+  box-shadow: 0 0.3rem 1rem rgba(64, 70, 45, 0.08);
+  color: var(--color-text-strong);
+  text-decoration: none;
+  transition: box-shadow 140ms ease, transform 140ms ease;
+}
+
+.alertButton:hover {
+  box-shadow: 0 0.55rem 1.4rem rgba(64, 70, 45, 0.13);
+  transform: translateY(-1px);
+}
+
+.alertButton:focus-visible {
+  outline: 3px solid rgba(64, 70, 45, 0.3);
+  outline-offset: 2px;
+}
+
+.alertButton svg {
+  width: 1.25rem;
+  height: 1.25rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+}
+
+.alertButton span {
+  position: absolute;
+  top: -0.28rem;
+  right: -0.28rem;
+  display: grid;
+  min-width: 1.1rem;
+  height: 1.1rem;
+  padding: 0 0.24rem;
+  place-items: center;
+  border: 2px solid var(--color-surface);
+  border-radius: 999px;
+  background: var(--color-caution);
+  color: #fff;
+  font-size: 0.52rem;
+  font-weight: 900;
+  line-height: 1;
+}
+
+@media (max-width: 520px) {
+  .alertButton {
+    width: 2.5rem;
+    height: 2.5rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .alertButton {
+    transition: none;
+  }
+}

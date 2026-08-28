@@ -4,6 +4,7 @@ import rainyImage from '../../../assets/images/walk-advice/walk-rainy.webp'
 import sunnyImage from '../../../assets/images/walk-advice/walk-sunny.webp'
 import { getApiErrorMessage, isAbortError } from '../../../shared/api/apiClient'
 import { getWalkAdvice } from '../api/walkAdviceApi'
+import { useWalkAdvice } from '../hooks/useWalkAdvice'
 import type { WalkAdvice, WalkWeatherCondition } from '../types'
 import { getWalkAdviceCopy } from '../utils/walkAdviceView'
 import styles from './WalkAdviceWidget.module.css'
@@ -22,49 +23,82 @@ const weatherImageByCondition: Record<WalkWeatherCondition, string> = {
 }
 
 export function WalkAdviceWidget({ petId, petName }: WalkAdviceWidgetProps) {
+  const defaultAdvice = useWalkAdvice()
   const [locationInput, setLocationInput] = useState('')
   const [requestedLocation, setRequestedLocation] = useState<string>()
-  const [advice, setAdvice] = useState<WalkAdvice | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState('')
+  const [requestedPetId, setRequestedPetId] = useState(petId)
+  const [searchVersion, setSearchVersion] = useState(0)
+  const [customAdvice, setCustomAdvice] = useState<WalkAdvice | null>(null)
+  const [isCustomLoading, setIsCustomLoading] = useState(false)
+  const [customError, setCustomError] = useState('')
 
   useEffect(() => {
+    if (!requestedLocation || requestedPetId !== petId) return
+
     const controller = new AbortController()
 
-    setIsLoading(true)
-    setError('')
+    setIsCustomLoading(true)
+    setCustomError('')
 
     getWalkAdvice(petId, controller.signal, requestedLocation)
-      .then(setAdvice)
+      .then(setCustomAdvice)
       .catch((loadError: unknown) => {
         if (isAbortError(loadError)) {
           return
         }
 
-        setAdvice(null)
-        setError(getApiErrorMessage(loadError, '오늘의 산책 날씨를 불러오지 못했어요.'))
+        setCustomAdvice(null)
+        setCustomError(getApiErrorMessage(loadError, '검색한 지역의 산책 날씨를 불러오지 못했어요.'))
       })
       .finally(() => {
         if (!controller.signal.aborted) {
-          setIsLoading(false)
+          setIsCustomLoading(false)
         }
       })
 
     return () => controller.abort()
-  }, [petId, requestedLocation])
+  }, [petId, requestedLocation, requestedPetId, searchVersion])
+
+  useEffect(() => {
+    setLocationInput('')
+    setRequestedLocation(undefined)
+    setRequestedPetId(petId)
+    setCustomAdvice(null)
+    setCustomError('')
+  }, [petId])
 
   const handleLocationSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     const nextLocation = locationInput.trim()
     if (nextLocation) {
+      setCustomAdvice(null)
+      setCustomError('')
+      setIsCustomLoading(true)
+      setRequestedPetId(petId)
       setRequestedLocation(nextLocation)
+      setSearchVersion((current) => current + 1)
     }
   }
 
   const resetToMemberAddress = () => {
     setLocationInput('')
     setRequestedLocation(undefined)
+    setRequestedPetId(petId)
+    setCustomAdvice(null)
+    setCustomError('')
   }
+
+  const isCurrentPet = defaultAdvice.petId === petId
+  const hasCustomLocation = Boolean(requestedLocation) && requestedPetId === petId
+  const advice = hasCustomLocation
+    ? customAdvice
+    : isCurrentPet ? defaultAdvice.advice : null
+  const isLoading = hasCustomLocation
+    ? isCustomLoading
+    : !isCurrentPet || defaultAdvice.isLoading
+  const error = hasCustomLocation
+    ? customError
+    : isCurrentPet ? defaultAdvice.error : ''
 
   const locationTools = (
     <div className={styles.locationTools}>
@@ -81,7 +115,7 @@ export function WalkAdviceWidget({ petId, petName }: WalkAdviceWidgetProps) {
         />
         <button type="submit" disabled={!locationInput.trim() || isLoading}>확인</button>
       </form>
-      {requestedLocation && (
+      {hasCustomLocation && (
         <button className={styles.memberLocationButton} type="button" onClick={resetToMemberAddress}>
           내 주소로 돌아가기
         </button>

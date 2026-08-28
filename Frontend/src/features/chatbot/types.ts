@@ -1,6 +1,6 @@
-export type ChatRole = 'user' | 'assistant'
+type ChatRole = 'user' | 'assistant'
 
-export type ChatMessageState = 'complete' | 'streaming' | 'error' | 'stopped'
+type ChatMessageState = 'complete' | 'streaming' | 'error' | 'stopped'
 
 export type ChatSource = {
   sourceId?: string

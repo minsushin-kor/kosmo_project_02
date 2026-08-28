@@ -1,6 +1,6 @@
 import { apiRequest } from '../../../shared/api/apiClient'
 
-export type FoodRecommendationSpecies = 'DOG' | 'CAT'
+type FoodRecommendationSpecies = 'DOG' | 'CAT'
 
 export type FoodRecommendationRequest = {
   petName?: string
@@ -12,7 +12,7 @@ export type FoodRecommendationRequest = {
   additionalNotes?: string
 }
 
-export type RecommendedIngredient = {
+type RecommendedIngredient = {
   name: string
   reason: string
 }

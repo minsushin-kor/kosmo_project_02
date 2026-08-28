@@ -176,20 +176,13 @@ export function QuestionnairePage() {
         setSavedQuestionnaire(questionnaire)
       }
 
-      const prediction =
-        await createPrediction(
+      await createPrediction(
           questionnaire.questionnaireId,
         )
 
       navigate(
-        `/predictions/${prediction.predictionId}`,
-        {
-          state: {
-            prediction,
-            questionnaire,
-            petName: selectedPet.name,
-          },
-        },
+        `/pets/${selectedPet.id}/health-records/${questionnaire.questionnaireId}`,
+        { replace: true },
       )
     } catch (error) {
       const message = getApiErrorMessage(
@@ -228,7 +221,7 @@ export function QuestionnairePage() {
     if (currentStep === 1) {
       return (
         <div className={styles.stepContent}>
-          <div className={styles.stepHeading}><span aria-hidden="true">✦</span><div><p>STEP 02</p><h2>피부와 소화 상태는 어떤가요?</h2><small>백엔드 문진 항목과 동일한 기준으로 선택해 주세요.</small></div></div>
+          <div className={styles.stepHeading}><span aria-hidden="true">✦</span><div><p>STEP 02</p><h2>피부와 소화 상태는 어떤가요?</h2><small>현재 눈에 띄는 증상을 모두 선택해 주세요.</small></div></div>
           <fieldset className={styles.optionSection}>
             <legend>피부 상태</legend>
             <div className={styles.optionGrid}>
@@ -258,7 +251,7 @@ export function QuestionnairePage() {
 
       return (
         <div className={styles.stepContent}>
-          <div className={styles.stepHeading}><span aria-hidden="true">☀</span><div><p>STEP 03</p><h2>오늘의 생활 상태를 알려주세요.</h2><small>선택값은 Spring Boot와 FastAPI의 enum 값으로 전달됩니다.</small></div></div>
+          <div className={styles.stepHeading}><span aria-hidden="true">☀</span><div><p>STEP 03</p><h2>오늘의 생활 상태를 알려주세요.</h2><small>평소와 비교해 가장 가까운 상태를 선택해 주세요.</small></div></div>
           {levelGroups.map(([key, label, value, options]) => (
             <fieldset className={styles.optionSection} key={key}><legend>{label}</legend><div className={styles.optionGrid}>
               {options.map((option) => <label key={option}><input type="radio" name={key} checked={value === option} onChange={() => update(key, option)} /><span>{levelLabels[option]}</span></label>)}

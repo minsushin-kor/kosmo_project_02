@@ -4,8 +4,11 @@ import { BrandMark } from '../components/common/BrandMark'
 import { useAuth } from '../features/auth/hooks/useAuth'
 import { ChatAssistant } from '../features/chatbot/components/ChatAssistant'
 import { ChatProvider } from '../features/chatbot/context/ChatProvider'
+import { HealthAlertTopButton } from '../features/history/components/HealthAlertTopButton'
+import { HealthAlertProvider } from '../features/history/context/HealthAlertProvider'
 import { usePets } from '../features/pets/hooks/usePets'
 import { WalkAdviceTopCard } from '../features/walkAdvice/components/WalkAdviceTopCard'
+import { WalkAdviceProvider } from '../features/walkAdvice/context/WalkAdviceProvider'
 import styles from './MainLayout.module.css'
 
 const DASHBOARD_CHAT_HIDDEN_KEY = 'petpulse-dashboard-chat-hidden'
@@ -35,8 +38,8 @@ function MainLayoutContent() {
     { label: '주간 리포트', to: selectedPet ? `${petRecordBase}/reports` : '/pets' },
     { label: '건강 다이어리', to: selectedPet ? `${petRecordBase}/diary` : '/pets' },
   ]
-  const isHealthRecords = isDashboard || /^\/pets\/[^/]+\/(vitals|questionnaire|history|alerts|reports|diary)$/.test(pathname) ||
-    pathname.startsWith('/predictions/') || pathname.startsWith('/reports/')
+  const isHealthRecords = isDashboard || pathname === '/diary' || /^\/pets\/[^/]+\/(vitals|questionnaire|history|alerts|health-records|reports|diary)(\/.*)?$/.test(pathname) ||
+    pathname.startsWith('/reports/')
   const isMyPage = pathname.startsWith('/mypage') || pathname === '/pets' || pathname === '/pets/new' ||
     /^\/pets\/[^/]+\/edit$/.test(pathname)
   const [isChatOpen, setIsChatOpen] = useState(() => (
@@ -211,6 +214,7 @@ function MainLayoutContent() {
           <div className={styles.headerActions}>
             {currentUser ? (
               <>
+                {selectedPet && <HealthAlertTopButton petId={selectedPet.id} petName={selectedPet.name} />}
                 {selectedPet && <WalkAdviceTopCard petId={selectedPet.id} petName={selectedPet.name} />}
                 <Link className={styles.userSummary} to="/mypage" aria-label={`${currentUser.name}님의 마이페이지`}>
                   <span aria-hidden="true">{currentUser.name.slice(0, 1)}</span>
@@ -284,7 +288,11 @@ function MainLayoutContent() {
 export function MainLayout() {
   return (
     <ChatProvider>
-      <MainLayoutContent />
+      <HealthAlertProvider>
+        <WalkAdviceProvider>
+          <MainLayoutContent />
+        </WalkAdviceProvider>
+      </HealthAlertProvider>
     </ChatProvider>
   )
 }

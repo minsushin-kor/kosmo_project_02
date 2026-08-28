@@ -1,5 +1,6 @@
 .picker {
-  width: min(100%, 31.75rem);
+  --profile-visible-count: 5;
+  width: min(100%, calc(var(--profile-visible-count) * 5.35rem + 5rem));
   min-width: 0;
 }
 
@@ -22,7 +23,7 @@
 }
 
 .viewport {
-  max-width: 26.75rem;
+  max-width: calc(var(--profile-visible-count) * 5.35rem);
   min-width: 0;
   overflow-x: auto;
   padding: 0.35rem;

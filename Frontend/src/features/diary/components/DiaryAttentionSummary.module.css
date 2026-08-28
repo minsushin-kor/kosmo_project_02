@@ -1,0 +1,124 @@
+.summary {
+  width: 100%;
+  min-width: 0;
+  min-height: 7.1rem;
+  padding: 0.35rem 0 0.35rem 1.25rem;
+  border-left: 1px solid var(--color-line);
+}
+
+.summary header {
+  display: flex;
+  min-height: 1.55rem;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.summary header h2 {
+  margin: 0;
+}
+
+.summary header h2 {
+  color: var(--color-text-strong);
+  font-size: 0.76rem;
+  font-weight: 850;
+}
+
+.summary header > span {
+  color: var(--color-text-soft);
+  font-size: 0.6rem;
+  font-weight: 800;
+}
+
+.summary ul {
+  display: grid;
+  margin: 0.45rem 0 0;
+  padding: 0;
+  list-style: none;
+  gap: 0.3rem;
+}
+
+.summary li {
+  display: grid;
+  border-left: 2px solid var(--color-watch);
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.summary li.danger {
+  border-left-color: var(--color-danger);
+}
+
+.itemCopy {
+  display: grid;
+  padding: 0.25rem 0.5rem;
+  color: var(--color-text-muted);
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: baseline;
+  gap: 0.45rem;
+}
+
+.summary strong {
+  color: var(--color-text-strong);
+  font-size: 0.69rem;
+  white-space: nowrap;
+}
+
+.itemCopy span {
+  font-size: 0.68rem;
+  line-height: 1.55;
+}
+
+.action {
+  color: var(--color-text-strong);
+  font-size: 0.62rem;
+  font-weight: 850;
+  text-decoration: underline;
+  text-underline-offset: 0.2rem;
+  white-space: nowrap;
+}
+
+.action:hover {
+  color: var(--color-secondary-strong);
+}
+
+.empty {
+  margin: 0.65rem 0 0;
+  color: var(--color-text-soft);
+  font-size: 0.69rem;
+  line-height: 1.55;
+}
+
+.error {
+  margin: 0.4rem 0 0;
+  color: var(--color-danger);
+  font-size: 0.59rem;
+}
+
+.more {
+  margin: 0.5rem 0 0;
+  color: var(--color-text-soft);
+  font-size: 0.64rem;
+}
+
+@media (max-width: 900px) {
+  .summary {
+    min-height: auto;
+    padding: 1rem 0 0.2rem;
+    border-top: 1px solid var(--color-line);
+    border-left: 0;
+  }
+}
+
+@media (max-width: 520px) {
+  .summary li {
+    grid-template-columns: 1fr;
+    gap: 0.1rem;
+  }
+
+  .action {
+    margin: 0 0 0.3rem 0.5rem;
+    justify-self: start;
+  }
+}

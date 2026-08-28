@@ -1,6 +1,7 @@
 import { createBrowserRouter } from 'react-router-dom'
 import { DashboardPage } from '../features/dashboard/pages/DashboardPage'
 import { HealthDiaryPage } from '../features/diary/pages/HealthDiaryPage'
+import { HealthDiaryRedirect } from '../features/diary/pages/HealthDiaryRedirect'
 import { NotFoundPage } from '../features/errors/pages/NotFoundPage'
 import { FoodRecommendationPage } from '../features/foodRecommendation/pages/FoodRecommendationPage'
 import { HealthHistoryPage } from '../features/history/pages/HealthHistoryPage'
@@ -11,7 +12,6 @@ import { SignupPage } from '../features/auth/pages/SignupPage'
 import { ProtectedRoute } from '../features/auth/components/ProtectedRoute'
 import { MyPage } from '../features/profile/pages/MyPage'
 import { MemberProfileEditPage } from '../features/profile/pages/MemberProfileEditPage'
-import { PredictionResultPage } from '../features/predictions/pages/PredictionResultPage'
 import { PetListPage } from '../features/pets/pages/PetListPage'
 import { PetEditPage } from '../features/pets/pages/PetEditPage'
 import { PetRegisterPage } from '../features/pets/pages/PetRegisterPage'
@@ -62,7 +62,7 @@ export const router = createBrowserRouter([
           { path: '/pets/:petId/health-records/:questionnaireId', element: <HealthRecordDetailPage /> },
           { path: '/pets/:petId/reports', element: <ReportsListPage /> },
           { path: '/pets/:petId/diary', element: <HealthDiaryPage /> },
-          { path: '/predictions/:predictionId', element: <PredictionResultPage /> },
+          { path: '/diary', element: <HealthDiaryRedirect /> },
           { path: '/reports/:reportId', element: <ReportDetailPage /> },
         ],
       },

@@ -100,7 +100,6 @@ export function LoginPage() {
           </form>
 
           <p className={styles.switchText}>아직 계정이 없나요? <Link to="/signup">회원가입</Link></p>
-          <div className={styles.infoNotice}>로그인 정보는 PatPet 서버에서 안전하게 확인합니다.</div>
         </div>
       </section>
     </div>

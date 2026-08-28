@@ -253,7 +253,6 @@
   text-underline-offset: 0.25rem;
 }
 
-.infoNotice,
 .successMessage,
 .errorMessage {
   margin-top: 1.25rem;
@@ -261,12 +260,6 @@
   border-radius: 0.85rem;
   font-size: 0.72rem;
   line-height: 1.55;
-}
-
-.infoNotice {
-  background: var(--color-sand-soft);
-  color: var(--color-text-muted);
-  text-align: center;
 }
 
 .successMessage {
@@ -281,22 +274,6 @@
 
 .successMessage span {
   margin-top: 0.2rem;
-}
-
-.petRegisterLink {
-  display: flex;
-  margin-top: 0.75rem;
-  padding-top: 0.75rem;
-  border-top: 1px solid rgba(67, 102, 61, 0.18);
-  color: var(--color-success-strong);
-  justify-content: space-between;
-  gap: 0.5rem;
-  font-weight: 700;
-  text-decoration: none;
-}
-
-.petRegisterLink b {
-  white-space: nowrap;
 }
 
 .errorMessage {

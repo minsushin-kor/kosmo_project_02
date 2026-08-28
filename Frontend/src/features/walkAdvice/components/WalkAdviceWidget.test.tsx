@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { getWalkAdvice } from '../api/walkAdviceApi'
+import type { WalkAdvice } from '../types'
 import { WalkAdviceWidget } from './WalkAdviceWidget'
 
 vi.mock('../api/walkAdviceApi', () => ({
@@ -8,11 +9,24 @@ vi.mock('../api/walkAdviceApi', () => ({
 }))
 
 const getWalkAdviceMock = vi.mocked(getWalkAdvice)
+const walkAdviceState = vi.hoisted(() => ({
+  petId: 1,
+  advice: null as WalkAdvice | null,
+  isLoading: false,
+  error: '',
+}))
+
+vi.mock('../hooks/useWalkAdvice', () => ({
+  useWalkAdvice: () => walkAdviceState,
+}))
 
 describe('WalkAdviceWidget', () => {
   beforeEach(() => {
     getWalkAdviceMock.mockClear()
-    getWalkAdviceMock.mockResolvedValue({
+    walkAdviceState.petId = 1
+    walkAdviceState.isLoading = false
+    walkAdviceState.error = ''
+    walkAdviceState.advice = {
       petId: 1,
       condition: 'GOOD',
       recommendationScore: 92,
@@ -27,6 +41,10 @@ describe('WalkAdviceWidget', () => {
       pm10: 20,
       pm25: 10,
       recommendationReason: '기온과 강수, 대기질이 산책하기 무난해요.',
+    }
+    getWalkAdviceMock.mockResolvedValue({
+      ...walkAdviceState.advice!,
+      locationSource: 'SEARCHED',
     })
   })
 
@@ -42,7 +60,7 @@ describe('WalkAdviceWidget', () => {
     expect(screen.getByText('서울특별시 종로구 청운동')).toBeInTheDocument()
     expect(screen.getByText('등록 주소')).toBeInTheDocument()
     expect(screen.getByText('92점')).toBeInTheDocument()
-    expect(getWalkAdviceMock).toHaveBeenCalledWith(1, expect.anything(), undefined)
+    expect(getWalkAdviceMock).not.toHaveBeenCalled()
   })
 
   it('입력한 다른 지역을 조회하고 회원 주소로 돌아간다', async () => {
@@ -63,8 +81,7 @@ describe('WalkAdviceWidget', () => {
     })
 
     fireEvent.click(await screen.findByRole('button', { name: '내 주소로 돌아가기' }))
-    await waitFor(() => {
-      expect(getWalkAdviceMock).toHaveBeenLastCalledWith(1, expect.anything(), undefined)
-    })
+    expect(getWalkAdviceMock).toHaveBeenCalledTimes(1)
+    expect(screen.getByText('등록 주소')).toBeInTheDocument()
   })
 })

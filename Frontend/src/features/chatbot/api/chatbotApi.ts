@@ -83,7 +83,7 @@ export async function streamChat(
   })
 
   if (!response.ok) {
-    let detail = '챗봇 서버에 연결하지 못했습니다.'
+    let detail = 'AI 건강 도우미의 답변을 불러오지 못했습니다.'
 
     try {
       const errorBody = await response.json() as { detail?: string; message?: string }

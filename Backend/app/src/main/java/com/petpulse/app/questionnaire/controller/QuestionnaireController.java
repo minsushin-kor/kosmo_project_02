@@ -1,5 +1,7 @@
 package com.petpulse.app.questionnaire.controller;
 
+import com.petpulse.app.global.exception.BusinessException;
+import com.petpulse.app.global.exception.ErrorCode;
 import com.petpulse.app.questionnaire.dto.QuestionnaireRequest;
 import com.petpulse.app.questionnaire.dto.QuestionnaireResponse;
 import com.petpulse.app.questionnaire.service.QuestionnaireService;
@@ -33,10 +35,27 @@ public class QuestionnaireController {
     @GetMapping("/api/pets/{petId}/questionnaires")
     public ResponseEntity<List<QuestionnaireResponse>> getQuestionnaires(
             Authentication authentication,
-            @PathVariable Long petId) {
+            @PathVariable Long petId,
+            @RequestParam(required = false) Integer year,
+            @RequestParam(required = false) Integer month) {
+
+        if (year == null && month == null) {
+            return ResponseEntity.ok(
+                    questionnaireService.getQuestionnaires(authentication.getName(), petId));
+        }
+
+        if (year == null || month == null) {
+            throw new BusinessException(
+                    ErrorCode.INVALID_REQUEST,
+                    "year와 month는 함께 입력해야 합니다.");
+        }
 
         return ResponseEntity.ok(
-                questionnaireService.getQuestionnaires(authentication.getName(), petId));
+                questionnaireService.getMonthlyQuestionnaires(
+                        authentication.getName(),
+                        petId,
+                        year,
+                        month));
     }
 
     @GetMapping("/api/questionnaires/{questionnaireId}")

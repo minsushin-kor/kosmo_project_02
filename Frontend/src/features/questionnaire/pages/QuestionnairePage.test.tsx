@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { MemoryRouter } from 'react-router-dom'
+import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { QuestionnairePage } from './QuestionnairePage'
 
@@ -23,13 +23,24 @@ vi.mock('../../predictions/api/predictionApi', () => ({
   createPrediction: api.createPrediction,
 }))
 
+function renderPage() {
+  return render(
+    <MemoryRouter initialEntries={['/pets/1/questionnaire']}>
+      <Routes>
+        <Route path="/pets/:petId/questionnaire" element={<QuestionnairePage />} />
+        <Route path="/pets/:petId/health-records/:questionnaireId" element={<div>건강 기록 상세 화면</div>} />
+      </Routes>
+    </MemoryRouter>,
+  )
+}
+
 describe('QuestionnairePage 생체정보 입력', () => {
   beforeEach(() => {
     vi.clearAllMocks()
   })
 
   it('기본값 대신 예시만 표시하고 실제 입력 전에는 다음 단계로 이동하지 않는다', () => {
-    render(<MemoryRouter><QuestionnairePage /></MemoryRouter>)
+    renderPage()
 
     const temperature = screen.getByRole('spinbutton', { name: /^체온/ })
     const heartRate = screen.getByRole('spinbutton', { name: /^심박수/ })
@@ -75,7 +86,7 @@ describe('QuestionnairePage 생체정보 입력', () => {
     })
     api.createPrediction.mockRejectedValue(new Error('AI 서버 연결 실패'))
 
-    render(<MemoryRouter><QuestionnairePage /></MemoryRouter>)
+    renderPage()
 
     fireEvent.change(screen.getByRole('spinbutton', { name: /^체온/ }), { target: { value: '38.4' } })
     fireEvent.change(screen.getByRole('spinbutton', { name: /^심박수/ }), { target: { value: '92' } })
@@ -96,5 +107,40 @@ describe('QuestionnairePage 생체정보 입력', () => {
 
     await waitFor(() => expect(api.createPrediction).toHaveBeenCalledTimes(2))
     expect(api.createQuestionnaire).toHaveBeenCalledTimes(1)
+  })
+
+  it('AI 분석 완료 후 문진과 결과를 함께 보는 건강 기록 상세로 이동한다', async () => {
+    api.createQuestionnaire.mockResolvedValue({
+      questionnaireId: 16,
+      petId: 1,
+      temperature: 38.4,
+      heartRate: 92,
+      respiratoryRate: 24,
+      skinCondition: 'NORMAL',
+      itching: false,
+      hairLoss: false,
+      vomiting: false,
+      diarrhea: false,
+      appetiteLevel: 'NORMAL',
+      waterIntakeLevel: 'NORMAL',
+      activityLevel: 'NORMAL',
+      symptomDurationDays: 0,
+      additionalSymptoms: null,
+      submittedAt: '2026-08-28T10:00:00+09:00',
+    })
+    api.createPrediction.mockResolvedValue({ predictionId: 30, questionnaireId: 16 })
+
+    renderPage()
+
+    fireEvent.change(screen.getByRole('spinbutton', { name: /^체온/ }), { target: { value: '38.4' } })
+    fireEvent.change(screen.getByRole('spinbutton', { name: /^심박수/ }), { target: { value: '92' } })
+    fireEvent.change(screen.getByRole('spinbutton', { name: /^호흡수/ }), { target: { value: '24' } })
+    for (let step = 0; step < 4; step += 1) {
+      fireEvent.click(screen.getByRole('button', { name: '다음 단계' }))
+    }
+
+    fireEvent.click(screen.getByRole('button', { name: 'AI 분석 요청하기' }))
+
+    expect(await screen.findByText('건강 기록 상세 화면')).toBeInTheDocument()
   })
 })

@@ -1,0 +1,390 @@
+.backdrop {
+  position: fixed;
+  z-index: 90;
+  inset: 0;
+  display: grid;
+  overflow-y: auto;
+  padding: clamp(1rem, 4vw, 2.5rem);
+  background: rgba(31, 34, 24, 0.62);
+  place-items: center;
+  backdrop-filter: blur(6px);
+  animation: backdrop-in 180ms ease-out;
+}
+
+.dialog {
+  position: relative;
+  width: min(100%, 55rem);
+  perspective: 100rem;
+}
+
+.book {
+  position: relative;
+  display: grid;
+  overflow: hidden;
+  border: 1px solid rgba(100, 89, 64, 0.3);
+  border-radius: 0.8rem 1.2rem 1.2rem 0.8rem;
+  background: #e7dcc2;
+  box-shadow: 0 2rem 5rem rgba(23, 27, 18, 0.38), 0 0 0 0.45rem rgba(74, 77, 53, 0.2);
+  grid-template-columns: 1fr 1fr;
+  transform-style: preserve-3d;
+  animation: book-rise 420ms cubic-bezier(0.2, 0.78, 0.24, 1);
+}
+
+.book::after {
+  position: absolute;
+  z-index: 3;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 1.1rem;
+  background: linear-gradient(90deg, rgba(77, 67, 49, 0.12), rgba(255, 255, 255, 0.28), rgba(77, 67, 49, 0.14));
+  content: '';
+  pointer-events: none;
+  transform: translateX(-50%);
+}
+
+.page {
+  position: relative;
+  min-width: 0;
+  min-height: 30rem;
+  background: var(--color-bg);
+  backface-visibility: hidden;
+}
+
+.leftPage {
+  transform-origin: right center;
+  animation: left-page-open 460ms cubic-bezier(0.2, 0.76, 0.22, 1);
+}
+
+.rightPage {
+  border-left: 1px solid rgba(99, 88, 66, 0.16);
+  transform-origin: left center;
+  animation: right-page-open 460ms cubic-bezier(0.2, 0.76, 0.22, 1);
+}
+
+.pageInner,
+.form {
+  min-height: 30rem;
+  padding: clamp(1.7rem, 4vw, 2.5rem);
+}
+
+.eyebrow {
+  margin: 0 0 0.55rem;
+  color: var(--color-secondary-strong);
+  font-size: 0.6rem;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+}
+
+.page h2 {
+  margin: 0;
+  color: var(--color-text-strong);
+  font-family: var(--font-display);
+  font-size: clamp(1.65rem, 4vw, 2.35rem);
+  letter-spacing: -0.045em;
+}
+
+.petLine {
+  margin: 0.65rem 0 0;
+  color: var(--color-text-muted);
+  font-size: 0.72rem;
+  line-height: 1.6;
+}
+
+.page fieldset {
+  margin: 2.5rem 0 0;
+  padding: 0;
+  border: 0;
+}
+
+.page legend,
+.noteField > span {
+  margin-bottom: 0.75rem;
+  color: var(--color-text-strong);
+  font-size: 0.76rem;
+  font-weight: 850;
+}
+
+.statusChoices {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.55rem;
+}
+
+.statusChoices label {
+  position: relative;
+  display: flex;
+  min-height: 3rem;
+  border: 1px solid rgba(103, 108, 79, 0.24);
+  border-radius: 0.75rem;
+  background: rgba(255, 253, 247, 0.68);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  gap: 0.42rem;
+  font-size: 0.7rem;
+  font-weight: 800;
+}
+
+.statusChoices input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+.statusChoices label:has(input:focus-visible) {
+  outline: 3px solid rgba(64, 70, 45, 0.3);
+  outline-offset: 2px;
+}
+
+.statusChoices label > span {
+  font-size: 0.62rem;
+}
+
+.checkedGood {
+  border-color: var(--color-success) !important;
+  background: var(--color-success-soft) !important;
+  color: var(--color-success-strong) !important;
+}
+
+.checkedWatch {
+  border-color: var(--color-watch) !important;
+  background: var(--color-watch-soft) !important;
+  color: var(--color-watch) !important;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+}
+
+.noteField {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+}
+
+.noteField > span {
+  display: block;
+}
+
+.noteField textarea {
+  width: 100%;
+  min-height: 17rem;
+  flex: 1;
+  resize: none;
+  padding: 0.15rem 0.2rem 0;
+  border: 0;
+  outline: 0;
+  background-color: transparent;
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent 0,
+    transparent calc(1.9rem - 1px),
+    rgba(103, 113, 78, 0.3) calc(1.9rem - 1px),
+    rgba(103, 113, 78, 0.3) 1.9rem
+  );
+  background-position: 0 0.15rem;
+  color: var(--color-text-strong);
+  font: inherit;
+  font-size: 0.78rem;
+  line-height: 1.9rem;
+}
+
+.noteField textarea::placeholder {
+  color: var(--color-text-soft);
+}
+
+.noteField textarea:focus {
+  box-shadow: inset 0 -2px 0 rgba(127, 138, 102, 0.42);
+}
+
+.noteField small {
+  margin-top: 0.35rem;
+  color: var(--color-text-soft);
+  font-size: 0.61rem;
+  text-align: right;
+}
+
+.page fieldset:disabled,
+.noteField textarea:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
+}
+
+.saveMessage {
+  margin: 0.55rem 0 0;
+  color: var(--color-secondary-strong);
+  font-size: 0.66rem;
+  line-height: 1.45;
+}
+
+.actions {
+  display: flex;
+  margin-top: 1rem;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.45rem;
+}
+
+.actions button {
+  min-height: 2.65rem;
+  padding: 0 0.9rem;
+  border-radius: 999px;
+  cursor: pointer;
+  font-size: 0.68rem;
+  font-weight: 850;
+}
+
+.actions button:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+.deleteButton {
+  margin-right: auto;
+  border: 1px solid rgba(181, 93, 73, 0.28);
+  background: transparent;
+  color: var(--color-danger);
+}
+
+.cancelButton {
+  border: 1px solid var(--color-line);
+  background: rgba(255, 253, 247, 0.72);
+  color: var(--color-text-strong);
+}
+
+.saveButton {
+  border: 1px solid var(--color-primary);
+  background: var(--color-primary);
+  color: var(--color-cream);
+}
+
+.closeButton {
+  position: absolute;
+  z-index: 6;
+  top: -0.85rem;
+  right: -0.85rem;
+  display: grid;
+  width: 2.15rem;
+  height: 2.15rem;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.52);
+  border-radius: 50%;
+  background: var(--color-primary);
+  box-shadow: 0 0.4rem 1rem rgba(28, 33, 22, 0.28);
+  color: var(--color-cream);
+  cursor: pointer;
+  font-size: 1.2rem;
+  place-items: center;
+}
+
+@keyframes backdrop-in {
+  from { opacity: 0; }
+}
+
+@keyframes book-rise {
+  from {
+    opacity: 0;
+    transform: translateY(1.5rem) scale(0.92);
+  }
+}
+
+@keyframes left-page-open {
+  from {
+    opacity: 0.45;
+    transform: rotateY(72deg);
+  }
+}
+
+@keyframes right-page-open {
+  from {
+    opacity: 0.45;
+    transform: rotateY(-72deg);
+  }
+}
+
+@media (max-width: 720px) {
+  .backdrop {
+    display: block;
+    padding: 1rem 0.75rem;
+  }
+
+  .dialog {
+    margin: 0 auto;
+  }
+
+  .book {
+    overflow-y: auto;
+    max-height: calc(100vh - 2rem);
+    border-radius: 1rem;
+    grid-template-columns: 1fr;
+  }
+
+  .book::after {
+    display: none;
+  }
+
+  .page {
+    min-height: auto;
+    animation: none;
+  }
+
+  .rightPage {
+    border-top: 1px solid rgba(99, 88, 66, 0.16);
+    border-left: 0;
+  }
+
+  .pageInner,
+  .form {
+    min-height: auto;
+    padding: 1.4rem 1.2rem;
+  }
+
+  .page fieldset {
+    margin-top: 1.5rem;
+  }
+
+  .noteField textarea {
+    min-height: 10rem;
+  }
+
+  .closeButton {
+    position: fixed;
+    top: 1.25rem;
+    right: 1.1rem;
+  }
+}
+
+@media (max-width: 430px) {
+  .statusChoices {
+    grid-template-columns: 1fr;
+  }
+
+  .actions {
+    align-items: stretch;
+    flex-wrap: wrap;
+  }
+
+  .deleteButton {
+    width: 100%;
+    margin-right: 0;
+    order: 3;
+  }
+
+  .cancelButton,
+  .saveButton {
+    flex: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .backdrop,
+  .book,
+  .leftPage,
+  .rightPage {
+    animation: none;
+  }
+}

@@ -1,4 +1,4 @@
-import { useRef, type PointerEvent as ReactPointerEvent } from 'react'
+import { useRef, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react'
 import type { Pet } from '../types'
 import { PetAvatar } from './PetAvatar'
 import styles from './PetProfileCarousel.module.css'
@@ -8,6 +8,9 @@ type PetProfileCarouselProps = {
   selectedPet: Pet | null
   statusMessage?: string
   onSelect: (petId: number) => void
+  maxVisibleItems?: number
+  headingLabel?: string
+  ariaLabel?: string
 }
 
 type DragState = {
@@ -21,11 +24,16 @@ export function PetProfileCarousel({
   selectedPet,
   statusMessage,
   onSelect,
+  maxVisibleItems = 5,
+  headingLabel = '반려동물 선택',
+  ariaLabel = '정보를 입력할 반려동물 선택',
 }: PetProfileCarouselProps) {
   const viewportRef = useRef<HTMLDivElement>(null)
   const dragStateRef = useRef<DragState | null>(null)
   const suppressClickRef = useRef(false)
-  const hasOverflow = pets.length > 5
+  const visibleItemLimit = Math.max(1, maxVisibleItems)
+  const hasOverflow = pets.length > visibleItemLimit
+  const pickerStyle = { '--profile-visible-count': visibleItemLimit } as CSSProperties
 
   const scrollProfiles = (direction: -1 | 1) => {
     const viewport = viewportRef.current
@@ -72,8 +80,8 @@ export function PetProfileCarousel({
   }
 
   return (
-    <section className={styles.picker} aria-label="정보를 입력할 반려동물 선택">
-      <div className={styles.heading}><strong>반려동물 선택</strong></div>
+    <section className={styles.picker} style={pickerStyle} aria-label={ariaLabel}>
+      <div className={styles.heading}><strong>{headingLabel}</strong></div>
       <div className={styles.carousel}>
         {hasOverflow && (
           <button type="button" className={styles.arrow} aria-label="이전 반려동물 보기" onClick={() => scrollProfiles(-1)}>

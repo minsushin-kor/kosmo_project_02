@@ -1,19 +1,23 @@
 import { render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { getWalkAdvice } from '../api/walkAdviceApi'
+import type { WalkAdvice } from '../types'
 import { WalkAdviceTopCard } from './WalkAdviceTopCard'
 
-vi.mock('../api/walkAdviceApi', () => ({
-  getWalkAdvice: vi.fn(),
+const walkAdviceState = vi.hoisted(() => ({
+  petId: 1,
+  advice: null as WalkAdvice | null,
+  isLoading: false,
+  error: '',
 }))
 
-const getWalkAdviceMock = vi.mocked(getWalkAdvice)
+vi.mock('../hooks/useWalkAdvice', () => ({
+  useWalkAdvice: () => walkAdviceState,
+}))
 
 describe('WalkAdviceTopCard', () => {
   beforeEach(() => {
-    getWalkAdviceMock.mockReset()
-    getWalkAdviceMock.mockResolvedValue({
+    walkAdviceState.advice = {
       petId: 1,
       condition: 'GOOD',
       recommendationScore: 82,
@@ -28,7 +32,7 @@ describe('WalkAdviceTopCard', () => {
       pm10: 20,
       pm25: 10,
       recommendationReason: '산책하기 무난해요.',
-    })
+    }
   })
 
   it('회원 주소의 산책 점수를 표시하고 건강 다이어리 상세 카드로 이동한다', async () => {
@@ -45,6 +49,5 @@ describe('WalkAdviceTopCard', () => {
     expect(link).toHaveAttribute('href', '/pets/1/diary#walk-advice')
     expect(screen.getByText('산책')).toBeInTheDocument()
     expect(screen.getByText('82')).toBeInTheDocument()
-    expect(getWalkAdviceMock).toHaveBeenCalledWith(1, expect.any(AbortSignal))
   })
 })

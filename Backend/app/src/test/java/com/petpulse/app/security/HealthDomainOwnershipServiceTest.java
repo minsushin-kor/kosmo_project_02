@@ -25,6 +25,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -78,6 +79,26 @@ class HealthDomainOwnershipServiceTest {
         when(questionnaireRepository.findByQuestionnaireIdAndPetUserLoginId(7L, "other"))
                 .thenReturn(Optional.empty());
         assertNotFound(() -> service.getQuestionnaire("other", 7L));
+    }
+
+    @Test
+    void monthlyQuestionnairesUseOnlyTheRequestedMonth() {
+        QuestionnaireService service = new QuestionnaireService(questionnaireRepository, access);
+        when(access.requireOwnedPet("owner", 1L)).thenReturn(pet);
+        when(questionnaireRepository
+                .findByPetPetIdAndSubmittedAtGreaterThanEqualAndSubmittedAtLessThanOrderBySubmittedAtDesc(
+                        1L,
+                        LocalDateTime.of(2026, 8, 1, 0, 0),
+                        LocalDateTime.of(2026, 9, 1, 0, 0)))
+                .thenReturn(List.of());
+
+        assertThat(service.getMonthlyQuestionnaires("owner", 1L, 2026, 8)).isEmpty();
+
+        verify(questionnaireRepository)
+                .findByPetPetIdAndSubmittedAtGreaterThanEqualAndSubmittedAtLessThanOrderBySubmittedAtDesc(
+                        1L,
+                        LocalDateTime.of(2026, 8, 1, 0, 0),
+                        LocalDateTime.of(2026, 9, 1, 0, 0));
     }
 
     @Test

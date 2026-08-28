@@ -1,8 +1,6 @@
-import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { getApiErrorMessage, isAbortError } from '../../../shared/api/apiClient'
-import { getWalkAdvice } from '../api/walkAdviceApi'
-import type { WalkAdvice, WalkWeatherCondition } from '../types'
+import { useWalkAdvice } from '../hooks/useWalkAdvice'
+import type { WalkWeatherCondition } from '../types'
 import styles from './WalkAdviceTopCard.module.css'
 
 type WalkAdviceTopCardProps = {
@@ -32,28 +30,11 @@ function DogMoodIcon({ condition }: { condition: WalkWeatherCondition }) {
 }
 
 export function WalkAdviceTopCard({ petId, petName }: WalkAdviceTopCardProps) {
-  const [advice, setAdvice] = useState<WalkAdvice | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState('')
-
-  useEffect(() => {
-    const controller = new AbortController()
-    setIsLoading(true)
-    setError('')
-
-    getWalkAdvice(petId, controller.signal)
-      .then(setAdvice)
-      .catch((loadError: unknown) => {
-        if (isAbortError(loadError)) return
-        setAdvice(null)
-        setError(getApiErrorMessage(loadError, '산책 날씨를 확인하지 못했어요.'))
-      })
-      .finally(() => {
-        if (!controller.signal.aborted) setIsLoading(false)
-      })
-
-    return () => controller.abort()
-  }, [petId])
+  const defaultAdvice = useWalkAdvice()
+  const isCurrentPet = defaultAdvice.petId === petId
+  const advice = isCurrentPet ? defaultAdvice.advice : null
+  const isLoading = !isCurrentPet || defaultAdvice.isLoading
+  const error = isCurrentPet ? defaultAdvice.error : ''
 
   const condition = advice?.condition ?? 'CAUTION'
   const scoreLabel = advice ? `${advice.recommendationScore}점` : '--점'

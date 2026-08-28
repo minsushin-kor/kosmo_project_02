@@ -658,7 +658,7 @@ export function PetEditPage() {
             </span>
 
             <p>
-              수정 내용은 Spring Boot API와 PostgreSQL에 저장됩니다.
+              변경한 정보와 프로필 사진을 안전하게 저장합니다.
             </p>
           </div>
 

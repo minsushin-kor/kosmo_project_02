@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { DataState } from '../../../components/common/DataState'
 import { LoadingButton } from '../../../components/common/LoadingButton'
@@ -65,6 +65,7 @@ export function HealthRecordDetailPage() {
   const [isDeleting, setIsDeleting] = useState(false)
   const [error, setError] = useState('')
   const [actionError, setActionError] = useState('')
+  const analysisPanelRef = useRef<HTMLElement>(null)
 
   const parsedQuestionnaireId = Number(questionnaireId)
   const healthRecordListPath = selectedPet
@@ -121,6 +122,10 @@ export function HealthRecordDetailPage() {
     try {
       const prediction = await createPrediction(record.questionnaire.questionnaireId)
       setRecord((current) => current ? { ...current, prediction } : current)
+      window.requestAnimationFrame(() => {
+        analysisPanelRef.current?.scrollIntoView?.({ behavior: 'smooth', block: 'start' })
+        analysisPanelRef.current?.focus({ preventScroll: true })
+      })
     } catch (analyzeError) {
       setActionError(getApiErrorMessage(
         analyzeError,
@@ -206,7 +211,11 @@ export function HealthRecordDetailPage() {
         </dl>
       </section>
 
-      <section className={`${styles.analysisPanel} ${prediction ? '' : styles.pendingAnalysis}`}>
+      <section
+        className={`${styles.analysisPanel} ${prediction ? '' : styles.pendingAnalysis}`}
+        ref={analysisPanelRef}
+        tabIndex={-1}
+      >
         <div className={styles.sectionHeading}>
           <p>AI ANALYSIS</p>
           <h2>{prediction ? 'AI 분석 결과' : '아직 분석하지 않은 기록입니다.'}</h2>
@@ -222,7 +231,6 @@ export function HealthRecordDetailPage() {
               <span>주요 위험 요인</span>
               <h3>{prediction.primaryRiskFactor || '특이 위험 요인 없음'}</h3>
               <p>{prediction.aiSummary || '저장된 AI 건강 분석 결과입니다.'}</p>
-              <Link to={`/predictions/${prediction.predictionId}`}>AI 결과 자세히 보기 →</Link>
             </div>
           </div>
         ) : (

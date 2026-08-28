@@ -15,6 +15,11 @@ public interface QuestionnaireRepository extends JpaRepository<Questionnaire, Lo
 
     List<Questionnaire> findByPetPetIdOrderBySubmittedAtDesc(Long petId);
 
+    List<Questionnaire> findByPetPetIdAndSubmittedAtGreaterThanEqualAndSubmittedAtLessThanOrderBySubmittedAtDesc(
+            Long petId,
+            LocalDateTime start,
+            LocalDateTime end);
+
     Page<Questionnaire> findByPetPetId(Long petId, Pageable pageable);
 
     @Query("""

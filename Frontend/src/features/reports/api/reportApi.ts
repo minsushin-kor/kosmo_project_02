@@ -16,11 +16,6 @@ export type WeeklyReport = {
     createdAt: string
 }
 
-/**
- * 기존 우리 코드에서 사용하던 타입명 호환용
- */
-export type WeeklyReportResponse = WeeklyReport
-
 export function getWeeklyReports(
     petId: number,
     signal?: AbortSignal,

@@ -64,7 +64,7 @@ export function ReportDetailPage() {
   useEffect(() => {
     if (!reportId) {
       setError(
-        '리포트 ID가 없습니다.',
+        '리포트 정보를 찾을 수 없습니다.',
       )
       setIsLoading(false)
       return
@@ -80,7 +80,7 @@ export function ReportDetailPage() {
       parsedReportId <= 0
     ) {
       setError(
-        '올바르지 않은 리포트 번호입니다.',
+        '리포트 정보를 확인할 수 없습니다.',
       )
       setIsLoading(false)
       return
@@ -89,6 +89,7 @@ export function ReportDetailPage() {
     const controller =
       new AbortController()
 
+    setReport(null)
     setIsLoading(true)
     setError('')
 
@@ -98,21 +99,6 @@ export function ReportDetailPage() {
     )
       .then((loadedReport) => {
         setReport(loadedReport)
-
-        /*
-         * Pet.id와 report.petId를
-         * number 타입으로 통일합니다.
-         */
-        const reportPet =
-          pets.find(
-            (pet) =>
-              pet.id ===
-              loadedReport.petId,
-          )
-
-        if (reportPet) {
-          selectPet(reportPet.id)
-        }
       })
       .catch((loadError) => {
         if (isAbortError(loadError)) {
@@ -127,17 +113,24 @@ export function ReportDetailPage() {
         )
       })
       .finally(() => {
-        setIsLoading(false)
+        if (!controller.signal.aborted) {
+          setIsLoading(false)
+        }
       })
 
     return () => {
       controller.abort()
     }
-  }, [
-    pets,
-    reportId,
-    selectPet,
-  ])
+  }, [reportId])
+
+  useEffect(() => {
+    if (!report) return
+
+    const reportPet = pets.find((pet) => pet.id === report.petId)
+    if (reportPet && selectedPet?.id !== reportPet.id) {
+      selectPet(reportPet.id)
+    }
+  }, [pets, report, selectPet, selectedPet?.id])
 
   if (isLoading) {
     return (
@@ -351,7 +344,7 @@ export function ReportDetailPage() {
             </h2>
 
             <span>
-              저장된 데이터 기반
+              이번 주 기록 기준
             </span>
           </div>
 
@@ -363,7 +356,7 @@ export function ReportDetailPage() {
             }}
           >
             {report.reportContent ||
-              '이번 주에 기록된 건강 데이터를 확인하고 꾸준히 변화를 관찰해 주세요.'}
+              '이번 주 건강 기록을 확인하고 꾸준히 변화를 살펴봐 주세요.'}
           </p>
         </section>
 
@@ -474,15 +467,10 @@ export function ReportDetailPage() {
           styles.reportDisclaimer
         }
       >
-        이 리포트는 기록된 데이터를
+        이 리포트는 입력된 건강 기록을
         요약한 건강관리 참고 자료이며
         수의학적 진단을 대신하지
         않습니다.
-
-        <small>
-          리포트 ID:{' '}
-          {report.reportId}
-        </small>
       </aside>
     </div>
   )

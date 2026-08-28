@@ -96,10 +96,8 @@ describe('HealthRecordDetailPage', () => {
 
     await waitFor(() => expect(api.createPrediction).toHaveBeenCalledWith(1))
     expect(await screen.findByText('활동량 변화')).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'AI 결과 자세히 보기 →' })).toHaveAttribute(
-      'href',
-      '/predictions/10',
-    )
+    expect(screen.getByText('상태를 계속 관찰해 주세요.')).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'AI 결과 자세히 보기 →' })).not.toBeInTheDocument()
   })
 
   it('분석 완료 기록 삭제 시 연결 데이터 안내 후 목록으로 돌아간다', async () => {
