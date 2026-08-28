@@ -14,6 +14,13 @@ import {
   getWeeklyReport,
   type WeeklyReport,
 } from '../api/reportApi'
+import {
+  formatAverageHeartRate,
+  formatAverageTemperature,
+  getAverageRiskPercent,
+  getRiskStatusLabel,
+  getWeeklyWellnessScore,
+} from '../utils/reportMetrics'
 import common from '../../../styles/featurePage.module.css'
 import styles from './ReportPages.module.css'
 
@@ -32,57 +39,6 @@ function formatDate(value: string) {
       day: 'numeric',
     },
   ).format(date)
-}
-
-function getRiskPercent(
-  report: WeeklyReport,
-) {
-  return Math.round(
-    Number(
-      report.averageRiskProbability ??
-      0,
-    ) * 100,
-  )
-}
-
-function getRiskStatus(
-  report: WeeklyReport,
-) {
-  const probability =
-    Number(
-      report.averageRiskProbability ??
-      0,
-    )
-
-  if (probability >= 0.75) {
-    return '위험'
-  }
-
-  if (probability >= 0.5) {
-    return '주의'
-  }
-
-  if (probability >= 0.3) {
-    return '관찰'
-  }
-
-  return '정상'
-}
-
-function getWellnessScore(
-  report: WeeklyReport,
-) {
-  return Math.max(
-    0,
-    Math.round(
-      (1 -
-        Number(
-          report.averageRiskProbability ??
-          0,
-        )) *
-      100,
-    ),
-  )
 }
 
 export function ReportDetailPage() {
@@ -214,13 +170,19 @@ export function ReportDetailPage() {
   }
 
   const riskPercent =
-    getRiskPercent(report)
+    getAverageRiskPercent(report)
 
   const riskStatus =
-    getRiskStatus(report)
+    getRiskStatusLabel(report)
 
   const wellnessScore =
-    getWellnessScore(report)
+    getWeeklyWellnessScore(report)
+
+  const averageTemperature =
+    formatAverageTemperature(report)
+
+  const averageHeartRate =
+    formatAverageHeartRate(report)
 
   const reportPet =
     pets.find(
@@ -239,31 +201,23 @@ export function ReportDetailPage() {
   const stats = [
     {
       label: '평균 체온',
-      value:
-        report.averageTemperature ==
-          null
-          ? '-'
-          : `${Number(
-            report.averageTemperature,
-          ).toFixed(1)}°C`,
-      change: '주간 평균',
+      value: averageTemperature,
+      change: averageTemperature === '미입력'
+        ? '기록 없음'
+        : '주간 평균',
     },
     {
       label: '평균 심박수',
-      value:
-        report.averageHeartRate ==
-          null
-          ? '-'
-          : `${Math.round(
-            Number(
-              report.averageHeartRate,
-            ),
-          )} bpm`,
-      change: '주간 평균',
+      value: averageHeartRate,
+      change: averageHeartRate === '미입력'
+        ? '기록 없음'
+        : '주간 평균',
     },
     {
       label: '건강 문진',
-      value: `${report.questionnaireCount}회`,
+      value: report.questionnaireCount === 0
+        ? '미입력'
+        : `${report.questionnaireCount}회`,
       change: '최근 7일',
     },
     {
@@ -337,13 +291,15 @@ export function ReportDetailPage() {
             건강 점수
           </small>
 
-          <strong>
-            {wellnessScore}
+          <strong className={wellnessScore == null ? styles.missingScore : undefined}>
+            {wellnessScore ??
+              '미입력'}
           </strong>
 
           <span>
-            위험 {riskPercent}% ·{' '}
-            {riskStatus}
+            {riskPercent == null
+              ? '위험도 미입력'
+              : `위험 ${riskPercent}% · ${riskStatus}`}
           </span>
         </div>
       </header>
@@ -426,14 +382,9 @@ export function ReportDetailPage() {
           </h2>
 
           <p>
-            건강 문진{' '}
-            {report.questionnaireCount}
-            회, 주의 알림{' '}
-            {report.warningCount}
-            회, 위험 알림{' '}
-            {report.dangerCount}
-            회가 이번 주 기록에
-            반영되었습니다.
+            {`${report.questionnaireCount === 0
+              ? '건강 문진 미입력'
+              : `건강 문진 ${report.questionnaireCount}회`}, 주의 알림 ${report.warningCount}회, 위험 알림 ${report.dangerCount}회가 이번 주 기록에 반영되었습니다.`}
           </p>
         </aside>
       </div>
@@ -462,20 +413,15 @@ export function ReportDetailPage() {
             <div>
               <i
                 className={
-                  styles.currentBarLong
+                  averageTemperature === '미입력'
+                    ? styles.missingBar
+                    : styles.currentBarLong
                 }
               />
             </div>
 
             <strong>
-              {report.averageTemperature ==
-                null
-                ? '-'
-                : `${Number(
-                  report.averageTemperature,
-                ).toFixed(
-                  1,
-                )}°C`}
+              {averageTemperature}
             </strong>
           </div>
 
@@ -487,20 +433,15 @@ export function ReportDetailPage() {
             <div>
               <i
                 className={
-                  styles.currentBar
+                  averageHeartRate === '미입력'
+                    ? styles.missingBar
+                    : styles.currentBar
                 }
               />
             </div>
 
             <strong>
-              {report.averageHeartRate ==
-                null
-                ? '-'
-                : `${Math.round(
-                  Number(
-                    report.averageHeartRate,
-                  ),
-                )} bpm`}
+              {averageHeartRate}
             </strong>
           </div>
 
@@ -512,13 +453,17 @@ export function ReportDetailPage() {
             <div>
               <i
                 className={
-                  styles.currentBarShort
+                  riskPercent == null
+                    ? styles.missingBar
+                    : styles.currentBarShort
                 }
               />
             </div>
 
             <strong>
-              {riskPercent}%
+              {riskPercent == null
+                ? '미입력'
+                : `${riskPercent}%`}
             </strong>
           </div>
         </div>

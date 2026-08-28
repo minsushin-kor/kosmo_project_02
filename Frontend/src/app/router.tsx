@@ -4,6 +4,7 @@ import { HealthDiaryPage } from '../features/diary/pages/HealthDiaryPage'
 import { NotFoundPage } from '../features/errors/pages/NotFoundPage'
 import { FoodRecommendationPage } from '../features/foodRecommendation/pages/FoodRecommendationPage'
 import { HealthHistoryPage } from '../features/history/pages/HealthHistoryPage'
+import { HealthRecordDetailPage } from '../features/history/pages/HealthRecordDetailPage'
 import { LandingPage } from '../features/landing/pages/LandingPage'
 import { LoginPage } from '../features/auth/pages/LoginPage'
 import { SignupPage } from '../features/auth/pages/SignupPage'
@@ -58,6 +59,7 @@ export const router = createBrowserRouter([
           { path: '/pets/:petId/questionnaire', element: <QuestionnairePage /> },
           { path: '/pets/:petId/history', element: <HealthHistoryPage /> },
           { path: '/pets/:petId/alerts', element: <HealthHistoryPage /> },
+          { path: '/pets/:petId/health-records/:questionnaireId', element: <HealthRecordDetailPage /> },
           { path: '/pets/:petId/reports', element: <ReportsListPage /> },
           { path: '/pets/:petId/diary', element: <HealthDiaryPage /> },
           { path: '/predictions/:predictionId', element: <PredictionResultPage /> },

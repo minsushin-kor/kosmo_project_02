@@ -94,7 +94,6 @@ export function TodayStatusRecorder() {
       <div className={styles.intro}>
         <p>GUARDIAN&apos;S DAILY NOTE</p>
         <h2 id="today-status-title">오늘 상태 기록하기</h2>
-        <span>측정값 없이 보호자가 관찰한 {selectedPet.name}의 하루를 남길 수 있어요.</span>
         <Link to={`/pets/${selectedPet.id}/diary`}>건강 다이어리 보기 →</Link>
       </div>
 

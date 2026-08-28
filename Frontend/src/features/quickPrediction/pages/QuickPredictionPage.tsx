@@ -1,4 +1,12 @@
-import { useState, type CSSProperties, type FormEvent } from 'react'
+import { useEffect, useState, type CSSProperties, type FormEvent } from 'react'
+import { useAuth } from '../../auth/hooks/useAuth'
+import { PetProfileCarousel } from '../../pets/components/PetProfileCarousel'
+import type { Pet } from '../../pets/types'
+import { usePets } from '../../pets/hooks/usePets'
+import {
+  getQuestionnaires,
+  type QuestionnaireResponse,
+} from '../../questionnaire/api/questionnaireApi'
 import {
   predictHealthRisk,
   type ActivityLevel,
@@ -62,6 +70,53 @@ const activityLabels: Record<ActivityLevel, string> = {
   LOW: '평소보다 적음',
   NORMAL: '평소와 같음',
   HIGH: '평소보다 많음',
+}
+
+type PrefillStatus = 'idle' | 'loading' | 'loaded' | 'empty' | 'error'
+
+function getPetAge(birthDate: string) {
+  const birthday = new Date(`${birthDate}T00:00:00`)
+  if (Number.isNaN(birthday.getTime())) return 0
+
+  const today = new Date()
+  let age = today.getFullYear() - birthday.getFullYear()
+  const birthdayHasNotPassed = today.getMonth() < birthday.getMonth()
+    || (today.getMonth() === birthday.getMonth() && today.getDate() < birthday.getDate())
+
+  if (birthdayHasNotPassed) age -= 1
+  return Math.max(age, 0)
+}
+
+function createValuesForPet(
+  pet: Pet,
+  questionnaire?: QuestionnaireResponse,
+): QuickPredictionRequest {
+  return {
+    ...initialValues,
+    species: pet.species,
+    age: getPetAge(pet.birthDate),
+    weight: pet.weight,
+    ...(questionnaire ? {
+      temperature: questionnaire.temperature,
+      heartRate: questionnaire.heartRate,
+      respiratoryRate: questionnaire.respiratoryRate,
+      skinRedness: questionnaire.skinCondition === 'REDNESS',
+      itching: questionnaire.itching,
+      hairLoss: questionnaire.hairLoss,
+      vomiting: questionnaire.vomiting,
+      diarrhea: questionnaire.diarrhea,
+      appetiteLevel: questionnaire.appetiteLevel,
+      waterIntakeLevel: questionnaire.waterIntakeLevel,
+      activityLevel: questionnaire.activityLevel,
+      symptomDurationDays: questionnaire.symptomDurationDays,
+    } : {}),
+  }
+}
+
+function findLatestQuestionnaire(records: QuestionnaireResponse[]) {
+  return [...records].sort((left, right) => (
+    Date.parse(right.submittedAt) - Date.parse(left.submittedAt)
+  ))[0]
 }
 
 const gradeCopy: Record<RiskGrade, { label: string; title: string; description: string }> = {
@@ -192,10 +247,50 @@ function LevelSlider<Option extends string>({
 }
 
 export function QuickPredictionPage() {
+  const { currentUser } = useAuth()
+  const { pets, selectedPet, selectPet } = usePets()
   const [values, setValues] = useState<QuickPredictionRequest>(initialValues)
+  const [baselineValues, setBaselineValues] = useState<QuickPredictionRequest>(initialValues)
+  const [prefillStatus, setPrefillStatus] = useState<PrefillStatus>('idle')
   const [result, setResult] = useState<QuickPredictionResponse | null>(null)
   const [isPredicting, setIsPredicting] = useState(false)
   const [error, setError] = useState('')
+
+  useEffect(() => {
+    if (!currentUser || !selectedPet) {
+      setPrefillStatus('idle')
+      return
+    }
+
+    const controller = new AbortController()
+    const petValues = createValuesForPet(selectedPet)
+    setValues(petValues)
+    setBaselineValues(petValues)
+    setResult(null)
+    setError('')
+    setPrefillStatus('loading')
+
+    getQuestionnaires(selectedPet.id, controller.signal)
+      .then((records) => {
+        if (controller.signal.aborted) return
+
+        const latestQuestionnaire = findLatestQuestionnaire(records)
+        if (!latestQuestionnaire) {
+          setPrefillStatus('empty')
+          return
+        }
+
+        const recentValues = createValuesForPet(selectedPet, latestQuestionnaire)
+        setValues(recentValues)
+        setBaselineValues(recentValues)
+        setPrefillStatus('loaded')
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) setPrefillStatus('error')
+      })
+
+    return () => controller.abort()
+  }, [currentUser, selectedPet])
 
   const updateValue = <Key extends keyof QuickPredictionRequest>(
     key: Key,
@@ -221,10 +316,18 @@ export function QuickPredictionPage() {
   }
 
   const resetValues = () => {
-    setValues(initialValues)
+    setValues(baselineValues)
     setResult(null)
     setError('')
   }
+
+  const prefillMessage = selectedPet ? {
+    idle: '',
+    loading: `${selectedPet.name}의 최근 문진을 불러오는 중입니다.`,
+    loaded: `${selectedPet.name}의 최근 건강 기록을 불러왔어요.`,
+    empty: `${selectedPet.name}의 문진 기록이 없어 프로필 정보를 반영했습니다.`,
+    error: `최근 문진을 불러오지 못해 ${selectedPet.name}의 프로필 정보만 반영했습니다.`,
+  }[prefillStatus] : ''
 
   const resultCopy = result ? gradeCopy[result.riskGrade] : null
   const probability = result ? Math.round(result.abnormalProbability * 100) : 0
@@ -235,16 +338,22 @@ export function QuickPredictionPage() {
         <div>
           <p>QUICK HEALTH PREDICTION</p>
           <h1>상태 간단 예측</h1>
-          <span>우리 아이의 현재 수치를 조절하고 AI 건강 예측 모델의 결과를 바로 확인해 보세요.</span>
         </div>
-        <div className={styles.modelStatus}><i aria-hidden="true" />AI 모델 연결됨</div>
+        {currentUser && pets.length > 0 && (
+          <PetProfileCarousel
+            pets={pets}
+            selectedPet={selectedPet}
+            statusMessage={prefillMessage}
+            onSelect={selectPet}
+          />
+        )}
       </header>
 
       <div className={styles.workspace}>
         <form className={styles.inputPanel} onSubmit={handleSubmit}>
           <div className={styles.panelHeading}>
             <div><span>01</span><div><p>INPUT VALUES</p><h2>현재 상태를 알려주세요.</h2></div></div>
-            <button type="button" onClick={resetValues}>기본값으로</button>
+            <button type="button" onClick={resetValues}>입력값 초기화</button>
           </div>
 
           <section className={styles.inputSection} aria-labelledby="basic-information-heading">
@@ -305,14 +414,13 @@ export function QuickPredictionPage() {
           </section>
 
           <button className={styles.predictButton} type="submit" disabled={isPredicting}>
-            {isPredicting ? <><span className={styles.spinner} aria-hidden="true" />AI 모델이 확인하고 있습니다.</> : <>현재 값으로 예측하기 <span aria-hidden="true">→</span></>}
+            {isPredicting ? <><span className={styles.spinner} aria-hidden="true" />AI 모델이 확인하고 있습니다.</> : <>예측 시작 <span aria-hidden="true">→</span></>}
           </button>
         </form>
 
         <aside className={`${styles.resultPanel} ${result ? styles[`grade${result.riskGrade}`] : ''}`} aria-live="polite">
           <div className={styles.resultHeading}>
             <div><span>02</span><div><p>AI PREDICTION</p><h2>예측 결과</h2></div></div>
-            <small>FastAPI · SHAP</small>
           </div>
 
           {error ? (
@@ -320,7 +428,7 @@ export function QuickPredictionPage() {
               <span aria-hidden="true">!</span>
               <h3>예측 결과를 불러오지 못했습니다.</h3>
               <p>{error}</p>
-              <small>FastAPI 서버가 실행 중인지 확인해 주세요.</small>
+              <small>잠시 후 다시 시도해 주세요.</small>
             </div>
           ) : result && resultCopy ? (
             <div className={styles.resultContent}>
@@ -343,7 +451,7 @@ export function QuickPredictionPage() {
           ) : (
             <div className={styles.emptyResult}>
               <div className={styles.emptyPulse} aria-hidden="true"><span>⌁</span></div>
-              <p>왼쪽에서 아이의 상태를 조절한 뒤<br /><strong>현재 값으로 예측하기</strong>를 눌러주세요.</p>
+              <p>왼쪽에서 아이의 상태를 조절한 뒤<br /><strong>예측 시작</strong>을 눌러주세요.</p>
               <div>
                 <span>입력</span><i aria-hidden="true" />
                 <span>AI 분석</span><i aria-hidden="true" />

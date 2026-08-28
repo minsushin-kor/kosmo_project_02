@@ -83,6 +83,7 @@ describe('FoodRecommendationPage 로그인별 초기값', () => {
     expect(screen.getByRole('radio', { name: /강아지/ })).toBeChecked()
     expect(screen.getByRole('spinbutton', { name: /체중/ })).toHaveValue(5.5)
     expect(screen.getByPlaceholderText('예시: 피부 알레르기 및 가려움')).toHaveValue('')
+    expect(screen.getByRole('button', { name: '코코 선택' })).toHaveAttribute('aria-pressed', 'true')
   })
 
   it('로그인했지만 등록된 반려동물이 없으면 등록 안내를 표시한다', () => {
@@ -115,5 +116,13 @@ describe('FoodRecommendationPage 로그인별 초기값', () => {
 
     expect(allergyButton).toHaveAttribute('aria-pressed', 'true')
     expect(jointButton).toHaveAttribute('aria-pressed', 'true')
+  })
+
+  it('사용자 중심의 안내 문구와 분석 버튼을 표시한다', () => {
+    renderPage(null)
+
+    expect(screen.getByRole('button', { name: 'AI 분석 시작' })).toBeInTheDocument()
+    expect(screen.getByText(/입력하신 정보를 AI가 분석하고/)).toBeInTheDocument()
+    expect(screen.queryByText('우리 아이 정보를 입력해 주세요')).not.toBeInTheDocument()
   })
 })

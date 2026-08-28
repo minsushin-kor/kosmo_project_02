@@ -8,6 +8,7 @@ public record HealthAlertResponse(
         Long alertId,
         Long petId,
         Long predictionId,
+        Long questionnaireId,
         String alertType,
         String severity,
         String title,
@@ -22,6 +23,9 @@ public record HealthAlertResponse(
                 alert.getPet().getPetId(),
                 alert.getPrediction() != null
                         ? alert.getPrediction().getPredictionId()
+                        : null,
+                alert.getPrediction() != null
+                        ? alert.getPrediction().getQuestionnaire().getQuestionnaireId()
                         : null,
                 alert.getAlertType().name(),
                 alert.getSeverity().name(),

@@ -70,6 +70,9 @@ describe('DashboardPage API 오류 상태', () => {
 
     expect(await screen.findAllByText('문진 기록 없음')).toHaveLength(4)
     expect(screen.queryByText('일부 대시보드 정보를 불러오지 못했습니다.')).not.toBeInTheDocument()
+    expect(screen.queryByText('이번 주 활동 흐름')).not.toBeInTheDocument()
+    expect(screen.queryByText('활동 API 준비 필요')).not.toBeInTheDocument()
+    expect(screen.getByText('AI HEALTH INSIGHT')).toBeInTheDocument()
   })
 
   it('건강 점수만큼 원형 그래프의 진행 구간을 표시한다', async () => {

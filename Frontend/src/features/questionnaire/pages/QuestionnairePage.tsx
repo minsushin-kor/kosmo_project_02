@@ -9,6 +9,7 @@ import {
   createQuestionnaire,
   type ActivityLevel,
   type AppetiteLevel,
+  type QuestionnaireResponse,
   type SkinCondition,
   type WaterIntakeLevel,
 } from '../api/questionnaireApi'
@@ -73,6 +74,7 @@ export function QuestionnairePage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState('')
   const [vitalError, setVitalError] = useState('')
+  const [savedQuestionnaire, setSavedQuestionnaire] = useState<QuestionnaireResponse | null>(null)
 
   const update = <Key extends keyof QuestionnaireData>(key: Key, value: QuestionnaireData[Key]) => {
     setData((current) => ({ ...current, [key]: value }))
@@ -142,9 +144,11 @@ export function QuestionnairePage() {
     setIsSubmitting(true)
     setSubmitError('')
 
+    let questionnaire = savedQuestionnaire
+
     try {
-      const questionnaire =
-        await createQuestionnaire(
+      if (!questionnaire) {
+        questionnaire = await createQuestionnaire(
           selectedPet.id,
           {
             temperature: Number(data.temperature),
@@ -169,6 +173,8 @@ export function QuestionnairePage() {
               null,
           },
         )
+        setSavedQuestionnaire(questionnaire)
+      }
 
       const prediction =
         await createPrediction(
@@ -186,11 +192,14 @@ export function QuestionnairePage() {
         },
       )
     } catch (error) {
+      const message = getApiErrorMessage(
+        error,
+        '건강 분석을 요청하지 못했습니다.',
+      )
       setSubmitError(
-        getApiErrorMessage(
-          error,
-          '건강 분석을 요청하지 못했습니다.',
-        ),
+        questionnaire
+          ? `문진 내용은 저장되었습니다. ${message} 저장된 기록으로 AI 분석만 다시 시도할 수 있습니다.`
+          : message,
       )
     } finally {
       setIsSubmitting(false)
@@ -286,15 +295,15 @@ export function QuestionnairePage() {
 
     return (
       <div className={styles.stepContent}>
-        <div className={styles.stepHeading}><span aria-hidden="true">✓</span><div><p>STEP 05</p><h2>입력한 내용을 확인해 주세요.</h2><small>분석 요청 후 실제 예측 결과 화면으로 이동합니다.</small></div></div>
+        <div className={styles.stepHeading}><span aria-hidden="true">✓</span><div><p>STEP 05</p><h2>입력한 내용을 확인해 주세요.</h2><small>{savedQuestionnaire ? '문진 내용은 저장되었습니다. 저장된 기록으로 AI 분석만 다시 시도합니다.' : '분석 요청 후 실제 예측 결과 화면으로 이동합니다.'}</small></div></div>
         <div className={styles.summaryGrid}>
-          <article><p>생체정보</p><strong>{data.temperature}°C · {data.heartRate}bpm · {data.respiratoryRate}회/분</strong><button type="button" onClick={() => setCurrentStep(0)}>수정</button></article>
-          <article><p>피부·소화</p><strong>{skinSymptoms} · {digestiveSymptoms}</strong><button type="button" onClick={() => setCurrentStep(1)}>수정</button></article>
-          <article><p>생활 상태</p><strong>식욕 {levelLabels[data.appetiteLevel]} · 활동량 {levelLabels[data.activityLevel]}</strong><button type="button" onClick={() => setCurrentStep(2)}>수정</button></article>
-          <article><p>추가 증상</p><strong>{data.symptomDurationDays}일 · {data.additionalSymptoms || '입력 없음'}</strong><button type="button" onClick={() => setCurrentStep(3)}>수정</button></article>
+          <article><p>생체정보</p><strong>{data.temperature}°C · {data.heartRate}bpm · {data.respiratoryRate}회/분</strong><button type="button" disabled={Boolean(savedQuestionnaire)} onClick={() => setCurrentStep(0)}>수정</button></article>
+          <article><p>피부·소화</p><strong>{skinSymptoms} · {digestiveSymptoms}</strong><button type="button" disabled={Boolean(savedQuestionnaire)} onClick={() => setCurrentStep(1)}>수정</button></article>
+          <article><p>생활 상태</p><strong>식욕 {levelLabels[data.appetiteLevel]} · 활동량 {levelLabels[data.activityLevel]}</strong><button type="button" disabled={Boolean(savedQuestionnaire)} onClick={() => setCurrentStep(2)}>수정</button></article>
+          <article><p>추가 증상</p><strong>{data.symptomDurationDays}일 · {data.additionalSymptoms || '입력 없음'}</strong><button type="button" disabled={Boolean(savedQuestionnaire)} onClick={() => setCurrentStep(3)}>수정</button></article>
         </div>
         <div className={styles.disclaimer}><span aria-hidden="true">!</span><p>분석 결과는 건강 상태 관리를 위한 참고 정보이며 수의사의 진단을 대신하지 않습니다.</p></div>
-        {submitError && <DataState title="건강 분석을 완료하지 못했습니다." tone="error">{submitError}</DataState>}
+        {submitError && <DataState title={savedQuestionnaire ? '문진은 저장되었지만 AI 분석을 완료하지 못했습니다.' : '건강 분석을 완료하지 못했습니다.'} tone="error">{submitError}</DataState>}
       </div>
     )
   }
@@ -305,10 +314,10 @@ export function QuestionnairePage() {
         <header className={shared.header}><div><p className={shared.eyebrow}>HEALTH QUESTIONNAIRE</p><h1 className={shared.title}>건강 문진</h1><p className={shared.description}>{selectedPet.name}의 오늘 상태를 5단계로 기록합니다. 이전 단계로 돌아가도 입력값이 유지됩니다.</p></div><span className={shared.statusBadge}>약 2분 소요</span></header>
         <ol className={styles.progress} aria-label="건강 문진 진행 단계">{steps.map((step, index) => <li className={index === currentStep ? styles.current : index < currentStep ? styles.complete : ''} key={step}><span>{index < currentStep ? '✓' : index + 1}</span><p>{step}</p></li>)}</ol>
         <section className={styles.formCard}>{renderStep()}<div className={styles.actions}>
-          {currentStep > 0 ? <button className={styles.backButton} type="button" disabled={isSubmitting} onClick={() => setCurrentStep((step) => step - 1)}>이전</button> : <span />}
+          {currentStep > 0 ? <button className={styles.backButton} type="button" disabled={isSubmitting || Boolean(savedQuestionnaire)} onClick={() => setCurrentStep((step) => step - 1)}>이전</button> : <span />}
           {currentStep < steps.length - 1
             ? <button className={styles.nextButton} type="button" onClick={handleNextStep}>다음 단계</button>
-            : <LoadingButton className={styles.nextButton} type="button" isLoading={isSubmitting} loadingText="AI 분석 중..." onClick={() => void handleAnalyze()}>AI 분석 요청하기</LoadingButton>}
+            : <LoadingButton className={styles.nextButton} type="button" isLoading={isSubmitting} loadingText="AI 분석 중..." onClick={() => void handleAnalyze()}>{savedQuestionnaire ? 'AI 분석 다시 시도' : 'AI 분석 요청하기'}</LoadingButton>}
         </div></section>
       </div>
     </>

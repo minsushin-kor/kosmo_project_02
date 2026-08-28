@@ -93,20 +93,17 @@ public class WeeklyReportService {
                                                 startDateTime,
                                                 endDateTime);
 
-                double avgTemperature = vitals.stream()
-                                .mapToDouble(vital -> vital.getTemperature().doubleValue())
-                                .average()
-                                .orElse(0.0);
+                Double avgTemperature = averageTemperature(
+                                questionnaires,
+                                vitals);
 
-                double avgHeartRate = vitals.stream()
-                                .mapToInt(VitalRecord::getHeartRate)
-                                .average()
-                                .orElse(0.0);
+                Double avgHeartRate = averageHeartRate(
+                                questionnaires,
+                                vitals);
 
-                double avgRespiratoryRate = vitals.stream()
-                                .mapToInt(VitalRecord::getRespiratoryRate)
-                                .average()
-                                .orElse(0.0);
+                Double avgRespiratoryRate = averageRespiratoryRate(
+                                questionnaires,
+                                vitals);
 
                 int cautionAlertCount = (int) alerts.stream()
                                 .filter(alert -> alert.getSeverity() == AlertSeverity.CAUTION)
@@ -116,10 +113,14 @@ public class WeeklyReportService {
                                 .filter(alert -> alert.getSeverity() == AlertSeverity.DANGER)
                                 .count();
 
-                double averageRiskProbability = predictions.stream()
-                                .mapToDouble(prediction -> prediction.getAbnormalProbability().doubleValue())
-                                .average()
-                                .orElse(0.0);
+                Double averageRiskProbability = predictions.isEmpty()
+                                ? null
+                                : predictions.stream()
+                                                .mapToDouble(prediction -> prediction
+                                                                .getAbnormalProbability()
+                                                                .doubleValue())
+                                                .average()
+                                                .orElseThrow();
 
                 String mainSymptomsSummary = buildMainSymptomsSummary(
                                 questionnaires,
@@ -194,11 +195,76 @@ public class WeeklyReportService {
         }
 
         private BigDecimal toBigDecimal(
-                        double value,
+                        Double value,
                         int scale) {
+
+                if (value == null) {
+                        return null;
+                }
 
                 return BigDecimal.valueOf(value)
                                 .setScale(scale, RoundingMode.HALF_UP);
+        }
+
+        private Double averageTemperature(
+                        List<Questionnaire> questionnaires,
+                        List<VitalRecord> vitals) {
+
+                if (!questionnaires.isEmpty()) {
+                        return questionnaires.stream()
+                                        .mapToDouble(questionnaire -> questionnaire
+                                                        .getTemperature()
+                                                        .doubleValue())
+                                        .average()
+                                        .orElseThrow();
+                }
+
+                return vitals.isEmpty()
+                                ? null
+                                : vitals.stream()
+                                                .mapToDouble(vital -> vital
+                                                                .getTemperature()
+                                                                .doubleValue())
+                                                .average()
+                                                .orElseThrow();
+        }
+
+        private Double averageHeartRate(
+                        List<Questionnaire> questionnaires,
+                        List<VitalRecord> vitals) {
+
+                if (!questionnaires.isEmpty()) {
+                        return questionnaires.stream()
+                                        .mapToInt(Questionnaire::getHeartRate)
+                                        .average()
+                                        .orElseThrow();
+                }
+
+                return vitals.isEmpty()
+                                ? null
+                                : vitals.stream()
+                                                .mapToInt(VitalRecord::getHeartRate)
+                                                .average()
+                                                .orElseThrow();
+        }
+
+        private Double averageRespiratoryRate(
+                        List<Questionnaire> questionnaires,
+                        List<VitalRecord> vitals) {
+
+                if (!questionnaires.isEmpty()) {
+                        return questionnaires.stream()
+                                        .mapToInt(Questionnaire::getRespiratoryRate)
+                                        .average()
+                                        .orElseThrow();
+                }
+
+                return vitals.isEmpty()
+                                ? null
+                                : vitals.stream()
+                                                .mapToInt(VitalRecord::getRespiratoryRate)
+                                                .average()
+                                                .orElseThrow();
         }
 
         private int calculateAge(Pet pet) {

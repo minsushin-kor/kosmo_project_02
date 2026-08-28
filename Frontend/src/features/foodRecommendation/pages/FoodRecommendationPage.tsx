@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../auth/hooks/useAuth'
-import { PetSelector } from '../../pets/components/PetSelector'
+import { PetProfileCarousel } from '../../pets/components/PetProfileCarousel'
 import { usePets } from '../../pets/hooks/usePets'
 import type { Pet } from '../../pets/types'
 import {
@@ -68,7 +68,7 @@ function createInitialValues(pet: Pet | null): FoodRecommendationForm {
 
 export function FoodRecommendationPage() {
   const { currentUser } = useAuth()
-  const { selectedPet, isLoading: isPetsLoading } = usePets()
+  const { pets, selectedPet, selectPet, isLoading: isPetsLoading } = usePets()
   const petForPrefill = currentUser ? selectedPet : null
   const [form, setForm] = useState<FoodRecommendationForm>(() => createInitialValues(petForPrefill))
   const [result, setResult] = useState<FoodRecommendationResponse | null>(null)
@@ -150,25 +150,21 @@ export function FoodRecommendationPage() {
         <div>
           <p>PERSONALIZED FOOD GUIDE</p>
           <h1>사료 추천</h1>
-          <span>우리 아이의 기본 정보와 건강 정보를 토대로 어울리는 성분의 사료를 추천해 드려요.</span>
         </div>
-        {currentUser && (selectedPet || isPetsLoading) ? (
-          <div className={styles.headerPetSelector}>
-            <small>추천 대상</small>
-            <PetSelector />
-          </div>
-        ) : currentUser ? (
+        {currentUser && pets.length > 0 ? (
+          <PetProfileCarousel pets={pets} selectedPet={selectedPet} onSelect={selectPet} />
+        ) : currentUser && !isPetsLoading ? (
           <div className={styles.guestStatus}>
             <span>
               PatPet에 등록된 반려동물이 없어요. 혹시 키우시는 반려동물이 있다면 아래 버튼을 눌러 등록해 주세요.
             </span>
             <Link to="/pets/new">반려동물 등록</Link>
           </div>
-        ) : (
+        ) : !currentUser ? (
           <div className={styles.guestStatus}>
             <span>로그인하면 등록된 아이 정보를 불러올 수 있어요.</span>
           </div>
-        )}
+        ) : null}
       </header>
 
       <div className={styles.workspace}>
@@ -330,7 +326,7 @@ export function FoodRecommendationPage() {
           </section>
 
           <button className={styles.submitButton} type="submit" disabled={isLoading}>
-            {isLoading ? '우리 아이에게 맞는 성분을 찾고 있어요…' : 'AI 사료 추천받기'}
+            {isLoading ? '우리 아이에게 맞는 성분을 찾고 있어요…' : 'AI 분석 시작'}
           </button>
         </form>
 
@@ -368,8 +364,7 @@ export function FoodRecommendationPage() {
                 <span>✦</span>
                 <strong>FOOD</strong>
               </div>
-              <p>우리 아이 정보를 입력해 주세요</p>
-              <h3>입력한 정보를 AI가 분석하고<br />추천 결과를 알려드릴게요.</h3>
+              <h3>입력하신 정보를 AI가 분석하고<br />결과를 알려드릴게요.</h3>
               <ul>
                 <li><i />건강 고민에 맞는 추천 성분</li>
                 <li><i />주의하거나 피해야 할 원료</li>

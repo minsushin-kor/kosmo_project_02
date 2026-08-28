@@ -4,6 +4,7 @@ export type HealthAlert = {
   alertId: number
   petId: number
   predictionId: number | null
+  questionnaireId: number | null
   alertType: string
   severity: 'WATCH' | 'CAUTION' | 'DANGER'
   title: string

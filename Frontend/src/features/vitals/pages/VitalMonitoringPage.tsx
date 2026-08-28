@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { DataState } from '../../../components/common/DataState'
 import { getApiErrorMessage, isAbortError } from '../../../shared/api/apiClient'
 import { useRoutePet } from '../../pets/hooks/useRoutePet'
@@ -90,6 +90,7 @@ function getRiskTone(grade?: RiskGrade) {
 }
 
 export function VitalMonitoringPage() {
+  const navigate = useNavigate()
   const { selectedPet, routePetMissing } = useRoutePet()
   const [scale, setScale] = useState<TrendScale>('DAY')
   const [metric, setMetric] = useState<MetricKey>('temperature')
@@ -163,6 +164,12 @@ export function VitalMonitoringPage() {
     () => new Map(predictions.map((prediction) => [prediction.questionnaireId, prediction])),
     [predictions],
   )
+  const unanalyzedCount = useMemo(
+    () => records.filter(
+      (record) => !predictionByQuestionnaireId.has(record.questionnaireId),
+    ).length,
+    [predictionByQuestionnaireId, records],
+  )
   const points = useMemo(
     () => buildQuestionnaireTrendPoints(visibleRecords, (record) => record[metric], range.start, range.end),
     [metric, range.end, range.start, visibleRecords],
@@ -227,6 +234,16 @@ export function VitalMonitoringPage() {
         </DataState>
       )}
       {predictionNotice && <p className={styles.predictionNotice}>{predictionNotice}</p>}
+      {!predictionNotice && unanalyzedCount > 0 && (
+        <aside className={styles.analysisNotice} role="status">
+          <span aria-hidden="true">!</span>
+          <p>
+            <strong>AI 분석을 완료하지 않은 건강 기록이 {unanalyzedCount}건 있어요.</strong>
+            입력한 건강 수치는 그래프에 포함되며, 건강 기록에서 나중에 분석할 수 있습니다.
+          </p>
+          <Link to={`/pets/${selectedPet.id}/history?tab=history&status=PENDING`}>미분석 기록 확인</Link>
+        </aside>
+      )}
 
       {!isLoading && !error && latest && (
         <>
@@ -376,8 +393,22 @@ export function VitalMonitoringPage() {
                 <tbody>
                   {visibleRecords.map((row) => {
                     const prediction = predictionByQuestionnaireId.get(row.questionnaireId)
+                    const detailPath = `/pets/${selectedPet.id}/health-records/${row.questionnaireId}`
                     return (
-                      <tr key={row.questionnaireId}>
+                      <tr
+                        className={styles.clickableRow}
+                        role="link"
+                        tabIndex={0}
+                        aria-label={`${formatSubmittedAt(row.submittedAt)} 건강 기록 자세히 보기`}
+                        onClick={() => navigate(detailPath)}
+                        onKeyDown={(event) => {
+                          if (event.key === 'Enter' || event.key === ' ') {
+                            event.preventDefault()
+                            navigate(detailPath)
+                          }
+                        }}
+                        key={row.questionnaireId}
+                      >
                         <td>{formatSubmittedAt(row.submittedAt)}</td>
                         <td>{row.temperature.toFixed(1)}°C</td>
                         <td>{row.heartRate} bpm</td>

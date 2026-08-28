@@ -108,6 +108,48 @@ describe('HealthDiaryPage backend integration flow', () => {
     expect(screen.queryByText('기록 없음')).not.toBeInTheDocument()
   })
 
+  it('counts a questionnaire and its prediction alert as one health record', async () => {
+    apiMocks.getQuestionnaires.mockResolvedValue([{
+      questionnaireId: 10,
+      petId: 1,
+      temperature: 38.2,
+      heartRate: 90,
+      respiratoryRate: 22,
+      submittedAt: '2026-08-18T09:00:00',
+    }])
+    apiMocks.getMonthlyPredictions.mockResolvedValue([{
+      predictionId: 20,
+      questionnaireId: 10,
+      abnormalProbability: 0.3,
+      riskGrade: 'WATCH',
+      primaryRiskFactor: null,
+      riskFactorsJson: null,
+      aiSummary: '관찰이 필요합니다.',
+      modelVersion: '1',
+      predictedAt: '2026-08-18T09:05:00',
+    }])
+    apiMocks.getHealthAlerts.mockResolvedValue([{
+      alertId: 30,
+      petId: 1,
+      predictionId: 20,
+      questionnaireId: 10,
+      alertType: 'PREDICTION',
+      severity: 'WATCH',
+      title: '건강 상태 관찰이 필요합니다.',
+      message: '관찰이 필요합니다.',
+      isRead: false,
+      createdAt: '2026-08-18T09:05:00',
+    }])
+
+    render(page(petContext(pets[0])))
+
+    expect(await screen.findByText('건강 문진 1건')).toBeInTheDocument()
+    const connectedHeading = screen.getByRole('heading', { name: '연결된 건강 기록' }).parentElement
+    expect(connectedHeading).toHaveTextContent('1건')
+    const monthSummary = screen.getByText('연결된 분석과 알림은 한 건으로 계산').closest('article')
+    expect(monthSummary).toHaveTextContent('건강 기록1건')
+  })
+
   it('reloads diary when pet or displayed month changes', async () => {
     const result = render(page(petContext(pets[0])))
 
@@ -171,5 +213,7 @@ describe('HealthDiaryPage backend integration flow', () => {
     render(page(petContext(pets[0])))
 
     expect(await screen.findByText('이번 달에 작성한 다이어리가 없습니다.')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'CSV 저장' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: '기록 요약 인쇄' })).not.toBeInTheDocument()
   })
 })

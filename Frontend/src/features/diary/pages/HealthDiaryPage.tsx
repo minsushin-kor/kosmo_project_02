@@ -40,25 +40,26 @@ const riskLabels: Record<RiskGrade, string> = {
   DANGER: '위험',
 }
 
-function escapeCsv(value: string | number) {
-  const text = String(value).replaceAll('"', '""')
-  return `"${text}"`
-}
+function getDistinctHealthRecordCount(
+  questionnaires: QuestionnaireResponse[],
+  alerts: HealthAlert[],
+  predictions: HealthPrediction[] = [],
+) {
+  const recordKeys = new Set<string>()
 
-function downloadMonthCsv(petName: string, month: Date, entries: DiaryEntries) {
-  const prefix = `${month.getFullYear()}-${String(month.getMonth() + 1).padStart(2, '0')}`
-  const rows = Object.values(entries)
-    .filter((entry) => entry.date.startsWith(prefix))
-    .sort((left, right) => left.date.localeCompare(right.date))
-    .map((entry) => [entry.date, statusLabels[entry.status], entry.note])
-  const csv = ['날짜,상태,관찰 메모', ...rows.map((row) => row.map(escapeCsv).join(','))].join('\n')
-  const blob = new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8' })
-  const url = URL.createObjectURL(blob)
-  const anchor = document.createElement('a')
-  anchor.href = url
-  anchor.download = `${petName}_${prefix}_건강다이어리.csv`
-  anchor.click()
-  URL.revokeObjectURL(url)
+  questionnaires.forEach((questionnaire) => {
+    recordKeys.add(`questionnaire-${questionnaire.questionnaireId}`)
+  })
+  predictions.forEach((prediction) => {
+    recordKeys.add(`questionnaire-${prediction.questionnaireId}`)
+  })
+  alerts.forEach((alert) => {
+    recordKeys.add(alert.questionnaireId != null
+      ? `questionnaire-${alert.questionnaireId}`
+      : `alert-${alert.alertId}`)
+  })
+
+  return recordKeys.size
 }
 
 export function HealthDiaryPage() {
@@ -177,6 +178,16 @@ export function HealthDiaryPage() {
   const monthPrefix = `${displayMonth.getFullYear()}-${String(displayMonth.getMonth() + 1).padStart(2, '0')}`
   const monthQuestionnaires = questionnaires.filter((item) => dateValueToKey(item.submittedAt).startsWith(monthPrefix))
   const monthAlerts = alerts.filter((item) => dateValueToKey(item.createdAt).startsWith(monthPrefix))
+  const selectedHealthRecordCount = getDistinctHealthRecordCount(
+    selectedQuestionnaires,
+    selectedAlerts,
+    selectedPrediction ? [selectedPrediction] : [],
+  )
+  const monthHealthRecordCount = getDistinctHealthRecordCount(
+    monthQuestionnaires,
+    monthAlerts,
+    monthlyPredictions,
+  )
   const monthEntries = Object.values(diaryEntries)
     .filter((entry) => entry.date.startsWith(monthPrefix) && entry.date <= todayKey)
     .sort((left, right) => right.date.localeCompare(left.date))
@@ -361,7 +372,7 @@ export function HealthDiaryPage() {
           </form>
 
           <div className={styles.connectedRecords}>
-            <div className={styles.connectedHeading}><h3>연결된 건강 기록</h3><span>{selectedQuestionnaires.length + selectedAlerts.length + (selectedReport ? 1 : 0) + (selectedPrediction ? 1 : 0)}건</span></div>
+            <div className={styles.connectedHeading}><h3>연결된 건강 기록</h3><span>{selectedHealthRecordCount + (selectedReport ? 1 : 0)}건</span></div>
             {latestQuestionnaire && (
               <div className={styles.recordItem}>
                 <span aria-hidden="true">♥</span>
@@ -398,25 +409,21 @@ export function HealthDiaryPage() {
         </aside>
       </section>
 
-      <section id="diary-print-summary" className={styles.monthSummary} aria-labelledby="month-summary-title">
+      <section className={styles.monthSummary} aria-labelledby="month-summary-title">
         <div className={styles.summaryHeading}>
           <div><p>MONTHLY SUMMARY</p><h2 id="month-summary-title">{formatMonthTitle(displayMonth)} 기록 요약</h2></div>
-          <div className={styles.summaryActions}>
-            <button type="button" disabled={monthEntries.length === 0} onClick={() => downloadMonthCsv(selectedPet.name, displayMonth, diaryEntries)}>CSV 저장</button>
-            <button type="button" onClick={() => window.print()}>기록 요약 인쇄</button>
-          </div>
         </div>
 
         <div className={styles.summaryGrid}>
           <article className={styles.goodSummary}><span>좋음</span><strong>{monthCounts.good}<small>일</small></strong><p>보호자가 좋음으로 남긴 날</p></article>
           <article className={styles.watchSummary}><span>관찰 필요</span><strong>{monthCounts.watch}<small>일</small></strong><p>한 번 더 살펴보기로 한 날</p></article>
-          <article className={styles.recordSummary}><span>건강 기록</span><strong>{monthQuestionnaires.length + monthAlerts.length}<small>건</small></strong><p>문진·알림을 합한 기록</p></article>
+          <article className={styles.recordSummary}><span>건강 기록</span><strong>{monthHealthRecordCount}<small>건</small></strong><p>연결된 분석과 알림은 한 건으로 계산</p></article>
         </div>
 
         <div className={styles.coverageCard}>
           <div><strong>이번 달 기록률</strong><span>{monthCounts.eligible ? Math.round((monthCounts.recorded / monthCounts.eligible) * 100) : 0}%</span></div>
           <div className={styles.coverageTrack}><span style={{ width: `${monthCounts.eligible ? (monthCounts.recorded / monthCounts.eligible) * 100 : 0}%` }} /></div>
-          <p>{monthCounts.recorded}일 기록 · 건강 문진 {monthQuestionnaires.length}건 · 알림 {monthAlerts.length}건</p>
+          <p>{monthCounts.recorded}일 기록 · 건강 기록 {monthHealthRecordCount}건 · 주의 알림 {monthAlerts.length}건</p>
         </div>
 
         <div className={styles.monthRecordSection}>

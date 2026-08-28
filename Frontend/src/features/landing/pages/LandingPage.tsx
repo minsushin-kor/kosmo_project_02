@@ -2,14 +2,18 @@ import { useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import heroImage from '../../../assets/images/pet-wellness-hero.webp'
 import { LoadingButton } from '../../../components/common/LoadingButton'
+import { PawIcon } from '../../../components/common/PawIcon'
 import { TextField } from '../../../components/common/TextField'
 import { useAuth } from '../../auth/hooks/useAuth'
 import { getApiErrorMessage } from '../../../shared/api/apiClient'
+import { PetAvatar } from '../../pets/components/PetAvatar'
+import { usePets } from '../../pets/hooks/usePets'
 import styles from './LandingPage.module.css'
 
 export function LandingPage() {
   const navigate = useNavigate()
   const { currentUser, login } = useAuth()
+  const { selectedPet, isLoading: isPetsLoading } = usePets()
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -47,12 +51,11 @@ export function LandingPage() {
         />
         <div className={styles.imageOverlay} aria-hidden="true" />
         <div className={styles.introCopy}>
-          <p>SMARTER CARE, EVERY DAY</p>
-          <h1 id="home-heading">매일의 작은 변화를,<br />더 일찍 알아보세요.</h1>
-          <span>
-            생체정보와 건강 문진을 한곳에 모아<br />
-            우리 아이의 오늘을 차분하게 살펴봅니다.
-          </span>
+          <p id="home-heading">SMART PET CARE, EVERY DAY</p>
+        </div>
+        <div className={styles.pawTrail} aria-hidden="true">
+          <PawIcon />
+          <PawIcon />
         </div>
         <div className={styles.careNote}>
           <span aria-hidden="true">●</span>
@@ -60,22 +63,31 @@ export function LandingPage() {
         </div>
       </section>
 
-      <section className={styles.loginPanel} id="home-login" aria-labelledby="login-heading">
+      <section className={styles.loginPanel} id="home-login" aria-label="회원 로그인">
         <div className={styles.loginWrap}>
           {currentUser ? (
             <div className={styles.signedInCard}>
-              <p className={styles.eyebrow}>WELCOME BACK</p>
-              <span className={styles.profileMark} aria-hidden="true">{currentUser.name.slice(0, 1)}</span>
-              <h2 id="login-heading">{currentUser.name}님,<br />다시 만나 반가워요.</h2>
-              <p>등록한 반려동물의 오늘 상태를 확인해 보세요.</p>
+              <span className={styles.profileMark} aria-hidden="true">
+                {selectedPet ? <PetAvatar pet={selectedPet} size="medium" /> : '🐾'}
+              </span>
+              <h2>
+                {isPetsLoading
+                  ? '반려동물 정보를 불러오고 있어요.'
+                  : selectedPet
+                    ? `안녕하세요, ${selectedPet.name} 보호자님.`
+                    : '안녕하세요, 보호자님.'}
+              </h2>
+              {selectedPet && (
+                <p className={styles.selectedPetNotice}>
+                  현재 선택된 반려동물의 건강 정보가 표시됩니다.
+                </p>
+              )}
               <Link className={styles.primaryButton} to="/dashboard">우리 아이 상태 확인하기</Link>
               <Link className={styles.secondaryLink} to="/mypage">마이페이지로 이동</Link>
             </div>
           ) : (
             <>
               <p className={styles.eyebrow}>MEMBER LOGIN</p>
-              <h2 id="login-heading">다시 만나 반가워요.</h2>
-              <p className={styles.description}>로그인하고 우리 아이의 오늘 상태를 확인해 보세요.</p>
 
               <form onSubmit={handleSubmit}>
                 <TextField
@@ -111,7 +123,6 @@ export function LandingPage() {
               </form>
 
               <p className={styles.switchText}>아직 계정이 없나요? <Link to="/signup">회원가입</Link></p>
-              <div className={styles.infoNotice}>로그인 정보는 PatPet 서버에서 안전하게 확인합니다.</div>
             </>
           )}
         </div>

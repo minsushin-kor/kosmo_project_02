@@ -55,6 +55,54 @@
   color: var(--color-watch);
 }
 
+.analysisNotice {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 0.75rem 0;
+  padding: 0.85rem 0.95rem;
+  border: 1px solid #d9d4aa;
+  border-radius: 0.9rem;
+  background: #f7f5e7;
+}
+
+.analysisNotice > span {
+  display: grid;
+  width: 1.75rem;
+  height: 1.75rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--color-surface);
+  color: #74733f;
+  font-size: 0.72rem;
+  font-weight: 900;
+}
+
+.analysisNotice p {
+  display: grid;
+  flex: 1;
+  gap: 0.15rem;
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 0.7rem;
+  line-height: 1.5;
+}
+
+.analysisNotice strong {
+  color: var(--color-text-strong);
+  font-size: 0.75rem;
+}
+
+.analysisNotice a {
+  color: var(--color-primary);
+  font-size: 0.7rem;
+  font-weight: 800;
+  text-decoration: underline;
+  text-underline-offset: 0.25rem;
+  white-space: nowrap;
+}
+
 .vitalCard {
   padding: 1.4rem;
   border: 1px solid var(--color-line);
@@ -365,6 +413,17 @@
   font-weight: 750;
 }
 
+.clickableRow {
+  cursor: pointer;
+  transition: background-color 120ms ease;
+}
+
+.clickableRow:hover,
+.clickableRow:focus-visible {
+  background: var(--color-sage-soft);
+  outline: none;
+}
+
 .normal,
 .watch,
 .danger {
@@ -400,6 +459,19 @@
   }
 
   .sourceNotice a {
+    margin-left: 2.5rem;
+  }
+
+  .analysisNotice {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .analysisNotice p {
+    flex-basis: calc(100% - 2.5rem);
+  }
+
+  .analysisNotice a {
     margin-left: 2.5rem;
   }
 }

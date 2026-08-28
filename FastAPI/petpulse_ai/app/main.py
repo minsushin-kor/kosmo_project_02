@@ -262,14 +262,14 @@ class WeeklyReportRequest(BaseModel):
     petName: str = Field("초코", examples=["초코"])
     species: str = Field("DOG", examples=["DOG"])
     age: int = Field(3, examples=[5])
-    avgTemperature: float = Field(38.6, examples=[38.8])
-    avgHeartRate: float = Field(105.0, examples=[115.0])
-    avgRespiratoryRate: float = Field(22.0, examples=[28.0])
+    avgTemperature: Optional[float] = Field(None, examples=[38.8])
+    avgHeartRate: Optional[float] = Field(None, examples=[115.0])
+    avgRespiratoryRate: Optional[float] = Field(None, examples=[28.0])
     cautionAlertCount: int = Field(0, examples=[2])
     dangerAlertCount: int = Field(0, examples=[0])
     questionnaireCount: int = Field(1, examples=[3])
 
-    averageRiskProbability: float = Field(0.0, examples=[0.595])
+    averageRiskProbability: Optional[float] = Field(None, examples=[0.595])
 
     mainSymptomsSummary: Optional[str] = Field(
         None,
@@ -750,10 +750,36 @@ def generate_weekly_report(req: WeeklyReportRequest):
     # 1. 리포트 기본 제목 및 요약 생성
     title = f"{req.petName}의 주간 웰니스 종합 케어 리포트 🐾"
 
+    temperature_text = (
+        "미입력" if req.avgTemperature is None
+        else f"{req.avgTemperature:.1f}°C"
+    )
+    heart_rate_text = (
+        "미입력" if req.avgHeartRate is None
+        else f"{req.avgHeartRate:.1f}bpm"
+    )
+    respiratory_rate_text = (
+        "미입력" if req.avgRespiratoryRate is None
+        else f"{req.avgRespiratoryRate:.1f}회/분"
+    )
+    risk_text = (
+        "미입력" if req.averageRiskProbability is None
+        else f"{req.averageRiskProbability * 100:.1f}%"
+    )
+    has_health_data = (
+        req.questionnaireCount > 0
+        or req.avgTemperature is not None
+        or req.avgHeartRate is not None
+        or req.avgRespiratoryRate is not None
+        or req.averageRiskProbability is not None
+    )
+
     if req.dangerAlertCount > 0:
         one_line = f"지난 한 주간 긴급 주의가 필요한 이상 징후가 {req.dangerAlertCount}회 감지되었습니다."
     elif req.cautionAlertCount > 0:
         one_line = f"지난 한 주간 지속적인 컨디션 관찰이 필요한 상태였습니다."
+    elif not has_health_data:
+        one_line = "지난 한 주간 입력된 건강 기록이 없습니다."
     else:
         one_line = f"지난 한 주간 전반적으로 안정적인 웰니스 상태를 유지했습니다."
 
@@ -766,14 +792,15 @@ def generate_weekly_report(req: WeeklyReportRequest):
 아래 주간 데이터 통계를 바탕으로 보호자에게 보여줄 종합 주간 웰니스 리포트 문장을 다정하게 작성해줘.
 
 - 이름/종/나이: {req.petName} ({req.species}, {req.age}세)
-- 주간 평균 생체 지표: 체온 {req.avgTemperature}°C, 심박수 {req.avgHeartRate}bpm, 호흡수 {req.avgRespiratoryRate}회/분
+- 주간 평균 생체 지표: 체온 {temperature_text}, 심박수 {heart_rate_text}, 호흡수 {respiratory_rate_text}
 - 알림 내역: 주의 알림 {req.cautionAlertCount}회, 위험 알림 {req.dangerAlertCount}회
-- AI 건강 이상 평균 위험도: {req.averageRiskProbability * 100:.1f}%
+- AI 건강 이상 평균 위험도: {risk_text}
 - 건강 상태 종합 소견: {req.mainSymptomsSummary or '특이사항 없음'}
 
 작성 지침:
 1. 다정하고 체계적인 어조로 4문장 내외로 종합 분석 문장을 작성할 것.
 2. 진정성이 느껴지는 웰니스 관리 조언을 담을 것.
+3. 미입력 항목을 정상 수치로 간주하거나 임의의 수치로 추정하지 말 것.
 """
             response = gemini_client.models.generate_content(
                 model=LLM_MODEL,
@@ -786,7 +813,7 @@ def generate_weekly_report(req: WeeklyReportRequest):
                 oneLineSummary=one_line,
                 reportContent=report_content,
                 recommendedCare=[
-                    f"체온 및 음수량 일일 모니터링 (주간 평균 체온: {req.avgTemperature}°C)",
+                    f"체온 및 음수량 일일 기록 (주간 평균 체온: {temperature_text})",
                     "실내 적정 온도(20~23°C) 및 습도(40~60%) 유지를 통한 스트레스 완화",
                     "주기적인 산책 및 미온수 공급을 통한 활력 유지"
                 ]
@@ -796,11 +823,11 @@ def generate_weekly_report(req: WeeklyReportRequest):
 
     # 3. LLM 미연동 시 사용하는 스마트 템플릿 (Fallback)
     content_text = (
-        f"한 주 동안 {req.petName}의 평균 체온은 {req.avgTemperature}°C, "
-        f"심박수는 {req.avgHeartRate}bpm, "
-        f"호흡수는 {req.avgRespiratoryRate}회/분으로 기록되었습니다. "
+        f"한 주 동안 {req.petName}의 평균 체온은 {temperature_text}, "
+        f"심박수는 {heart_rate_text}, "
+        f"호흡수는 {respiratory_rate_text}으로 기록되었습니다. "
         f"주간 총 {req.questionnaireCount}회의 건강 문진이 기록되었으며, "
-        f"AI 건강 이상 평균 위험도는 {req.averageRiskProbability * 100:.1f}%였습니다. "
+        f"AI 건강 이상 평균 위험도는 {risk_text}입니다. "
         f"{one_line} "
         f"앞으로도 정기적인 생체 수치 측정과 깨끗한 음수 환경을 지속적으로 제공해 주시기 바랍니다."
     )
@@ -810,7 +837,7 @@ def generate_weekly_report(req: WeeklyReportRequest):
         oneLineSummary=one_line,
         reportContent=content_text,
         recommendedCare=[
-            f"주간 평균 체온({req.avgTemperature}°C) 유지 및 미온수 소량씩 공급",
+            f"주간 평균 체온({temperature_text}) 확인 및 미온수 소량씩 공급",
             "환절기 실내 온도 및 습도 환경 점검",
             "이상 행동(식욕/활동량 감소) 지속 여부 관찰"
         ]

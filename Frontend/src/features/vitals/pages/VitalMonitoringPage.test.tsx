@@ -122,6 +122,12 @@ describe('VitalMonitoringPage 문진 기반 건강 수치 변화', () => {
     expect(screen.getByRole('img', { name: /일 단위 체온 변화 그래프, 문진 입력 2건/ })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: '자동' })).not.toBeInTheDocument()
     expect(screen.getAllByText('관찰').length).toBeGreaterThan(0)
+    expect(screen.getByText('AI 분석을 완료하지 않은 건강 기록이 1건 있어요.')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: '미분석 기록 확인' })).toHaveAttribute(
+      'href',
+      '/pets/1/history?tab=history&status=PENDING',
+    )
+    expect(screen.getAllByRole('link', { name: /건강 기록 자세히 보기/ })).toHaveLength(2)
     expect(apiMocks.getQuestionnaires).toHaveBeenCalledWith(1, expect.any(AbortSignal))
 
     fireEvent.click(screen.getByRole('button', { name: '심박수' }))

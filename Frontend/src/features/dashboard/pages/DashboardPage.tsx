@@ -28,16 +28,6 @@ import {
 } from '../../reports/api/reportApi'
 import styles from './DashboardPage.module.css'
 
-const weekLabels = [
-  '월',
-  '화',
-  '수',
-  '목',
-  '금',
-  '토',
-  '일',
-]
-
 const levelLabels: Record<string, string> = {
   DECREASED: '평소보다 적음',
   LOW: '평소보다 적음',
@@ -52,6 +42,76 @@ const skinLabels: Record<string, string> = {
   DRY: '건조함',
   RASH: '발진',
   OTHER: '기타 증상',
+}
+
+type HealthRecordIconName = 'food' | 'water' | 'activity' | 'observation'
+
+type HealthRecordCard = {
+  label: string
+  value: string
+  note: string
+  icon: HealthRecordIconName
+}
+
+function HealthRecordIcon({ name }: { name: HealthRecordIconName }) {
+  const commonProps = {
+    viewBox: '0 0 32 32',
+    fill: 'none',
+    stroke: 'currentColor',
+    strokeLinecap: 'round' as const,
+    strokeLinejoin: 'round' as const,
+    strokeWidth: 1.8,
+    'data-health-icon': name,
+  }
+
+  if (name === 'food') {
+    return (
+      <svg {...commonProps}>
+        <circle cx="11" cy="14.5" r="1.7" fill="currentColor" stroke="none" />
+        <circle cx="15.5" cy="12.5" r="1.9" fill="currentColor" stroke="none" />
+        <circle cx="20.2" cy="14.2" r="1.7" fill="currentColor" stroke="none" />
+        <circle cx="13.4" cy="16.8" r="1.8" fill="currentColor" stroke="none" />
+        <circle cx="18" cy="16.5" r="1.9" fill="currentColor" stroke="none" />
+        <path d="M6.5 17.5h19l-2.4 8H8.9l-2.4-8Z" fill="currentColor" fillOpacity="0.12" />
+        <path d="M6.5 17.5h19l-2.4 8H8.9l-2.4-8Z" />
+        <path d="M9.5 25.5h13" />
+      </svg>
+    )
+  }
+
+  if (name === 'water') {
+    return (
+      <svg {...commonProps}>
+        <path d="M9 5.5h14l-2 21H11L9 5.5Z" />
+        <path d="M10.1 16c2.1-1.2 3.9 1.2 6 .1 2.1-1.1 3.7.8 5.8-.2l-1 10.6H11L10.1 16Z" fill="currentColor" fillOpacity="0.2" stroke="none" />
+        <path d="M10.1 16c2.1-1.2 3.9 1.2 6 .1 2.1-1.1 3.7.8 5.8-.2" />
+      </svg>
+    )
+  }
+
+  if (name === 'activity') {
+    return (
+      <svg {...commonProps}>
+        <path d="M9.5 14.5c-2.5-.2-4.3-1.8-4.8-4.1" />
+        <path d="M9.5 13h9.2c2.6 0 4.5 1.8 4.5 4.2v1.3H12.1c-2.2 0-3.6-1.4-3.6-3.1 0-1 .4-1.8 1-2.4Z" fill="currentColor" fillOpacity="0.12" />
+        <path d="M9.5 13h9.2c2.6 0 4.5 1.8 4.5 4.2v1.3H12.1c-2.2 0-3.6-1.4-3.6-3.1 0-1 .4-1.8 1-2.4Z" />
+        <circle cx="23.2" cy="11.2" r="3.2" fill="currentColor" fillOpacity="0.12" />
+        <circle cx="23.2" cy="11.2" r="3.2" />
+        <path d="m24.5 8.3 2.8-1.8-.5 3.8" />
+        <path d="M13.1 18.6 9.5 24M18.2 18.6l3.9 4.5M15.2 18.6l2.8 2.2" />
+        <path d="M6.5 20.5H3.2M7.7 23.4H5.4" />
+      </svg>
+    )
+  }
+
+  return (
+    <svg {...commonProps}>
+      <circle cx="13.5" cy="13.5" r="7.2" fill="currentColor" fillOpacity="0.1" />
+      <circle cx="13.5" cy="13.5" r="7.2" />
+      <path d="m18.8 18.8 7 7" />
+      <path d="M10.6 13.5h5.8M13.5 10.6v5.8" strokeWidth="1.5" />
+    </svg>
+  )
 }
 
 function getObservationSummary(questionnaire: QuestionnaireResponse) {
@@ -217,31 +277,31 @@ export function DashboardPage() {
   const petBase =
     `/pets/${selectedPet.id}`
 
-  const healthRecords = latestQuestionnaire
+  const healthRecords: HealthRecordCard[] = latestQuestionnaire
     ? [
       {
         label: '식욕',
         value: levelLabels[latestQuestionnaire.appetiteLevel],
         note: '문진에서 기록한 식욕 상태',
-        icon: '●',
+        icon: 'food',
       },
       {
         label: '수분 섭취',
         value: levelLabels[latestQuestionnaire.waterIntakeLevel],
         note: '문진에서 기록한 수분 섭취 상태',
-        icon: '◇',
+        icon: 'water',
       },
       {
         label: '활동량',
         value: levelLabels[latestQuestionnaire.activityLevel],
         note: '문진에서 기록한 활동 상태',
-        icon: '↗',
+        icon: 'activity',
       },
       {
         label: '관찰 증상',
         value: getObservationSummary(latestQuestionnaire),
         note: latestQuestionnaire.additionalSymptoms || '추가로 작성한 증상이 없습니다.',
-        icon: '✦',
+        icon: 'observation',
       },
     ]
     : [
@@ -249,25 +309,25 @@ export function DashboardPage() {
         label: '식욕',
         value: '-',
         note: '문진 기록 없음',
-        icon: '●',
+        icon: 'food',
       },
       {
         label: '수분 섭취',
         value: '-',
         note: '문진 기록 없음',
-        icon: '◇',
+        icon: 'water',
       },
       {
         label: '활동량',
         value: '-',
         note: '문진 기록 없음',
-        icon: '↗',
+        icon: 'activity',
       },
       {
         label: '관찰 증상',
         value: '-',
         note: '문진 기록 없음',
-        icon: '✦',
+        icon: 'observation',
       },
     ]
 
@@ -317,8 +377,6 @@ export function DashboardPage() {
     latestReport?.reportContent ??
     latestPrediction?.aiSummary ??
     '문진과 건강 기록이 쌓이면 AI 건강 인사이트가 표시됩니다.'
-
-  const chartData = [0, 0, 0, 0, 0, 0, 0]
 
   return (
     <div className={styles.page}>
@@ -529,7 +587,7 @@ export function DashboardPage() {
                   <span
                     aria-hidden="true"
                   >
-                    {record.icon}
+                    <HealthRecordIcon name={record.icon} />
                   </span>
 
                   <p>
@@ -571,88 +629,9 @@ export function DashboardPage() {
       >
         <article
           className={
-            styles.chartCard
-          }
-        >
-          <div
-            className={
-              styles.cardHeading
-            }
-          >
-            <div>
-              <p>
-                WEEKLY TREND
-              </p>
-
-              <h2>
-                이번 주 활동 흐름
-              </h2>
-            </div>
-
-            <button
-              type="button"
-              disabled
-            >
-              활동 API 준비 필요
-            </button>
-          </div>
-
-          <div
-            className={
-              styles.chart
-            }
-            aria-label="최근 7일 활동량 막대그래프"
-          >
-            {chartData.map(
-              (
-                value,
-                index,
-              ) => (
-                <div
-                  className={
-                    styles.chartColumn
-                  }
-                  key={`${index}-${value}`}
-                >
-                  <div
-                    className={
-                      styles.chartTrack
-                    }
-                  >
-                    <span
-                      style={{
-                        height:
-                          `${value}%`,
-                      }}
-                    />
-                  </div>
-
-                  <small>
-                    {
-                      weekLabels[
-                      index
-                      ]
-                    }
-                  </small>
-                </div>
-              ),
-            )}
-          </div>
-        </article>
-
-        <article
-          className={
             styles.insightCard
           }
         >
-          <p
-            className={
-              styles.insightLabel
-            }
-          >
-            AI HEALTH INSIGHT
-          </p>
-
           <span
             className={
               styles.insightIcon
@@ -662,13 +641,23 @@ export function DashboardPage() {
             ◎
           </span>
 
-          <h2>
-            {insightTitle}
-          </h2>
+          <div className={styles.insightContent}>
+            <p
+              className={
+                styles.insightLabel
+              }
+            >
+              AI HEALTH INSIGHT
+            </p>
 
-          <p>
-            {insightCopy}
-          </p>
+            <h2>
+              {insightTitle}
+            </h2>
+
+            <p>
+              {insightCopy}
+            </p>
+          </div>
 
           <Link
             to={`${petBase}/reports`}

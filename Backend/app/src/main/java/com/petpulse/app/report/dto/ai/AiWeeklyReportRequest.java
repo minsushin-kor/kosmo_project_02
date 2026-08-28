@@ -4,12 +4,12 @@ public record AiWeeklyReportRequest(
         String petName,
         String species,
         int age,
-        double avgTemperature,
-        double avgHeartRate,
-        double avgRespiratoryRate,
+        Double avgTemperature,
+        Double avgHeartRate,
+        Double avgRespiratoryRate,
         int cautionAlertCount,
         int dangerAlertCount,
         int questionnaireCount,
-        double averageRiskProbability,
+        Double averageRiskProbability,
         String mainSymptomsSummary) {
 }

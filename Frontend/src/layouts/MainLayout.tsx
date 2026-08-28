@@ -31,7 +31,7 @@ function MainLayoutContent() {
     { label: '우리 아이 상태', to: '/dashboard' },
     { label: '건강 수치 기록', to: selectedPet ? `${petRecordBase}/vitals` : '/pets' },
     { label: '건강 문진', to: selectedPet ? `${petRecordBase}/questionnaire` : '/pets' },
-    { label: '알림·이력', to: selectedPet ? `${petRecordBase}/history` : '/pets' },
+    { label: '알림·건강 기록', to: selectedPet ? `${petRecordBase}/history` : '/pets' },
     { label: '주간 리포트', to: selectedPet ? `${petRecordBase}/reports` : '/pets' },
     { label: '건강 다이어리', to: selectedPet ? `${petRecordBase}/diary` : '/pets' },
   ]

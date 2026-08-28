@@ -29,28 +29,6 @@
   line-height: 1.05;
 }
 
-.pageHeader > div:first-child > span {
-  display: block;
-  max-width: 42rem;
-  margin-top: 0.85rem;
-  color: var(--color-text-muted);
-  line-height: 1.7;
-  word-break: keep-all;
-}
-
-.headerPetSelector {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 0.45rem;
-}
-
-.headerPetSelector > small {
-  color: var(--color-text-soft);
-  font-size: 0.67rem;
-  font-weight: 800;
-}
-
 .guestStatus {
   display: flex;
   max-width: 18rem;
@@ -458,9 +436,10 @@
 }
 
 .submitButton {
-  width: 100%;
+  display: block;
+  width: min(100%, 22rem);
   min-height: 3.65rem;
-  margin-top: 1.25rem;
+  margin: 1.75rem auto 0;
   border: 0;
   border-radius: 999px;
   background: var(--color-primary);
@@ -494,8 +473,6 @@
   text-align: center;
 }
 
-.emptyState > p,
-.loadingState p,
 .errorState p {
   margin: 1.4rem 0 0.35rem;
   color: var(--color-text-muted);
@@ -512,6 +489,10 @@
   font-size: clamp(1.35rem, 2.4vw, 1.8rem);
   letter-spacing: -0.04em;
   line-height: 1.45;
+}
+
+.emptyState > h3 {
+  margin-top: 1.6rem;
 }
 
 .bowlIllustration {
@@ -853,6 +834,11 @@
 }
 
 @media (max-width: 1000px) {
+  .pageHeader {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
   .workspace {
     grid-template-columns: 1fr;
   }
@@ -875,11 +861,6 @@
     gap: 1.2rem;
   }
 
-  .headerPetSelector {
-    width: 100%;
-    align-items: flex-start;
-  }
-
   .guestStatus {
     max-width: none;
     width: 100%;
@@ -898,6 +879,10 @@
 
   .formSection {
     padding: 1rem;
+  }
+
+  .submitButton {
+    width: 100%;
   }
 
   .sectionHeading {

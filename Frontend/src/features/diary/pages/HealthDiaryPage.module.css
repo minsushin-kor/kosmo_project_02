@@ -77,15 +77,13 @@
 }
 
 .monthControls,
-.summaryActions,
 .formActions {
   display: flex;
   align-items: center;
   gap: 0.45rem;
 }
 
-.monthControls button,
-.summaryActions button {
+.monthControls button {
   min-height: 2.5rem;
   padding: 0 0.85rem;
   border: 1px solid var(--color-line);
@@ -103,8 +101,7 @@
   padding: 0;
 }
 
-.monthControls button:disabled,
-.summaryActions button:disabled {
+.monthControls button:disabled {
   color: var(--color-text-soft);
   opacity: 0.5;
 }
@@ -549,12 +546,6 @@
   font-size: clamp(1.55rem, 3vw, 2.15rem);
 }
 
-.summaryActions button:last-child {
-  border-color: var(--color-primary);
-  background: var(--color-primary);
-  color: var(--color-cream);
-}
-
 .summaryGrid {
   display: grid;
   margin-top: 1.5rem;
@@ -783,14 +774,6 @@
     bottom: 0.35rem;
   }
 
-  .summaryActions {
-    width: 100%;
-  }
-
-  .summaryActions button {
-    flex: 1;
-  }
-
   .monthRecordList > button {
     grid-template-columns: 1fr auto;
   }
@@ -813,70 +796,5 @@
 
   .statusChoices {
     grid-template-columns: 1fr;
-  }
-}
-
-@media print {
-  @page {
-    size: A4 portrait;
-    margin: 12mm;
-  }
-
-  :global(body:has(#diary-print-summary)) {
-    min-height: 0 !important;
-    margin: 0 !important;
-    background: #fff !important;
-    print-color-adjust: exact;
-    -webkit-print-color-adjust: exact;
-  }
-
-  :global(body:has(#diary-print-summary) #root) {
-    display: block !important;
-    width: 100% !important;
-    min-height: 0 !important;
-    margin: 0 !important;
-    padding: 0 !important;
-  }
-
-  :global(body:has(#diary-print-summary) #root *:not(:has(#diary-print-summary)):not(#diary-print-summary):not(#diary-print-summary *)) {
-    display: none !important;
-  }
-
-  :global(body:has(#diary-print-summary) #root *:has(#diary-print-summary)) {
-    position: static !important;
-    display: block !important;
-    width: 100% !important;
-    height: auto !important;
-    min-height: 0 !important;
-    max-width: none !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    border: 0 !important;
-    background: transparent !important;
-    box-shadow: none !important;
-    overflow: visible !important;
-  }
-
-  .summaryActions,
-  .monthRecordHeading a,
-  .headerAside {
-    display: none !important;
-  }
-
-  .monthSummary {
-    display: block !important;
-    width: 100% !important;
-    margin: 0 !important;
-    padding: 10mm !important;
-    border: 1px solid var(--color-line);
-    border-radius: var(--radius-card);
-    background: var(--color-surface) !important;
-    box-shadow: none;
-  }
-
-  .summaryGrid article,
-  .coverageCard,
-  .monthRecordList > button {
-    break-inside: avoid;
   }
 }

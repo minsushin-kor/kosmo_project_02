@@ -17,6 +17,10 @@ import {
   getWeeklyReports,
   type WeeklyReport,
 } from '../api/reportApi'
+import {
+  getAverageRiskPercent,
+  getWeeklyWellnessScore,
+} from '../utils/reportMetrics'
 import common from '../../../styles/featurePage.module.css'
 import styles from './ReportPages.module.css'
 
@@ -39,23 +43,6 @@ function formatPeriod(
   )}`
 }
 
-function getWellnessScore(
-  report: WeeklyReport,
-) {
-  const riskProbability =
-    Number(
-      report.averageRiskProbability ??
-      0,
-    )
-
-  return Math.max(
-    0,
-    Math.round(
-      (1 - riskProbability) * 100,
-    ),
-  )
-}
-
 function getReportStatus(
   report: WeeklyReport,
 ) {
@@ -65,6 +52,10 @@ function getReportStatus(
 
   if (report.warningCount > 0) {
     return '관찰'
+  }
+
+  if (getAverageRiskPercent(report) == null) {
+    return '미입력'
   }
 
   return '좋음'
@@ -200,6 +191,12 @@ export function ReportsListPage() {
     }
 
   const latest = reports[0]
+  const latestScore = latest
+    ? getWeeklyWellnessScore(latest)
+    : null
+  const latestRiskPercent = latest
+    ? getAverageRiskPercent(latest)
+    : null
 
   return (
     <div className={common.page}>
@@ -325,22 +322,23 @@ export function ReportsListPage() {
               className={
                 styles.scoreVisual
               }
-              aria-label={`이번 주 건강 점수 ${getWellnessScore(
-                latest,
-              )}점`}
+              aria-label={latestScore == null
+                ? '이번 주 건강 점수 미입력'
+                : `이번 주 건강 점수 ${latestScore}점`}
             >
               <small>
                 WELLNESS SCORE
               </small>
 
-              <strong>
-                {getWellnessScore(
-                  latest,
-                )}
+              <strong className={latestScore == null ? styles.missingScore : undefined}>
+                {latestScore ??
+                  '미입력'}
               </strong>
 
               <span>
-                위험 확률 기준 환산
+                {latestRiskPercent == null
+                  ? '위험도 기록 없음'
+                  : `위험 ${latestRiskPercent}% 기준 환산`}
               </span>
             </div>
           </section>
@@ -379,6 +377,14 @@ export function ReportsListPage() {
                     getReportStatus(
                       report,
                     )
+                  const score =
+                    getWeeklyWellnessScore(
+                      report,
+                    )
+                  const riskPercent =
+                    getAverageRiskPercent(
+                      report,
+                    )
 
                   return (
                     <article
@@ -401,7 +407,10 @@ export function ReportsListPage() {
                             status ===
                               '좋음'
                               ? styles.goodBadge
-                              : styles.watchBadge
+                              : status ===
+                                  '미입력'
+                                ? styles.missingBadge
+                                : styles.watchBadge
                           }
                         >
                           {status}
@@ -418,21 +427,15 @@ export function ReportsListPage() {
                           styles.reportScore
                         }
                       >
-                        <strong>
-                          {getWellnessScore(
-                            report,
-                          )}
+                        <strong className={score == null ? styles.missingScore : undefined}>
+                          {score ??
+                            '미입력'}
                         </strong>
 
                         <small>
-                          {Math.round(
-                            Number(
-                              report.averageRiskProbability ??
-                              0,
-                            ) *
-                            100,
-                          )}
-                          % 위험
+                          {riskPercent == null
+                            ? '위험도 미입력'
+                            : `${riskPercent}% 위험`}
                         </small>
                       </div>
 

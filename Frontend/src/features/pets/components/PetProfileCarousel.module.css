@@ -1,0 +1,149 @@
+.picker {
+  width: min(100%, 31.75rem);
+  min-width: 0;
+}
+
+.heading {
+  display: flex;
+  align-items: baseline;
+  margin-bottom: 0.55rem;
+}
+
+.heading strong {
+  color: var(--color-text-strong);
+  font-size: 0.76rem;
+}
+
+.carousel {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.viewport {
+  max-width: 26.75rem;
+  min-width: 0;
+  overflow-x: auto;
+  padding: 0.35rem;
+  cursor: grab;
+  flex: 1;
+  scrollbar-width: none;
+  scroll-behavior: smooth;
+  scroll-snap-type: x proximity;
+  touch-action: pan-y;
+}
+
+.viewport:active {
+  cursor: grabbing;
+}
+
+.viewport::-webkit-scrollbar {
+  display: none;
+}
+
+.track {
+  display: flex;
+  width: max-content;
+  gap: 0.7rem;
+}
+
+.petButton {
+  display: grid;
+  width: 4.65rem;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  place-items: center;
+  scroll-snap-align: start;
+}
+
+.avatarRing {
+  display: grid;
+  padding: 0.16rem;
+  place-items: center;
+  border: 2px solid transparent;
+  border-radius: 50%;
+  background: var(--color-surface);
+  box-shadow: 0 0.35rem 1rem rgba(64, 70, 45, 0.1);
+  transition: border-color 150ms ease, box-shadow 150ms ease, transform 150ms ease;
+}
+
+.petButton:hover .avatarRing {
+  transform: translateY(-2px);
+}
+
+.selected .avatarRing {
+  border-color: var(--color-secondary-strong);
+  box-shadow: 0 0 0 0.2rem rgba(127, 138, 102, 0.18), 0 0.4rem 1.1rem rgba(64, 70, 45, 0.14);
+}
+
+.petButton small {
+  display: block;
+  max-width: 100%;
+  margin-top: 0.35rem;
+  overflow: hidden;
+  font-size: 0.65rem;
+  font-weight: 750;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.selected small {
+  color: var(--color-text-strong);
+  font-weight: 900;
+}
+
+.arrow {
+  display: grid;
+  width: 2rem;
+  height: 2rem;
+  flex: 0 0 auto;
+  padding: 0 0 0.12rem;
+  place-items: center;
+  border: 1px solid var(--color-line);
+  border-radius: 50%;
+  background: rgba(255, 253, 248, 0.92);
+  color: var(--color-primary);
+  cursor: pointer;
+  font-size: 1.4rem;
+  line-height: 1;
+  transition: border-color 150ms ease, background-color 150ms ease;
+}
+
+.arrow:hover {
+  border-color: var(--color-secondary);
+  background: var(--color-sage-soft);
+}
+
+.status {
+  min-height: 1rem;
+  margin: 0.35rem 0 0;
+  color: var(--color-text-soft);
+  font-size: 0.64rem;
+  text-align: right;
+  word-break: keep-all;
+}
+
+@media (max-width: 980px) {
+  .picker {
+    width: 100%;
+  }
+}
+
+@media (max-width: 520px) {
+  .petButton {
+    width: 4.35rem;
+  }
+
+  .avatarRing > span {
+    width: 3.8rem;
+    height: 3.8rem;
+  }
+
+  .status {
+    text-align: left;
+  }
+}

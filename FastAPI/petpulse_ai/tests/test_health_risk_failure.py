@@ -121,6 +121,29 @@ def test_weekly_report_uses_local_template_without_api_key(monkeypatch):
     assert response.json()["recommendedCare"]
 
 
+def test_weekly_report_marks_missing_health_values_without_treating_them_as_zero(monkeypatch):
+    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+    response = client.post("/ai/generate-weekly-report", json={
+        "petName": "초코",
+        "species": "DOG",
+        "age": 3,
+        "avgTemperature": None,
+        "avgHeartRate": None,
+        "avgRespiratoryRate": None,
+        "cautionAlertCount": 0,
+        "dangerAlertCount": 0,
+        "questionnaireCount": 0,
+        "averageRiskProbability": None,
+        "mainSymptomsSummary": None,
+    })
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["oneLineSummary"] == "지난 한 주간 입력된 건강 기록이 없습니다."
+    assert "미입력" in body["reportContent"]
+    assert "0.0%" not in body["reportContent"]
+
+
 def test_food_recommendation_uses_local_template_without_api_key(monkeypatch):
     monkeypatch.delenv("GEMINI_API_KEY", raising=False)
     monkeypatch.setattr(main, "RAG_COLLECTION", None)

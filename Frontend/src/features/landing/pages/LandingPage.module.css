@@ -1,4 +1,6 @@
 .page {
+  position: relative;
+  isolation: isolate;
   display: grid;
   width: min(calc(100% - 2rem), var(--content-width));
   min-height: calc(100vh - 4.75rem);
@@ -7,6 +9,17 @@
   grid-template-columns: minmax(0, 1.1fr) minmax(23rem, 0.78fr);
   align-items: stretch;
   gap: clamp(1.25rem, 3vw, 2.5rem);
+}
+
+.page::before {
+  position: absolute;
+  z-index: -1;
+  inset: -2.5rem -4rem;
+  background:
+    radial-gradient(circle at 8% 14%, rgba(214, 207, 167, 0.34), transparent 30%),
+    radial-gradient(circle at 92% 78%, rgba(127, 138, 102, 0.16), transparent 28%);
+  content: '';
+  pointer-events: none;
 }
 
 .introPanel,
@@ -39,15 +52,15 @@
 
 .imageOverlay {
   background:
-    linear-gradient(180deg, rgba(35, 39, 24, 0.05) 15%, rgba(35, 39, 24, 0.78) 100%),
-    linear-gradient(90deg, rgba(35, 39, 24, 0.26), transparent 65%);
+    linear-gradient(180deg, rgba(35, 39, 24, 0.18) 0%, rgba(35, 39, 24, 0.02) 48%, rgba(35, 39, 24, 0.62) 100%),
+    linear-gradient(90deg, rgba(64, 70, 45, 0.2), transparent 68%);
 }
 
 .introCopy {
   position: absolute;
   z-index: 1;
+  top: clamp(2rem, 5vw, 4rem);
   right: clamp(1.5rem, 5vw, 4rem);
-  bottom: clamp(5.5rem, 9vw, 7.5rem);
   left: clamp(1.5rem, 5vw, 4rem);
 }
 
@@ -60,26 +73,40 @@
 }
 
 .introCopy > p {
-  color: var(--color-sand);
-}
-
-.introCopy h1 {
   margin: 0;
+  padding: 0.7rem 1rem;
+  border: 1px solid rgba(255, 253, 248, 0.3);
+  border-radius: 999px;
+  background: rgba(48, 54, 34, 0.32);
+  box-shadow: 0 0.6rem 1.5rem rgba(35, 39, 24, 0.12);
   color: var(--color-cream);
-  font-family: var(--font-display);
-  font-size: clamp(2.35rem, 3.9vw, 4.15rem);
-  letter-spacing: -0.07em;
-  line-height: 1.03;
-  white-space: nowrap;
+  backdrop-filter: blur(10px);
+  width: fit-content;
 }
 
-.introCopy > span {
-  display: block;
-  margin-top: 1.35rem;
-  color: rgba(255, 253, 248, 0.78);
-  font-size: clamp(0.9rem, 1.4vw, 1.05rem);
-  line-height: 1.75;
-  word-break: keep-all;
+.pawTrail {
+  position: absolute;
+  z-index: 1;
+  top: 40%;
+  left: clamp(2rem, 6vw, 5rem);
+  display: flex;
+  align-items: flex-start;
+  gap: 0.45rem;
+  color: rgba(255, 253, 248, 0.25);
+  pointer-events: none;
+  transform: rotate(-18deg);
+}
+
+.pawTrail svg {
+  width: 2.25rem;
+  fill: currentColor;
+  filter: drop-shadow(0 0.3rem 0.5rem rgba(35, 39, 24, 0.12));
+}
+
+.pawTrail svg:last-child {
+  width: 1.55rem;
+  opacity: 0.72;
+  transform: translateY(-1.65rem) rotate(14deg);
 }
 
 .careNote {
@@ -128,14 +155,6 @@
   font-size: clamp(2rem, 3.2vw, 2.65rem);
   letter-spacing: -0.055em;
   line-height: 1.14;
-}
-
-.description,
-.signedInCard > p:not(.eyebrow) {
-  margin: 0.75rem 0 2rem;
-  color: var(--color-text-muted);
-  line-height: 1.7;
-  word-break: keep-all;
 }
 
 .field {
@@ -251,19 +270,12 @@
   text-underline-offset: 0.25rem;
 }
 
-.infoNotice,
 .errorMessage {
   margin-top: 1.2rem;
   padding: 0.8rem 0.9rem;
   border-radius: 0.85rem;
   font-size: 0.7rem;
   line-height: 1.5;
-}
-
-.infoNotice {
-  background: var(--color-sand-soft);
-  color: var(--color-text-muted);
-  text-align: center;
 }
 
 .errorMessage {
@@ -273,25 +285,63 @@
 }
 
 .signedInCard {
+  position: relative;
+  isolation: isolate;
   text-align: center;
+}
+
+.signedInCard::before {
+  position: absolute;
+  z-index: -1;
+  top: -0.55rem;
+  left: 50%;
+  width: 7.25rem;
+  height: 7.25rem;
+  border-radius: 50%;
+  background: rgba(226, 229, 212, 0.48);
+  content: '';
+  filter: blur(1px);
+  transform: translateX(-50%);
 }
 
 .profileMark {
   display: grid;
-  width: 4.75rem;
-  height: 4.75rem;
-  margin: 0 auto 1.5rem;
+  width: 6rem;
+  height: 6rem;
+  margin: 0 auto 1.85rem;
+  padding: 0.2rem;
   place-items: center;
+  border: 2px solid var(--color-secondary-strong);
   border-radius: 50%;
-  background: var(--color-sage-soft);
-  color: var(--color-primary);
-  font-family: var(--font-display);
-  font-size: 1.6rem;
-  font-weight: 900;
+  background: var(--color-surface);
+  box-shadow:
+    0 0 0 0.22rem rgba(255, 253, 248, 0.78),
+    0 1rem 2.2rem rgba(64, 70, 45, 0.17);
+  font-size: 2.45rem;
 }
 
-.signedInCard .eyebrow {
-  margin-bottom: 1.5rem;
+.profileMark > span {
+  width: 5.35rem;
+  height: 5.35rem;
+  font-size: 2.45rem;
+}
+
+.signedInCard h2 {
+  font-size: clamp(1.35rem, 2vw, 1.8rem);
+  letter-spacing: -0.045em;
+  white-space: nowrap;
+}
+
+.selectedPetNotice {
+  margin: 0.75rem 0 0;
+  color: var(--color-text-muted);
+  font-size: 0.78rem;
+  line-height: 1.6;
+  word-break: keep-all;
+}
+
+.signedInCard .primaryButton {
+  margin-top: 2rem;
 }
 
 .secondaryLink {
@@ -332,16 +382,12 @@
   }
 
   .introCopy {
-    bottom: 4.6rem;
+    top: 2rem;
   }
 
-  .introCopy h1 {
-    font-size: clamp(1.85rem, 9vw, 2.15rem);
-  }
-
-  .introCopy > span {
-    margin-top: 0.85rem;
-    font-size: 0.8rem;
+  .introCopy > p {
+    padding: 0.6rem 0.8rem;
+    font-size: 0.62rem;
   }
 
   .careNote {

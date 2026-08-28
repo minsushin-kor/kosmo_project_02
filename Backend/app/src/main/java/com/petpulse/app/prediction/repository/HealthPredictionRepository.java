@@ -4,6 +4,7 @@ import com.petpulse.app.prediction.entity.HealthPrediction;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -23,6 +24,11 @@ public interface HealthPredictionRepository
 
     boolean existsByQuestionnaireQuestionnaireId(
             Long questionnaireId);
+
+    List<HealthPrediction> findByQuestionnaireQuestionnaireIdIn(
+            Collection<Long> questionnaireIds);
+
+    void deleteByQuestionnaireQuestionnaireId(Long questionnaireId);
 
     List<HealthPrediction> findByQuestionnairePetPetIdAndPredictedAtBetweenOrderByPredictedAtAsc(
             Long petId,
