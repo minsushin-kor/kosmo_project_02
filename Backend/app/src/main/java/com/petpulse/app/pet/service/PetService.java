@@ -80,7 +80,7 @@ public class PetService {
                 request.weight(),
                 request.neutered(),
                 request.medicalHistory(),
-                request.profileImageUrl());
+                pet.getProfileImageUrl());
 
         return toResponse(pet);
     }

@@ -20,6 +20,7 @@ describe('PublicLostPetPage', () => {
       species: 'DOG',
       breed: '푸들',
       medicalHistory: '심장약 복용 중',
+      photoUrl: '/api/public/lost-pets/public-token/photo?v=1',
     })
   })
 
@@ -38,6 +39,11 @@ describe('PublicLostPetPage', () => {
     expect(screen.getByText('김보호')).toBeInTheDocument()
     expect(screen.getByText('강아지 · 푸들')).toBeInTheDocument()
     expect(screen.getByText('심장약 복용 중')).toBeInTheDocument()
+    expect(screen.getByRole('img', { name: '초코 사진' }))
+      .toHaveAttribute('src', '/api/public/lost-pets/public-token/photo')
+    expect(screen.queryByText('LOST PET CONTACT')).not.toBeInTheDocument()
+    expect(screen.queryByText(/안전한 곳에서 보호하고 계시다면/)).not.toBeInTheDocument()
+    expect(screen.getByText('아래 연락처로 연락해 주세요.')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /보호자에게 전화하기/ }))
       .toHaveAttribute('href', 'tel:01012345678')
     expect(getPublicProfileMock).toHaveBeenCalledWith('public-token', expect.any(AbortSignal))

@@ -45,6 +45,7 @@ describe('TodayStatusRecorder', () => {
 
     render(<MemoryRouter><TodayStatusRecorder /></MemoryRouter>)
 
+    await screen.findByRole('button', { name: '오늘 상태 저장' })
     fireEvent.click(screen.getByRole('radio', { name: /관찰이 필요해요/ }))
     fireEvent.change(screen.getByRole('textbox'), {
       target: { value: '평소보다 천천히 걸었어요.' },
@@ -57,5 +58,33 @@ describe('TodayStatusRecorder', () => {
       { status: 'WATCH', note: '평소보다 천천히 걸었어요.' },
     ))
     expect(await screen.findByText('초코의 오늘 상태를 저장했습니다.')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: '수정하기' })).toHaveAttribute(
+      'href',
+      `/pets/1/diary?date=${getTodayKey()}&edit=true`,
+    )
+    expect(screen.getByRole('textbox')).toBeDisabled()
+  })
+
+  it('이미 저장된 오늘 기록은 잠그고 다이어리 수정 링크를 제공한다', async () => {
+    api.getDiaryEntries.mockResolvedValue([{
+      diaryEntryId: 1,
+      petId: 1,
+      date: getTodayKey(),
+      status: 'GOOD',
+      note: '오늘은 잘 뛰어놀았어요.',
+      createdAt: '',
+      updatedAt: '',
+    }])
+
+    render(<MemoryRouter><TodayStatusRecorder /></MemoryRouter>)
+
+    expect(await screen.findByRole('textbox')).toHaveValue('오늘은 잘 뛰어놀았어요.')
+    expect(screen.getByRole('textbox')).toBeDisabled()
+    expect(screen.getByRole('radio', { name: /좋아요/ })).toBeDisabled()
+    expect(screen.queryByRole('button', { name: '오늘 상태 저장' })).not.toBeInTheDocument()
+    expect(screen.getByRole('link', { name: '수정하기' })).toHaveAttribute(
+      'href',
+      `/pets/1/diary?date=${getTodayKey()}&edit=true`,
+    )
   })
 })

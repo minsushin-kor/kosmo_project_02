@@ -4,12 +4,15 @@ import {
   createLostPetQrProfile,
   deleteLostPetQrProfile,
   getPublicLostPetProfile,
+  uploadLostPetQrPhoto,
+  deleteLostPetQrPhoto,
   updateLostPetQrActive,
   updateLostPetQrVisibility,
 } from './lostPetQrApi'
 
 vi.mock('../../../shared/api/apiClient', () => ({
   apiRequest: vi.fn(),
+  apiBlobRequest: vi.fn(),
 }))
 
 const apiRequestMock = vi.mocked(apiRequest)
@@ -74,6 +77,28 @@ describe('lostPetQrApi', () => {
     await deleteLostPetQrProfile(3)
 
     expect(apiRequestMock).toHaveBeenCalledWith('/pets/3/lost-qr-profile', {
+      method: 'DELETE',
+    })
+  })
+
+  it('공개 화면 사진을 multipart로 등록한다', async () => {
+    const image = new File(['image'], 'latest.jpg', { type: 'image/jpeg' })
+
+    await uploadLostPetQrPhoto(3, image)
+
+    const [, options] = apiRequestMock.mock.calls[0]
+    expect(apiRequestMock).toHaveBeenCalledWith('/pets/3/lost-qr-profile/photo', {
+      method: 'POST',
+      body: expect.any(FormData),
+    })
+    expect(options).toBeDefined()
+    expect((options!.body as FormData).get('image')).toBe(image)
+  })
+
+  it('등록한 공개 화면 사진을 삭제한다', async () => {
+    await deleteLostPetQrPhoto(3)
+
+    expect(apiRequestMock).toHaveBeenCalledWith('/pets/3/lost-qr-profile/photo', {
       method: 'DELETE',
     })
   })

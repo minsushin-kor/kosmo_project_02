@@ -18,54 +18,56 @@
   box-shadow: 0 1.5rem 4rem rgba(64, 70, 45, 0.12);
 }
 
-.hero {
-  padding: clamp(2rem, 8vw, 3.5rem) 1.5rem 2.2rem;
-  background: var(--color-primary);
-  color: var(--color-cream);
+.photoHero {
+  display: grid;
+  overflow: hidden;
+  min-height: 22rem;
+  place-items: center;
+  background: var(--color-sage-soft);
+}
+
+.photoHero img {
+  width: 100%;
+  height: 22rem;
+  object-fit: cover;
+}
+
+.photoHero > span {
+  display: grid;
+  width: 7rem;
+  height: 7rem;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--color-surface);
+  font-size: 3.2rem;
+  box-shadow: 0 1rem 3rem rgba(64, 70, 45, 0.12);
+}
+
+.contactPrompt {
+  padding: 1.1rem;
+  border: 1px solid var(--color-line);
+  border-radius: 1rem;
+  background: var(--color-sand-soft);
   text-align: center;
 }
 
-.hero > p:first-child {
-  margin: 0 0 1.2rem;
-  color: rgba(255, 253, 248, 0.55);
-  font-size: 0.64rem;
-  font-weight: 850;
-  letter-spacing: 0.16em;
-}
-
-.petIcon {
-  display: grid;
-  width: 5.5rem;
-  height: 5.5rem;
-  margin: 0 auto 1.2rem;
-  place-items: center;
-  border: 0.25rem solid rgba(255, 253, 248, 0.18);
-  border-radius: 50%;
-  background: var(--color-cream);
-  font-size: 2.65rem;
-}
-
-.hero h1 {
+.contactPrompt h1,
+.contactPrompt p {
+  display: block;
   margin: 0;
+}
+
+.contactPrompt h1 {
+  color: var(--color-text-strong);
   font-family: var(--font-display);
-  font-size: clamp(2rem, 9vw, 3.2rem);
-  font-weight: 500;
-  letter-spacing: -0.06em;
-  line-height: 1.08;
+  font-size: 1.25rem;
+  letter-spacing: -0.035em;
 }
 
-.hero h1 strong {
-  color: #d7dfb9;
-  font-weight: 850;
-}
-
-.hero > p:last-child {
-  max-width: 19rem;
-  margin: 1rem auto 0;
-  color: rgba(255, 253, 248, 0.68);
-  font-size: 0.8rem;
-  line-height: 1.65;
-  word-break: keep-all;
+.contactPrompt p {
+  margin-top: 0.3rem;
+  color: var(--color-text-muted);
+  font-size: 0.78rem;
 }
 
 .details {
@@ -73,7 +75,7 @@
 }
 
 .details dl {
-  margin: 0;
+  margin: 1rem 0 0;
 }
 
 .details dl > div {
@@ -213,5 +215,11 @@
     border: 0;
     border-radius: 0;
     box-shadow: none;
+  }
+
+  .photoHero,
+  .photoHero img {
+    height: min(68vh, 27rem);
+    min-height: 19rem;
   }
 }

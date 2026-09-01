@@ -418,12 +418,24 @@ export function QuickPredictionPage() {
           </button>
         </form>
 
-        <aside className={`${styles.resultPanel} ${result ? styles[`grade${result.riskGrade}`] : ''}`} aria-live="polite">
+        <aside
+          className={`${styles.resultPanel} ${result && !isPredicting ? styles[`grade${result.riskGrade}`] : ''}`}
+          aria-live="polite"
+          aria-busy={isPredicting}
+        >
           <div className={styles.resultHeading}>
             <div><span>02</span><div><p>AI PREDICTION</p><h2>예측 결과</h2></div></div>
           </div>
 
-          {error ? (
+          {isPredicting ? (
+            <div className={styles.loadingState}>
+              <div className={styles.loadingPulse} aria-hidden="true"><span /></div>
+              <p>AI ANALYSIS IN PROGRESS</p>
+              <h3>입력한 건강 신호를 분석하고 있어요.</h3>
+              <small>예측 결과가 준비될 때까지 잠시만 기다려 주세요.</small>
+              <div className={styles.loadingDots} aria-hidden="true"><i /><i /><i /></div>
+            </div>
+          ) : error ? (
             <div className={styles.errorState} role="alert">
               <span aria-hidden="true">!</span>
               <h3>예측 결과를 불러오지 못했습니다.</h3>

@@ -9,6 +9,7 @@ const testState = vi.hoisted(() => ({
   selectedPet: null as Pet | null,
   selectPet: vi.fn(),
   getQuestionnaires: vi.fn(),
+  predictHealthRisk: vi.fn(),
 }))
 
 vi.mock('../../auth/hooks/useAuth', () => ({
@@ -25,6 +26,10 @@ vi.mock('../../pets/hooks/usePets', () => ({
 
 vi.mock('../../questionnaire/api/questionnaireApi', () => ({
   getQuestionnaires: testState.getQuestionnaires,
+}))
+
+vi.mock('../api/quickPredictionApi', () => ({
+  predictHealthRisk: testState.predictHealthRisk,
 }))
 
 const pet: Pet = {
@@ -46,6 +51,7 @@ beforeEach(() => {
   testState.selectedPet = null
   testState.selectPet.mockReset()
   testState.getQuestionnaires.mockReset().mockResolvedValue([])
+  testState.predictHealthRisk.mockReset()
 })
 
 describe('QuickPredictionPage 수치 입력', () => {
@@ -78,6 +84,17 @@ describe('QuickPredictionPage 수치 입력', () => {
 
     expect(screen.getByRole('spinbutton', { name: '심박수 직접 입력' })).toHaveValue(300)
     expect(screen.getByRole('slider', { name: '심박수 슬라이더' })).toHaveValue('300')
+  })
+
+  it('예측 요청 중에는 오른쪽 결과 영역에 분석 로딩 화면을 표시한다', async () => {
+    testState.predictHealthRisk.mockImplementation(() => new Promise(() => {}))
+
+    render(<QuickPredictionPage />)
+
+    fireEvent.click(screen.getByRole('button', { name: /예측 시작/ }))
+
+    expect(await screen.findByText('입력한 건강 신호를 분석하고 있어요.')).toBeInTheDocument()
+    expect(screen.getByText('예측 결과').closest('aside')).toHaveAttribute('aria-busy', 'true')
   })
 
   it('로그인한 회원은 선택한 반려동물의 최근 문진을 입력값에 반영한다', async () => {

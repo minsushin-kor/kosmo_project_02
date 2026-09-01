@@ -6,6 +6,7 @@ import { usePets } from '../../pets/hooks/usePets'
 import {
   deleteLostPetQrProfile,
   getLostPetQrProfile,
+  uploadLostPetQrPhoto,
   updateLostPetQrVisibility,
 } from '../api/lostPetQrApi'
 import type { LostPetQrProfile } from '../types'
@@ -19,6 +20,9 @@ vi.mock('../api/lostPetQrApi', () => ({
   getLostPetQrProfile: vi.fn(),
   updateLostPetQrActive: vi.fn(),
   updateLostPetQrVisibility: vi.fn(),
+  uploadLostPetQrPhoto: vi.fn(),
+  deleteLostPetQrPhoto: vi.fn(),
+  getLostPetQrPhoto: vi.fn(() => new Promise(() => {})),
 }))
 
 const useAuthMock = vi.mocked(useAuth)
@@ -26,6 +30,7 @@ const usePetsMock = vi.mocked(usePets)
 const getProfileMock = vi.mocked(getLostPetQrProfile)
 const deleteProfileMock = vi.mocked(deleteLostPetQrProfile)
 const updateVisibilityMock = vi.mocked(updateLostPetQrVisibility)
+const uploadPhotoMock = vi.mocked(uploadLostPetQrPhoto)
 
 const profile: LostPetQrProfile = {
   publicToken: 'public-token',
@@ -36,6 +41,8 @@ const profile: LostPetQrProfile = {
   species: 'DOG',
   breed: '푸들',
   medicalHistory: '심장약 복용 중',
+  photoUrl: null,
+  customPhoto: false,
   showGuardianName: true,
   showPetDetails: true,
   showMedicalHistory: true,
@@ -89,6 +96,11 @@ describe('LostPetQrManagementPage', () => {
       ...profile,
       showGuardianName: false,
     })
+    uploadPhotoMock.mockResolvedValue({
+      ...profile,
+      photoUrl: '/api/pets/1/lost-qr-profile/photo?v=2',
+      customPhoto: true,
+    })
   })
 
   it('DB 정보는 읽기 전용으로 두고 기존 QR의 공개 범위만 저장한다', async () => {
@@ -122,5 +134,18 @@ describe('LostPetQrManagementPage', () => {
     await waitFor(() => expect(deleteProfileMock).toHaveBeenCalledWith(1))
     expect(await screen.findByText(/이전 QR 주소는 더 이상 사용할 수 없습니다/)).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'QR 주소 재발급' })).not.toBeInTheDocument()
+  })
+
+  it('공개 화면에 사용할 사진을 등록한다', async () => {
+    render(<MemoryRouter><LostPetQrManagementPage /></MemoryRouter>)
+
+    const photoInput = await screen.findByLabelText('사진 등록')
+    const image = new File([new Uint8Array([0x89, 0x50, 0x4e, 0x47])], 'latest.png', {
+      type: 'image/png',
+    })
+    fireEvent.change(photoInput, { target: { files: [image] } })
+
+    await waitFor(() => expect(uploadPhotoMock).toHaveBeenCalledWith(1, image))
+    expect(await screen.findByText('공개 화면 사진을 저장했습니다.')).toBeInTheDocument()
   })
 })

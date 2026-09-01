@@ -1,4 +1,4 @@
-import { apiRequest } from '../../../shared/api/apiClient'
+import { apiBlobRequest, apiRequest } from '../../../shared/api/apiClient'
 import type {
   LostPetQrProfile,
   LostPetQrVisibility,
@@ -34,6 +34,25 @@ export function deleteLostPetQrProfile(petId: number) {
   return apiRequest<void>(`/pets/${petId}/lost-qr-profile`, {
     method: 'DELETE',
   })
+}
+
+export function uploadLostPetQrPhoto(petId: number, image: File) {
+  const formData = new FormData()
+  formData.append('image', image)
+  return apiRequest<LostPetQrProfile>(`/pets/${petId}/lost-qr-profile/photo`, {
+    method: 'POST',
+    body: formData,
+  })
+}
+
+export function deleteLostPetQrPhoto(petId: number) {
+  return apiRequest<LostPetQrProfile>(`/pets/${petId}/lost-qr-profile/photo`, {
+    method: 'DELETE',
+  })
+}
+
+export function getLostPetQrPhoto(petId: number, signal?: AbortSignal) {
+  return apiBlobRequest(`/pets/${petId}/lost-qr-profile/photo`, signal)
 }
 
 export function getPublicLostPetProfile(publicToken: string, signal?: AbortSignal) {

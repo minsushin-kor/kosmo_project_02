@@ -63,12 +63,12 @@ function petContext(selectedPet: Pet, availablePets: Pet[] = pets): PetContextVa
   }
 }
 
-function page(context: PetContextValue) {
+function page(context: PetContextValue, initialPath?: string) {
   const router = createMemoryRouter([
     { path: '/pets/:petId/diary', element: <HealthDiaryPage /> },
     { path: '/pets/:petId/vitals', element: <div>건강 수치 변화 화면</div> },
     { path: '/pets/:petId/health-records/:questionnaireId', element: <div>건강 기록 상세 화면</div> },
-  ], { initialEntries: [`/pets/${context.selectedPet?.id ?? 1}/diary`] })
+  ], { initialEntries: [initialPath ?? `/pets/${context.selectedPet?.id ?? 1}/diary`] })
 
   return (
     <PetContext.Provider value={context}>
@@ -187,6 +187,23 @@ describe('HealthDiaryPage backend integration flow', () => {
     fireEvent.click(screen.getByRole('button', { name: '수정 완료' }))
 
     await waitFor(() => expect(apiMocks.upsertDiaryEntry).toHaveBeenLastCalledWith(1, '2026-08-18', { status: 'WATCH', note: '좋은 하루' }))
+  })
+
+  it('opens the requested date diary editor from an edit link', async () => {
+    apiMocks.getDiaryEntries.mockResolvedValue([{
+      ...diaryEntry('WATCH'),
+      date: '2026-08-17',
+      note: '수정할 기록',
+    }])
+
+    render(page(
+      petContext(pets[0]),
+      '/pets/1/diary?date=2026-08-17&edit=true',
+    ))
+
+    expect(await screen.findByRole('dialog')).toHaveAccessibleName('8월 17일 월요일')
+    expect(screen.getByRole('textbox')).toHaveValue('수정할 기록')
+    expect(screen.getByRole('button', { name: '수정 완료' })).toBeInTheDocument()
   })
 
   it('일기장에 입력한 줄바꿈을 다이어리 메모에 유지한다', async () => {

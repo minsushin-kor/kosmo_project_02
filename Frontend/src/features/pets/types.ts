@@ -32,17 +32,18 @@ export function getPetEmoji(species: Species) {
   return species === 'DOG' ? '🐶' : '🐱'
 }
 
-export function getPetAge(birthDate: string) {
-  const today = new Date()
+export function getPetAge(birthDate: string, today = new Date()) {
   const birthday = new Date(`${birthDate}T00:00:00`)
-  let age = today.getFullYear() - birthday.getFullYear()
-  const hasNotHadBirthday =
-    today.getMonth() < birthday.getMonth() ||
-    (today.getMonth() === birthday.getMonth() && today.getDate() < birthday.getDate())
 
-  if (hasNotHadBirthday) {
-    age -= 1
-  }
+  if (Number.isNaN(birthday.getTime())) return '나이 미상'
 
-  return `${Math.max(age, 0)}살`
+  let months = (today.getFullYear() - birthday.getFullYear()) * 12
+    + today.getMonth() - birthday.getMonth()
+
+  if (today.getDate() < birthday.getDate()) months -= 1
+  months = Math.max(months, 0)
+
+  if (months < 12) return `${months}개월`
+
+  return `${Math.floor(months / 12)}살`
 }

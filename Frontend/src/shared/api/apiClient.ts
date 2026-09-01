@@ -16,6 +16,13 @@ export function getApiUrl(path: string) {
   return `${getApiBaseUrl()}${path}`
 }
 
+export function getApiResourceUrl(resourceUrl?: string | null) {
+  if (!resourceUrl || !resourceUrl.startsWith('/api/')) {
+    return resourceUrl ?? ''
+  }
+  return getApiUrl(resourceUrl.slice('/api'.length))
+}
+
 export class ApiError extends Error {
   readonly status: number
 
@@ -71,6 +78,30 @@ export async function apiRequest<T>(path: string, options: ApiRequestOptions = {
   }
 
   return response.json() as Promise<T>
+}
+
+export async function apiBlobRequest(path: string, signal?: AbortSignal): Promise<Blob> {
+  const headers = new Headers()
+  const token = getAuthToken()
+  if (token) {
+    headers.set('Authorization', `Bearer ${token}`)
+  }
+
+  const response = await fetch(getApiUrl(path), { headers, signal })
+  if (!response.ok) {
+    let message = `요청을 처리하지 못했습니다. (${response.status})`
+    try {
+      const payload = await response.json() as ErrorPayload
+      message = payload.detail ?? payload.message ?? payload.error ?? message
+    } catch {
+      // JSON 오류 응답이 아니면 상태 코드 기반 기본 문구를 사용합니다.
+    }
+    if (response.status === 401 && token) {
+      notifyUnauthorized()
+    }
+    throw new ApiError(message, response.status)
+  }
+  return response.blob()
 }
 
 export function getApiErrorMessage(error: unknown, fallback: string) {

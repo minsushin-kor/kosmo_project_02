@@ -4,16 +4,21 @@ import com.petpulse.app.global.exception.BusinessException;
 import com.petpulse.app.global.exception.ErrorCode;
 import com.petpulse.app.lostpet.dto.CreateLostPetQrProfileRequest;
 import com.petpulse.app.lostpet.dto.UpdateLostPetQrVisibilityRequest;
+import com.petpulse.app.lostpet.entity.LostPetQrPhoto;
 import com.petpulse.app.lostpet.entity.PetLostQrProfile;
+import com.petpulse.app.lostpet.repository.LostPetQrPhotoRepository;
 import com.petpulse.app.lostpet.repository.PetLostQrProfileRepository;
 import com.petpulse.app.pet.entity.Pet;
 import com.petpulse.app.pet.entity.PetGender;
 import com.petpulse.app.pet.entity.PetSpecies;
 import com.petpulse.app.pet.service.PetAccessService;
+import com.petpulse.app.pet.service.PetProfileImageService;
 import com.petpulse.app.user.entity.User;
 import com.petpulse.app.user.entity.UserRole;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -28,15 +33,20 @@ import static org.mockito.Mockito.when;
 
 class LostPetQrProfileServiceTest {
     private PetLostQrProfileRepository repository;
+    private LostPetQrPhotoRepository photoRepository;
     private PetAccessService petAccessService;
+    private PetProfileImageService petProfileImageService;
     private LostPetQrProfileService service;
     private Pet pet;
 
     @BeforeEach
     void setUp() {
         repository = mock(PetLostQrProfileRepository.class);
+        photoRepository = mock(LostPetQrPhotoRepository.class);
         petAccessService = mock(PetAccessService.class);
-        service = new LostPetQrProfileService(repository, petAccessService);
+        petProfileImageService = mock(PetProfileImageService.class);
+        service = new LostPetQrProfileService(
+                repository, photoRepository, petAccessService, petProfileImageService);
 
         User guardian = new User(
                 "guardian", "encoded", "guardian@example.com",
@@ -99,7 +109,7 @@ class LostPetQrProfileServiceTest {
         pet.update(
                 "초코", PetSpecies.DOG, "푸들", LocalDate.of(2022, 1, 1),
                 PetGender.MALE, BigDecimal.valueOf(4.5), true,
-                "심장약 복용 중", null);
+                "심장약 복용 중", "/api/pets/1/profile-image?v=1");
 
         var response = service.getPublicProfile("public-token");
 
@@ -107,6 +117,28 @@ class LostPetQrProfileServiceTest {
         assertThat(response.guardianPhone()).isEqualTo("010-9999-0000");
         assertThat(response.breed()).isEqualTo("푸들");
         assertThat(response.medicalHistory()).isEqualTo("심장약 복용 중");
+        assertThat(response.photoUrl()).isEqualTo("/api/pets/1/profile-image?v=1");
+    }
+
+    @Test
+    void savesLatestPhotoForPublicQrProfile() {
+        PetLostQrProfile profile = new PetLostQrProfile(pet, "public-token");
+        ReflectionTestUtils.setField(pet, "petId", 1L);
+        ReflectionTestUtils.setField(profile, "profileId", 10L);
+        when(repository.findByPetPetId(1L)).thenReturn(Optional.of(profile));
+        when(photoRepository.findById(10L)).thenReturn(Optional.empty());
+        when(photoRepository.save(any(LostPetQrPhoto.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        var image = new MockMultipartFile(
+                "image", "latest.png", "image/png",
+                new byte[] {(byte) 0x89, 0x50, 0x4e, 0x47, 0, 0, 0, 0});
+
+        var response = service.savePhoto("guardian", 1L, image);
+
+        assertThat(response.customPhoto()).isTrue();
+        assertThat(response.photoUrl())
+                .startsWith("/api/pets/1/lost-qr-profile/photo?v=");
+        verify(photoRepository).save(any(LostPetQrPhoto.class));
     }
 
     @Test

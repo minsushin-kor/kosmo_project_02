@@ -15,6 +15,8 @@ export type LostPetQrProfile = {
   species: Species
   breed: string | null
   medicalHistory: string | null
+  photoUrl: string | null
+  customPhoto: boolean
 } & LostPetQrVisibility
 
 export type PublicLostPetProfile = {
@@ -24,4 +26,5 @@ export type PublicLostPetProfile = {
   species?: Species
   breed?: string
   medicalHistory?: string
+  photoUrl?: string
 }

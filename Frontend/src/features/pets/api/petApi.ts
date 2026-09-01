@@ -1,4 +1,4 @@
-import { apiRequest } from '../../../shared/api/apiClient'
+import { apiRequest, getApiResourceUrl } from '../../../shared/api/apiClient'
 import type { CreatePetInput, Pet, PetAccent } from '../types'
 
 type PetResponse = {
@@ -42,7 +42,7 @@ function toPet(response: PetResponse): Pet {
     weight: response.weight ?? 0,
     neutered: response.neutered ?? false,
     medicalHistory: response.medicalHistory ?? '',
-    imageUrl: response.profileImageUrl ?? undefined,
+    imageUrl: getApiResourceUrl(response.profileImageUrl) || undefined,
     accent: accents[response.petId % accents.length],
   }
 }

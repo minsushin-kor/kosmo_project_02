@@ -54,7 +54,6 @@ export function PetProfileCarousel({
       scrollLeft: event.currentTarget.scrollLeft,
     }
     suppressClickRef.current = false
-    event.currentTarget.setPointerCapture(event.pointerId)
   }
 
   const handlePointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
@@ -64,6 +63,9 @@ export function PetProfileCarousel({
     const distance = event.clientX - dragState.startX
     if (Math.abs(distance) > 5) {
       suppressClickRef.current = true
+      if (!event.currentTarget.hasPointerCapture(event.pointerId)) {
+        event.currentTarget.setPointerCapture(event.pointerId)
+      }
       event.currentTarget.scrollLeft = dragState.scrollLeft - distance
     }
   }

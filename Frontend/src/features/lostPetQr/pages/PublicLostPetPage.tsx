@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { getApiErrorMessage, isAbortError } from '../../../shared/api/apiClient'
+import { getApiErrorMessage, getApiResourceUrl, isAbortError } from '../../../shared/api/apiClient'
 import { getPetEmoji, speciesLabel } from '../../pets/types'
 import { getPublicLostPetProfile } from '../api/lostPetQrApi'
 import type { PublicLostPetProfile } from '../types'
@@ -8,11 +8,22 @@ import styles from './PublicLostPetPage.module.css'
 
 const PUBLIC_PROFILE_TIMEOUT_MS = 8_000
 
+function withObjectParticle(name: string) {
+  const lastCharacter = name.at(-1)
+  if (!lastCharacter) return name
+  const code = lastCharacter.charCodeAt(0)
+  const hasFinalConsonant = code >= 0xac00 && code <= 0xd7a3
+    ? (code - 0xac00) % 28 !== 0
+    : false
+  return `${name}${hasFinalConsonant ? '을' : '를'}`
+}
+
 export function PublicLostPetPage() {
   const { publicToken = '' } = useParams()
   const [profile, setProfile] = useState<PublicLostPetProfile | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState('')
+  const [isPhotoUnavailable, setIsPhotoUnavailable] = useState(false)
 
   useEffect(() => {
     const robotsMeta = document.createElement('meta')
@@ -35,6 +46,7 @@ export function PublicLostPetPage() {
     setIsLoading(true)
     setProfile(null)
     setError('')
+    setIsPhotoUnavailable(false)
 
     getPublicLostPetProfile(publicToken, controller.signal)
       .then(setProfile)
@@ -80,20 +92,32 @@ export function PublicLostPetPage() {
   const petType = profile.species
     ? [speciesLabel[profile.species], profile.breed?.trim()].filter(Boolean).join(' · ')
     : ''
+  const publicPhotoUrl = getApiResourceUrl(
+    `/api/public/lost-pets/${encodeURIComponent(publicToken)}/photo`,
+  )
 
   return (
     <main className={styles.page}>
       <article className={styles.profileCard}>
-        <header className={styles.hero}>
-          <p>LOST PET CONTACT</p>
-          <div className={styles.petIcon} aria-hidden="true">
-            {profile.species ? getPetEmoji(profile.species) : '🐾'}
-          </div>
-          <h1><strong>{profile.petName}</strong>를<br />발견하셨나요?</h1>
-          <p>안전한 곳에서 보호하고 계시다면 아래 연락처로 알려주세요.</p>
-        </header>
+        <div className={styles.photoHero}>
+          {!isPhotoUnavailable && (
+            <img
+              src={publicPhotoUrl}
+              alt={`${profile.petName} 사진`}
+              onError={() => setIsPhotoUnavailable(true)}
+            />
+          )}
+          {isPhotoUnavailable && (
+            <span aria-hidden="true">{profile.species ? getPetEmoji(profile.species) : '🐾'}</span>
+          )}
+        </div>
 
         <section className={styles.details} aria-label="반려동물과 보호자 공개 정보">
+          <div className={styles.contactPrompt}>
+            <h1>{withObjectParticle(profile.petName)} 발견하셨나요?</h1>
+            <p>아래 연락처로 연락해 주세요.</p>
+          </div>
+
           <dl>
             <div><dt>이름</dt><dd>{profile.petName}</dd></div>
             {petType && <div><dt>종류·품종</dt><dd>{petType}</dd></div>}

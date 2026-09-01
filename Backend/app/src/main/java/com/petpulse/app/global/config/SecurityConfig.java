@@ -44,7 +44,7 @@ public class SecurityConfig {
                                                                 "/api/ai/quick-predictions",
                                                                 "/api/ai/food-recommendations")
                                                 .permitAll()
-                                                .requestMatchers(HttpMethod.GET, "/api/public/lost-pets/*").permitAll()
+                                                .requestMatchers(HttpMethod.GET, "/api/public/lost-pets/**").permitAll()
                                                 .requestMatchers(HttpMethod.GET, "/api/pets/*/profile-image")
                                                 .permitAll()
                                                 .requestMatchers("/api/**").authenticated()

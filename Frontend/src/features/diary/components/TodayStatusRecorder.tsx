@@ -16,16 +16,21 @@ function getLocalDateKey(date: Date) {
 
 export function TodayStatusRecorder() {
   const { selectedPet } = usePets()
+  const selectedPetId = selectedPet?.id
   const [status, setStatus] = useState<GuardianDiaryStatus | ''>('')
   const [note, setNote] = useState('')
+  const [hasExistingEntry, setHasExistingEntry] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
 
   useEffect(() => {
-    if (!selectedPet) {
+    if (selectedPetId == null) {
       setStatus('')
       setNote('')
+      setHasExistingEntry(false)
+      setIsLoading(false)
       setMessage('')
       setError('')
       return
@@ -34,9 +39,11 @@ export function TodayStatusRecorder() {
     const controller = new AbortController()
     const today = new Date()
     const todayKey = getLocalDateKey(today)
+    setIsLoading(true)
+    setHasExistingEntry(false)
 
     getDiaryEntries(
-      selectedPet.id,
+      selectedPetId,
       today.getFullYear(),
       today.getMonth() + 1,
       controller.signal,
@@ -45,6 +52,7 @@ export function TodayStatusRecorder() {
         const todayEntry = entries.find((entry) => entry.date === todayKey)
         setStatus(todayEntry?.status ?? '')
         setNote(todayEntry?.note ?? '')
+        setHasExistingEntry(Boolean(todayEntry))
         setError('')
       })
       .catch((loadError) => {
@@ -52,12 +60,17 @@ export function TodayStatusRecorder() {
           setError(getApiErrorMessage(loadError, '오늘 상태 기록을 불러오지 못했습니다.'))
         }
       })
+      .finally(() => {
+        if (!controller.signal.aborted) setIsLoading(false)
+      })
 
     return () => controller.abort()
-  }, [selectedPet])
+  }, [selectedPetId])
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
+
+    if (hasExistingEntry || isLoading) return
 
     if (!selectedPet || !status) {
       setError('오늘의 상태를 선택해 주세요.')
@@ -77,6 +90,7 @@ export function TodayStatusRecorder() {
 
       setStatus(saved.status)
       setNote(saved.note)
+      setHasExistingEntry(true)
       setMessage(`${selectedPet.name}의 오늘 상태를 저장했습니다.`)
     } catch (saveError) {
       setError(getApiErrorMessage(saveError, '오늘 상태를 저장하지 못했습니다.'))
@@ -89,6 +103,10 @@ export function TodayStatusRecorder() {
     return null
   }
 
+  const todayKey = getLocalDateKey(new Date())
+  const editPath = `/pets/${selectedPet.id}/diary?date=${todayKey}&edit=true`
+  const isReadOnly = hasExistingEntry || isLoading
+
   return (
     <section className={styles.recorder} aria-labelledby="today-status-title">
       <div className={styles.intro}>
@@ -98,7 +116,7 @@ export function TodayStatusRecorder() {
       </div>
 
       <form className={styles.form} onSubmit={handleSubmit}>
-        <fieldset>
+        <fieldset disabled={isReadOnly}>
           <legend>오늘은 어떤 하루인가요?</legend>
           <div className={styles.statusChoices}>
             <label className={status === 'GOOD' ? styles.selectedGood : ''}>
@@ -135,6 +153,7 @@ export function TodayStatusRecorder() {
         <label className={styles.noteField}>
           <span>보호자 메모</span>
           <textarea
+            disabled={isReadOnly}
             rows={3}
             maxLength={300}
             value={note}
@@ -149,9 +168,13 @@ export function TodayStatusRecorder() {
             {message && <p className={styles.success}>{message}</p>}
             {error && <p className={styles.error} role="alert">{error}</p>}
           </div>
-          <button type="submit" disabled={isSaving}>
-            {isSaving ? '저장 중...' : '오늘 상태 저장'}
-          </button>
+          {hasExistingEntry ? (
+            <Link className={styles.editButton} to={editPath}>수정하기</Link>
+          ) : (
+            <button type="submit" disabled={isSaving || isLoading}>
+              {isLoading ? '기록 확인 중...' : isSaving ? '저장 중...' : '오늘 상태 저장'}
+            </button>
+          )}
         </div>
       </form>
     </section>

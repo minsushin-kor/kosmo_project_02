@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useState, type ChangeEvent, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
-import { ApiError, getApiErrorMessage, isAbortError } from '../../../shared/api/apiClient'
+import { ApiError, getApiErrorMessage, getApiResourceUrl, isAbortError } from '../../../shared/api/apiClient'
 import { useAuth } from '../../auth/hooks/useAuth'
 import { PetAvatar } from '../../pets/components/PetAvatar'
 import { usePets } from '../../pets/hooks/usePets'
@@ -8,7 +8,10 @@ import { getPetEmoji, speciesLabel } from '../../pets/types'
 import {
   createLostPetQrProfile,
   deleteLostPetQrProfile,
+  deleteLostPetQrPhoto,
   getLostPetQrProfile,
+  getLostPetQrPhoto,
+  uploadLostPetQrPhoto,
   updateLostPetQrActive,
   updateLostPetQrVisibility,
 } from '../api/lostPetQrApi'
@@ -59,6 +62,10 @@ export function LostPetQrManagementPage() {
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
   const [busyAction, setBusyAction] = useState('')
+  const [photoFile, setPhotoFile] = useState<File | null>(null)
+  const [photoPreviewUrl, setPhotoPreviewUrl] = useState('')
+  const [storedPhotoUrl, setStoredPhotoUrl] = useState('')
+  const [photoError, setPhotoError] = useState('')
 
   useEffect(() => {
     if (selectedPetId === null && pets.length > 0) {
@@ -67,6 +74,34 @@ export function LostPetQrManagementPage() {
   }, [pets, selectedPet, selectedPetId])
 
   const pet = pets.find((candidate) => candidate.id === selectedPetId) ?? null
+
+  useEffect(() => {
+    if (!selectedPetId || !profile) {
+      setStoredPhotoUrl('')
+      return
+    }
+
+    const controller = new AbortController()
+    let objectUrl = ''
+    getLostPetQrPhoto(selectedPetId, controller.signal)
+      .then((photo) => {
+        objectUrl = URL.createObjectURL(photo)
+        setStoredPhotoUrl(objectUrl)
+      })
+      .catch((loadError: unknown) => {
+        if (!isAbortError(loadError)) {
+          setStoredPhotoUrl('')
+          if (profile.customPhoto) {
+            setPhotoError(getApiErrorMessage(loadError, '등록 사진을 불러오지 못했습니다.'))
+          }
+        }
+      })
+
+    return () => {
+      controller.abort()
+      if (objectUrl) URL.revokeObjectURL(objectUrl)
+    }
+  }, [profile?.customPhoto, profile?.photoUrl, selectedPetId])
 
   useEffect(() => {
     if (!selectedPetId) return
@@ -79,6 +114,10 @@ export function LostPetQrManagementPage() {
     setHasConsented(false)
     setError('')
     setNotice('')
+    setPhotoFile(null)
+    setPhotoPreviewUrl('')
+    setStoredPhotoUrl('')
+    setPhotoError('')
 
     getLostPetQrProfile(selectedPetId, controller.signal)
       .then((nextProfile) => {
@@ -124,6 +163,8 @@ export function LostPetQrManagementPage() {
   const petDetails = [speciesLabel[publicInfo.species], publicInfo.breed?.trim()]
     .filter(Boolean)
     .join(' · ')
+  const fallbackPhotoUrl = profile?.customPhoto ? '' : profile?.photoUrl || pet?.imageUrl
+  const publicPhotoUrl = photoPreviewUrl || storedPhotoUrl || getApiResourceUrl(fallbackPhotoUrl)
 
   const runAction = async (
     actionName: string,
@@ -172,6 +213,106 @@ export function LostPetQrManagementPage() {
       setIsEditingVisibility(false)
     } catch (saveError) {
       setError(getApiErrorMessage(saveError, 'QR 공개 범위를 저장하지 못했습니다.'))
+    } finally {
+      setBusyAction('')
+    }
+  }
+
+  const handlePhotoChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+    if (!file || !selectedPetId || busyAction) return
+
+    if (file.size > 5 * 1024 * 1024) {
+      setPhotoError('사진은 5MB 이하만 등록할 수 있어요.')
+      return
+    }
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+      setPhotoError('JPG, PNG, WEBP 형식의 이미지만 등록할 수 있어요.')
+      return
+    }
+
+    const reader = new FileReader()
+    reader.addEventListener('load', () => {
+      setPhotoPreviewUrl(typeof reader.result === 'string' ? reader.result : '')
+    })
+    reader.readAsDataURL(file)
+    setPhotoFile(file)
+    setPhotoError('')
+    setNotice(profile ? '' : '선택한 사진은 QR을 생성할 때 함께 저장됩니다.')
+
+    if (!profile) return
+
+    setBusyAction('photo')
+    uploadLostPetQrPhoto(selectedPetId, file)
+      .then((nextProfile) => {
+        setProfile(nextProfile)
+        setPhotoFile(null)
+        setPhotoPreviewUrl('')
+        setNotice('공개 화면 사진을 저장했습니다.')
+      })
+      .catch((uploadError: unknown) => {
+        setPhotoFile(null)
+        setPhotoPreviewUrl('')
+        setPhotoError(getApiErrorMessage(uploadError, '사진을 저장하지 못했습니다.'))
+      })
+      .finally(() => setBusyAction(''))
+  }
+
+  const handleRemovePhoto = async () => {
+    if (!selectedPetId || busyAction) return
+    if (photoFile) {
+      setPhotoFile(null)
+      setPhotoPreviewUrl('')
+      setPhotoError('')
+      setNotice('선택한 사진을 취소했습니다.')
+      return
+    }
+    if (!profile?.customPhoto) return
+
+    setBusyAction('photo-delete')
+    setPhotoError('')
+    try {
+      const nextProfile = await deleteLostPetQrPhoto(selectedPetId)
+      setProfile(nextProfile)
+      setNotice(nextProfile.photoUrl
+        ? '등록 사진을 삭제하고 프로필 사진으로 변경했습니다.'
+        : '등록 사진을 삭제했습니다.')
+    } catch (deleteError) {
+      setPhotoError(getApiErrorMessage(deleteError, '사진을 삭제하지 못했습니다.'))
+    } finally {
+      setBusyAction('')
+    }
+  }
+
+  const handleCreate = async () => {
+    if (!selectedPetId || busyAction) return
+    setBusyAction('create')
+    setError('')
+    setPhotoError('')
+    setNotice('')
+
+    try {
+      let nextProfile = await createLostPetQrProfile(selectedPetId, visibility)
+      setProfile(nextProfile)
+      setVisibility(getVisibility(nextProfile))
+
+      if (photoFile) {
+        try {
+          nextProfile = await uploadLostPetQrPhoto(selectedPetId, photoFile)
+          setProfile(nextProfile)
+          setPhotoFile(null)
+          setPhotoPreviewUrl('')
+        } catch (uploadError) {
+          setPhotoFile(null)
+          setPhotoPreviewUrl('')
+          setPhotoError(`QR은 생성했지만 ${getApiErrorMessage(uploadError, '사진을 저장하지 못했습니다.')}`)
+        }
+      }
+
+      setNotice('실종 대비 QR을 생성했습니다.')
+    } catch (createError) {
+      setError(getApiErrorMessage(createError, 'QR을 생성하지 못했습니다.'))
     } finally {
       setBusyAction('')
     }
@@ -299,12 +440,46 @@ export function LostPetQrManagementPage() {
           </div>
 
           <div className={styles.publicHero}>
-            <div className={styles.petMark} aria-hidden="true">{getPetEmoji(publicInfo.species)}</div>
+            <div className={styles.petMark}>
+              {publicPhotoUrl
+                ? <img src={publicPhotoUrl} alt={`${publicInfo.petName} 공개 화면 미리보기`} />
+                : <span aria-hidden="true">{getPetEmoji(publicInfo.species)}</span>}
+            </div>
             <div>
               <small>{petDetails}</small>
               <strong>{publicInfo.petName}</strong>
             </div>
+            <div className={styles.photoActions}>
+              <label className={styles.photoButton}>
+                {busyAction === 'photo'
+                  ? '사진 저장 중...'
+                  : photoFile || profile?.customPhoto
+                    ? '사진 변경'
+                    : '사진 등록'}
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  disabled={profile === undefined || Boolean(busyAction)}
+                  onChange={handlePhotoChange}
+                />
+              </label>
+              {(photoFile || profile?.customPhoto) && (
+                <button
+                  type="button"
+                  disabled={Boolean(busyAction)}
+                  onClick={() => void handleRemovePhoto()}
+                >
+                  {busyAction === 'photo-delete'
+                    ? '삭제 중...'
+                    : photoFile
+                      ? '선택 취소'
+                      : '등록 사진 삭제'}
+                </button>
+              )}
+            </div>
           </div>
+          <p className={styles.photoHelp}>등록 사진이 없으면 반려동물 프로필 사진이 공개 화면에 표시됩니다.</p>
+          {photoError && <p className={styles.photoError} role="alert">{photoError}</p>}
 
           <dl className={styles.infoList}>
             <div><dt>보호자 이름</dt><dd>{publicInfo.guardianName || '미등록'}</dd></div>
@@ -423,7 +598,7 @@ export function LostPetQrManagementPage() {
               <div className={styles.subActions}>
                 <button type="button" onClick={() => void handleCopy()}>주소 복사</button>
                 <a href={previewUrl} target="_blank" rel="noreferrer">
-                  {import.meta.env.DEV ? '이 PC에서 미리보기' : '공개 화면 미리보기'}
+                  QR 화면 미리보기
                 </a>
               </div>
               <div className={styles.securityActions}>
@@ -459,11 +634,7 @@ export function LostPetQrManagementPage() {
               <button
                 type="button"
                 disabled={!hasConsented || !publicInfo.guardianPhone || Boolean(busyAction)}
-                onClick={() => void runAction(
-                  'create',
-                  () => createLostPetQrProfile(selectedPetId!, visibility),
-                  '실종 대비 QR을 생성했습니다.',
-                )}
+                onClick={() => void handleCreate()}
               >
                 {busyAction === 'create' ? 'QR 생성 중...' : '실종 대비 QR 생성'}
               </button>

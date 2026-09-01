@@ -64,7 +64,7 @@ type PendingDiaryNavigation =
 
 export function HealthDiaryPage() {
   const navigate = useNavigate()
-  const [searchParams] = useSearchParams()
+  const [searchParams, setSearchParams] = useSearchParams()
   const { pets, selectedPet, routePetMissing } = useRoutePet()
   const today = useMemo(() => new Date(), [])
   const todayKey = toDateKey(today)
@@ -84,7 +84,7 @@ export function HealthDiaryPage() {
   const [isEditorDiscardOpen, setIsEditorDiscardOpen] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
-  const [isDiaryLoading, setIsDiaryLoading] = useState(false)
+  const [isDiaryLoading, setIsDiaryLoading] = useState(true)
   const [diaryError, setDiaryError] = useState('')
   const [diaryReloadKey, setDiaryReloadKey] = useState(0)
   const [questionnaires, setQuestionnaires] = useState<QuestionnaireResponse[]>([])
@@ -141,6 +141,19 @@ export function HealthDiaryPage() {
   useEffect(() => {
     setSaveMessage('')
   }, [selectedDate])
+
+  useEffect(() => {
+    if (searchParams.get('edit') !== 'true' || isDiaryLoading || diaryError || isEditorOpen) return
+
+    setDraftStatus(selectedEntry?.status ?? '')
+    setDraftNote(selectedEntry?.note ?? '')
+    setSaveMessage('')
+    setIsEditorOpen(true)
+
+    const nextSearchParams = new URLSearchParams(searchParams)
+    nextSearchParams.delete('edit')
+    setSearchParams(nextSearchParams, { replace: true })
+  }, [diaryError, isDiaryLoading, isEditorOpen, searchParams, selectedEntry, setSearchParams])
 
   useEffect(() => {
     const handleBeforeUnload = (event: BeforeUnloadEvent) => {

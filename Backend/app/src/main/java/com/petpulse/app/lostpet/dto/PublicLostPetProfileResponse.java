@@ -9,5 +9,6 @@ public record PublicLostPetProfileResponse(
         String petName,
         String species,
         String breed,
-        String medicalHistory) {
+        String medicalHistory,
+        String photoUrl) {
 }

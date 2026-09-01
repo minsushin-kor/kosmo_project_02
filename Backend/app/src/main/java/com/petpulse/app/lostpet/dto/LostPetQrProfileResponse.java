@@ -9,6 +9,8 @@ public record LostPetQrProfileResponse(
         String species,
         String breed,
         String medicalHistory,
+        String photoUrl,
+        boolean customPhoto,
         boolean showGuardianName,
         boolean showPetDetails,
         boolean showMedicalHistory) {
