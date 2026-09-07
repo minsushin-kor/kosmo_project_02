@@ -7,5 +7,6 @@ public record AiExplainPredictionRequest(
         double abnormalProbability,
         String primaryRiskFactor,
         int symptomDurationDays,
-        String additionalSymptoms) {
+        String additionalSymptoms,
+        String petName) {
 }

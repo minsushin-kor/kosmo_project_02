@@ -93,7 +93,8 @@ public class HealthPredictionService {
                                 aiResponse.abnormalProbability(),
                                 aiResponse.primaryRiskFactor(),
                                 questionnaire.getSymptomDurationDays(),
-                                questionnaire.getAdditionalSymptoms());
+                                questionnaire.getAdditionalSymptoms(),
+                                pet.getPetName());
 
                 AiExplainPredictionResponse explainResponse = fastApiHealthPredictionClient
                                 .explainPrediction(explainRequest);

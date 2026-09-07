@@ -242,6 +242,7 @@ class HealthRiskPredictResponse(BaseModel):
 
 # --- 2) /ai/explain-prediction 요청/응답 스키마 ---
 class ExplainPredictionRequest(BaseModel):
+    petName: Optional[str] = Field(None, examples=["초코"], description="반려동물 이름")
     species: str = Field("DOG", examples=["DOG"])
     age: int = Field(3, examples=[7])
     riskGrade: str = Field("CAUTION", examples=["CAUTION"])
@@ -249,6 +250,7 @@ class ExplainPredictionRequest(BaseModel):
     primaryRiskFactor: str = Field("체온 이상 및 구토", examples=["체온 이상 및 구토"])
     symptomDurationDays: int = Field(3, examples=[3])
     additionalSymptoms: Optional[str] = Field(None, examples=["날씨가 더워진 후 사료를 잘 안 먹어요."])
+
 
 
 class ExplainPredictionResponse(BaseModel):
@@ -646,6 +648,23 @@ def predict_health_risk(req: HealthRiskPredictRequest):
     tags=["Generative AI"]
 )
 def explain_prediction(req: ExplainPredictionRequest):
+    # 호칭 생성: 이름이 있으면 이름 우선, 없으면 "3살 강아지 아이" 형태
+    species_kor = "강아지" if req.species == "DOG" else "고양이" if req.species == "CAT" else req.species
+    pet_display = req.petName if req.petName else f"{req.age}살 {species_kor} 아이"
+
+    # ----------------------------------------------------------------
+    # 0. 정상 등급(NORMAL)인 경우 즉시 정상 웰니스 가이드 반환 (응급 RAG 오매칭 방지)
+    # ----------------------------------------------------------------
+    if req.riskGrade == "NORMAL" or req.primaryRiskFactor == "이상 없음(정상)":
+        return ExplainPredictionResponse(
+            explanation=f"{pet_display}의 현재 생체 수치(체온, 심박수, 호흡수)와 일상 관찰 상태가 모두 안정적인 정상 범위에 있습니다. 특별한 이상 징후는 감지되지 않았습니다.",
+            checkpoints=[
+                "체온 및 수분 섭취 상태가 양호한지 정기적으로 확인해 주세요.",
+                "평소의 건강한 식욕과 활동량을 유지하는지 지속적으로 살펴봐 주세요."
+            ],
+            advice="현재 건강 상태가 매우 양호합니다. 지금처럼 깨끗한 음수 환경과 규칙적인 생활 관리를 유지해 주세요."
+        )
+
     # ----------------------------------------------------------------
     # 1. RAG 벡터 검색 (primaryRiskFactor + 보호자 소견을 자연어 쿼리로)
     # ----------------------------------------------------------------
@@ -684,7 +703,7 @@ def explain_prediction(req: ExplainPredictionRequest):
             prompt = f"""너는 다정하고 전문적인 반려동물 웰니스 케어 매니저야.
 아래 수의학 참고 정보({rag_source})를 바탕으로, 보호자에게 증상의 일상적·환경적 원인 2~3가지를 친절하게 설명해줘.
 
-[아이 정보] 종: {req.species}, 나이: {req.age}세, 증상 지속일: {req.symptomDurationDays}일
+[아이 정보] 이름: {req.petName or '아이'}, 종: {species_kor}, 나이: {req.age}세, 증상 지속일: {req.symptomDurationDays}일
 [ML 위험 분석] 위험 등급: {req.riskGrade}, 주요 위험 요인: {req.primaryRiskFactor}
 [보호자 추가 소견]: {req.additionalSymptoms or '없음'}
 
@@ -693,8 +712,9 @@ def explain_prediction(req: ExplainPredictionRequest):
 
 답변 작성 규칙:
 1. 특정 질병명(췌장염, 파보 등)이나 약품 처방을 절대 언급하지 말 것.
-2. 보호자가 가정에서 점검할 수 있는 환경적·생리적 원인 위주로 3문장 이내로 다정하게 작성할 것.
-3. 참고 문서 번호([수의학 참고문서 N])를 직접 언급하지 말 것."""
+2. 설명할 때 'DOG'나 'CAT' 같은 영문 코드 대신 아이의 이름({req.petName or '아이'})을 사용하여 친근하게 부를 것.
+3. 보호자가 가정에서 점검할 수 있는 환경적·생리적 원인 위주로 3문장 이내로 다정하게 작성할 것.
+4. 참고 문서 번호([수의학 참고문서 N])를 직접 언급하지 말 것."""
 
             response = gemini_client.models.generate_content(
                 model=LLM_MODEL,
@@ -719,13 +739,13 @@ def explain_prediction(req: ExplainPredictionRequest):
         # RAG 검색된 첫 번째 문서 앞부분을 설명에 삽입
         rag_hint = rag_results["documents"][0][:150].rstrip()
         explanation_text = (
-            f"{req.age}살 {req.species} 아이에게서 [{req.primaryRiskFactor}] 징후가 감지되어 주의가 필요합니다{symptom_context}. "
+            f"{pet_display}에게서 [{req.primaryRiskFactor}] 징후가 감지되어 주의가 필요합니다{symptom_context}. "
             f"{rag_hint}... "
             f"가정 내 환경과 수분 섭취 상태를 우선 점검해 주시기 바랍니다."
         )
     else:
         explanation_text = (
-            f"{req.age}살 {req.species} 아이에게서 [{req.primaryRiskFactor}] 징후가 감지되어 주의 깊은 관찰이 필요한 상태입니다{symptom_context}. "
+            f"{pet_display}에게서 [{req.primaryRiskFactor}] 징후가 감지되어 주의 깊은 관찰이 필요한 상태입니다{symptom_context}. "
             f"갑작스러운 환경 변화, 사료나 간식 교체, 실내 적정 온도 이탈, 또는 일시적인 스트레스나 기력 저하가 원인일 수 있습니다. "
             f"질병을 단정하기보다는 가정 내 환경과 수분 섭취 상태를 우선 점검해 주시기 바랍니다."
         )

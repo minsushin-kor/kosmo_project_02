@@ -37,3 +37,7 @@ out/
 .vscode/
 
 .env
+
+# Local run scripts
+run-local.ps1
+*.local.ps1

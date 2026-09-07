@@ -144,3 +144,8 @@ uploads/
 *.backup
 *.tmp
 *.temp
+
+# 로컬 개발용 스크립트 및 환경설정
+run-local.ps1
+*.local.ps1
+
