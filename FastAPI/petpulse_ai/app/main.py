@@ -71,8 +71,9 @@ def create_gemini_client():
         return None
     return genai.Client(api_key=api_key)
 
-# 환경변수에서 LLM 모델명 로드 (기본값: gemini-3.6-flash)
-LLM_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.6-flash")
+# 환경변수에서 LLM 모델명 로드 (기본값: 빠르고 가벼운 gemini-flash-lite-latest)
+LLM_MODEL = os.getenv("GEMINI_MODEL", "gemini-flash-lite-latest")
+FALLBACK_LLM_MODEL = "gemini-flash-latest"
 
 DEFAULT_CORS_ALLOWED_ORIGINS = "http://localhost:5173,http://127.0.0.1:5173"
 
@@ -716,10 +717,18 @@ def explain_prediction(req: ExplainPredictionRequest):
 3. 보호자가 가정에서 점검할 수 있는 환경적·생리적 원인 위주로 3문장 이내로 다정하게 작성할 것.
 4. 참고 문서 번호([수의학 참고문서 N])를 직접 언급하지 말 것."""
 
-            response = gemini_client.models.generate_content(
-                model=LLM_MODEL,
-                contents=prompt,
-            )
+            try:
+                response = gemini_client.models.generate_content(
+                    model=LLM_MODEL,
+                    contents=prompt,
+                )
+            except Exception as primary_err:
+                print(f"⚠️ explain_prediction 1차 모델 실패, 백업 모델({FALLBACK_LLM_MODEL}) 시도: {primary_err}")
+                response = gemini_client.models.generate_content(
+                    model=FALLBACK_LLM_MODEL,
+                    contents=prompt,
+                )
+
             llm_text = response.text.strip()
             return ExplainPredictionResponse(
                 explanation=llm_text,
@@ -728,6 +737,7 @@ def explain_prediction(req: ExplainPredictionRequest):
             )
         except Exception as e:
             print(f"⚠️ Gemini API 호출 실패 (스마트 템플릿 사용): {e}")
+
 
     # ----------------------------------------------------------------
     # 4. LLM 미연동 시 스마트 템플릿 Fallback
@@ -822,10 +832,18 @@ def generate_weekly_report(req: WeeklyReportRequest):
 2. 진정성이 느껴지는 웰니스 관리 조언을 담을 것.
 3. 미입력 항목을 정상 수치로 간주하거나 임의의 수치로 추정하지 말 것.
 """
-            response = gemini_client.models.generate_content(
-                model=LLM_MODEL,
-                contents=prompt,
-            )
+            try:
+                response = gemini_client.models.generate_content(
+                    model=LLM_MODEL,
+                    contents=prompt,
+                )
+            except Exception as primary_err:
+                print(f"⚠️ weekly_report 1차 모델 실패, 백업 모델({FALLBACK_LLM_MODEL}) 시도: {primary_err}")
+                response = gemini_client.models.generate_content(
+                    model=FALLBACK_LLM_MODEL,
+                    contents=prompt,
+                )
+
             report_content = response.text.strip()
 
             return WeeklyReportResponse(
@@ -929,10 +947,18 @@ def recommend_food(req: FoodRecommendRequest):
   "vetNote": "수의학적 관점에서의 모니터링 조언 및 내원 안내 2~3문장"
 }}
 """
-            response = gemini_client.models.generate_content(
-                model=LLM_MODEL,
-                contents=prompt,
-            )
+            try:
+                response = gemini_client.models.generate_content(
+                    model=LLM_MODEL,
+                    contents=prompt,
+                )
+            except Exception as primary_err:
+                print(f"⚠️ recommend_food 1차 모델 실패, 백업 모델({FALLBACK_LLM_MODEL}) 시도: {primary_err}")
+                response = gemini_client.models.generate_content(
+                    model=FALLBACK_LLM_MODEL,
+                    contents=prompt,
+                )
+
             raw_text = response.text.strip()
 
             # JSON 코드블록(```json ... ```) 제거 처리
@@ -1039,21 +1065,35 @@ async def _stream_chat_response(
 3. 3문단 이내로 친근하게 작성할 것.
 4. 증상이 24시간 이상 지속되는 경우 수의사 방문 권유 문구를 자연스럽게 포함할 것."""
 
-            response = gemini_client.models.generate_content_stream(
-                model=LLM_MODEL,
-                contents=prompt,
-            )
-
-            # 토큰 단위로 SSE data 전송
-            for chunk in response:
-                if chunk.text:
-                    token = chunk.text
-                    yield f"data: {json.dumps({'type': 'token', 'content': token}, ensure_ascii=False)}\n\n"
-                    await asyncio.sleep(0)   # 이벤트 루프 양보
+            try:
+                response = gemini_client.models.generate_content_stream(
+                    model=LLM_MODEL,
+                    contents=prompt,
+                )
+                for chunk in response:
+                    if chunk.text:
+                        token = chunk.text
+                        yield f"data: {json.dumps({'type': 'token', 'content': token}, ensure_ascii=False)}\n\n"
+                        await asyncio.sleep(0)
+            except Exception as primary_err:
+                print(f"⚠️ 1차 LLM ({LLM_MODEL}) 실패, 백업 모델({FALLBACK_LLM_MODEL})로 재시도: {primary_err}")
+                try:
+                    response_fallback = gemini_client.models.generate_content_stream(
+                        model=FALLBACK_LLM_MODEL,
+                        contents=prompt,
+                    )
+                    for chunk in response_fallback:
+                        if chunk.text:
+                            token = chunk.text
+                            yield f"data: {json.dumps({'type': 'token', 'content': token}, ensure_ascii=False)}\n\n"
+                            await asyncio.sleep(0)
+                except Exception as backup_err:
+                    print(f"⚠️ 백업 LLM 실패 (템플릿 Fallback 사용): {backup_err}")
+                    fallback = _build_rag_fallback(message, rag_results)
+                    yield f"data: {json.dumps({'type': 'token', 'content': fallback}, ensure_ascii=False)}\n\n"
 
         except Exception as e:
-            print(f"⚠️ SSE 스트리밍 오류 (Fallback 사용): {e}")
-            # 스트리밍 실패 시 Fallback 템플릿
+            print(f"⚠️ SSE 스트리밍 전체 오류 (Fallback 사용): {e}")
             fallback = _build_rag_fallback(message, rag_results)
             yield f"data: {json.dumps({'type': 'token', 'content': fallback}, ensure_ascii=False)}\n\n"
 
@@ -1069,13 +1109,22 @@ async def _stream_chat_response(
 def _build_rag_fallback(message: str, rag_results: Optional[dict]) -> str:
     """
     Gemini 미연동 또는 스트리밍 실패 시 RAG 문서 요약으로 답변을 대체합니다.
+    질문 키워드(고열/체온 등)와 가장 관련 있는 문서를 지능적으로 우선 선별합니다.
     """
     if rag_results and rag_results["documents"]:
-        top_doc = rag_results["documents"][0][:300].rstrip()
+        # 질문에 체온/고열 관련 단어가 있다면 저체온증보다 고열/열사병 문서 우선
+        selected_doc = rag_results["documents"][0]
+        if any(w in message for w in ["체온", "열", "39", "40", "헥헥"]):
+            for doc in rag_results["documents"]:
+                if "고열" in doc or "열사병" in doc or "미열" in doc:
+                    selected_doc = doc
+                    break
+
+        top_doc = selected_doc[:300].rstrip()
         return (
-            f"질문하신 내용과 관련하여 \n\n"
+            f"질문하신 내용과 관련하여 수의학 가이드라인을 안내해 드립니다:\n\n"
             f"{top_doc}...\n\n"
-            f"증상이 지속되거나 심해지면 가까운 동물병원에 방문하시는 것을 담당 수의사와 상담해주세요."
+            f"증상이 지속되거나 심해지면 가까운 동물병원에 방문하셔서 담당 수의사와 상담해 주시기 바랍니다."
         )
     return (
         f"'{message}'에 대한 수의학 정보를 찾지 못했습니다. "
