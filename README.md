@@ -1,11 +1,11 @@
-# PetPulse
+# PatPet
 
 반려동물 생체정보 분석을 통한 질병 예측 팀프로젝트입니다.
 
 ## 프로젝트 구조
 
 ```text
-PetPulse
+PatPet
 ├─ Backend
 │  └─ app
 ├─ FastAPI
